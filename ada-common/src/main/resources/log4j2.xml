@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="OFF" monitorInterval="600">
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="[%d{HH:mm:ss:SSS}] [%p] - %m%n"/>
+        </Console>
+        <File name="tmp" fileName="/tmp/ada/log/log.out" append="false">
+            <PatternLayout pattern="[%d{HH:mm:ss:SSS}] [%p] - %m%n"/>
+        </File>
+        <RollingRandomAccessFile name="all" fileName="/tmp/ada/log/ada.log" filePattern="/tmp/ada/log/ada-%d{yyyy-MM-dd}_%i.log">
+            <PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%p] - %m%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="20"/>
+        </RollingRandomAccessFile>
+        <Async name="Async">
+            <AppenderRef ref="all"/>
+        </Async>
+    </Appenders>
+    <Loggers>
+        <Root level="DEBUG">
+            <Appender-Ref ref="console"/>
+            <Appender-Ref ref="tmp"/>
+            <Appender-Ref ref="all"/>
+        </Root>
+    </Loggers>
+</Configuration>
