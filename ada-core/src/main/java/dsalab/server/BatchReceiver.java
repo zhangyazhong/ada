@@ -58,8 +58,8 @@ public class BatchReceiver {
         try {
             dataInputStream = new DataInputStream(socket.getInputStream());
             File file = new File(tmpDataLocation);
-            if (!file.exists()){
-                file.mkdirs();
+            if (!file.getParentFile().exists()){
+                file.getParentFile().mkdirs();
             }
             fileOutputStream = new FileOutputStream(file);
             inputByte = new byte[1024];

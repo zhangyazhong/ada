@@ -38,6 +38,10 @@ public class BatchSender {
 
     public void start() {
         service = Executors.newScheduledThreadPool(10);
+
+        AdaLogger.info(this, String.format("Scheduler will be started in %ds with time interval %ds",
+                timeDelay, timeInterval));
+
         service.scheduleAtFixedRate(
                 () -> {
                     Batch batch = context.next();

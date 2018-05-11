@@ -36,7 +36,7 @@ public class HdfsDataSource extends DataSource {
         try {
             String source = context.get("data.source.path");
 
-            AdaLogger.debug(this, String.format("Source is from %s", source));
+            AdaLogger.info(this, String.format("Source is from %s", source));
 
             Matcher matcher = Pattern.compile("[^/]/[\\w]").matcher(source);
             if (matcher.find()) {

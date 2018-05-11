@@ -43,6 +43,10 @@ public class ConfigHandler {
     public static Properties create(String path, Map<String, String> params) {
         Properties properties = new Properties();
         try {
+            File file = new File(path);
+            if (!file.getParentFile().exists()) {
+                file.getParentFile().mkdirs();
+            }
             OutputStream fos = new FileOutputStream(path);
             properties.setProperty("self.location", path);
             params.forEach(properties::setProperty);

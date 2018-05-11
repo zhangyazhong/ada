@@ -12,7 +12,7 @@ public class DataSourceManager {
         String system = context.get("data.source.system").toLowerCase();
         switch (system) {
             case "hdfs":
-                AdaLogger.debug("[DataSourceManager] Build data source with HDFS system.");
+                AdaLogger.info("[DataSourceManager] Build data source with HDFS system.");
                 return HdfsDataSource.connect(context);
         }
         return null;
