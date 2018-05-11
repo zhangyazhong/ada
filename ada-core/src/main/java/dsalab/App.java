@@ -1,6 +1,6 @@
 package dsalab;
 
-import dsalab.context.ProducerContext;
+import dsalab.context.AdaContext;
 
 /**
  * Hello world!
@@ -8,7 +8,7 @@ import dsalab.context.ProducerContext;
  */
 public class App {
     public App() {
-        ProducerContext context = new ProducerContext();
+        AdaContext context = new AdaContext();
         context.start();
     }
 

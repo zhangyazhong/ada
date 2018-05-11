@@ -4,10 +4,11 @@
 
     <groupId>dsalab</groupId>
     <artifactId>ada</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>${ada.version}</version>
     <modules>
         <module>data-producer</module>
         <module>ada-common</module>
+        <module>ada-core</module>
     </modules>
     <packaging>pom</packaging>
 
@@ -24,6 +25,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <ada.version>1.0-SNAPSHOT</ada.version>
         <junit.version>4.12</junit.version>
         <scala.version>2.11.8</scala.version>
         <spark.version>2.2.1</spark.version>
@@ -81,7 +83,7 @@
 
             <dependency>
                 <groupId>dsalab</groupId>
-                <artifactId>common-utils</artifactId>
+                <artifactId>ada-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

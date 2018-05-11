@@ -7,10 +7,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>ada-common</artifactId>
+    <artifactId>ada-core</artifactId>
     <packaging>jar</packaging>
 
-    <name>common-utils</name>
+    <name>ada-core</name>
     <url>http://maven.apache.org</url>
 
     <properties>
@@ -23,8 +23,13 @@
             <artifactId>junit</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>dsalab</groupId>
+            <artifactId>ada-common</artifactId>
         </dependency>
     </dependencies>
 </project>

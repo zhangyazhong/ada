@@ -33,7 +33,7 @@
 
         <dependency>
             <groupId>dsalab</groupId>
-            <artifactId>common-utils</artifactId>
+            <artifactId>ada-common</artifactId>
         </dependency>
     </dependencies>
 </project>

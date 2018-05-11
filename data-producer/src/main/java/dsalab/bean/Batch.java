@@ -24,6 +24,10 @@ public class Batch {
         this.dataFile = dataFile;
     }
 
+    public int getId() {
+        return id;
+    }
+
     public File getDataFile() {
         return dataFile;
     }

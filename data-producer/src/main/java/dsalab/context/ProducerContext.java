@@ -1,11 +1,15 @@
 package dsalab.context;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import dsalab.engine.BatchEngine;
+import dsalab.bean.Batch;
+import dsalab.engine.BatchSender;
 import dsalab.source.DataSource;
+import dsalab.source.DataSourceManager;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -18,11 +22,15 @@ public class ProducerContext {
 
     private Map<String, String> configs;
     private DataSource dataSource;
-    private BatchEngine batchEngine;
+    private BatchSender batchSender;
+    private List<Batch> bufferBatches;
 
     public ProducerContext() {
         configs = Maps.newHashMap();
+        bufferBatches = Lists.newArrayList();
         updateConfigsFromPropertyFile(CONFIG_FILE);
+        dataSource = DataSourceManager.build(this);
+        batchSender = BatchSender.build(this);
     }
 
     private void updateConfigsFromPropertyFile(String configFile) {
@@ -49,5 +57,24 @@ public class ProducerContext {
 
     public String get(String key) {
         return configs.get(key);
+    }
+
+    public Batch next() {
+        bufferBatches.add(dataSource.next());
+        return bufferBatches.get(bufferBatches.size() - 1);
+    }
+
+    public Batch pop() {
+        Batch batch = bufferBatches.get(0);
+        bufferBatches.remove(0);
+        return batch;
+    }
+
+    public void mark() {
+        dataSource.mark();
+    }
+
+    public void start() {
+        batchSender.start();;
     }
 }

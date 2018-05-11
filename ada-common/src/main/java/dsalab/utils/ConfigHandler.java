@@ -9,6 +9,16 @@ import java.util.Properties;
  * @version 2018-05-10
  */
 public class ConfigHandler {
+    public static Properties load(InputStream inputStream) {
+        Properties properties = new Properties();
+        try {
+            properties.load(inputStream);
+        } catch (IOException e) {
+            AdaLogger.error(ConfigHandler.class, String.format("Load properties error at %s", inputStream.toString()));
+        }
+        return properties;
+    }
+
     public static Properties load(String path) {
         Properties properties = new Properties();
         try {
