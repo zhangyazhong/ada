@@ -109,11 +109,12 @@ public class HdfsDataSource extends DataSource {
                         }
                         OutputStream outputStream =
                                 new FileOutputStream(getContext().get("data.batch.tmp.folder") + (k - 1) + ".dat");
-
                         IOUtils.copyBytes(inputStream, outputStream, 1024, true);
 
                         AdaLogger.info(this, String.format("Copy %s to local is finished.",
                                 fileList.get(index + k).getName()));
+
+                        breakpoint.update(fileList.get(index + k).getName(), 0);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -123,7 +124,6 @@ public class HdfsDataSource extends DataSource {
                     files[k - 1] = new File(getContext().get("data.batch.tmp.folder") + (k - 1) + ".dat");
                 }
                 File file = FileHandler.merge(files, getContext().get("data.batch.location"));
-                breakpoint.update(files[files.length - 1].getName(), -1);
 
                 AdaLogger.info(this, "Update breakpoint to " + breakpoint.toString());
 

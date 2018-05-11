@@ -10,7 +10,7 @@ import java.nio.channels.FileChannel;
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class FileHandler {
     public static File merge(File[] files, String destPath) {
-        merge(files, destPath, true);
+        return merge(files, destPath, true);
     }
 
     public static File merge(File[] files, String destPath, boolean delete) {
