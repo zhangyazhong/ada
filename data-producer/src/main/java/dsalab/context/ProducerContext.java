@@ -71,7 +71,7 @@ public class ProducerContext {
     }
 
     public void mark() {
-        dataSource.mark();
+        dataSource.archive();
     }
 
     public void start() {

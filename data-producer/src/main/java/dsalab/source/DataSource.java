@@ -32,7 +32,7 @@ public abstract class DataSource {
 
     public abstract Batch next();
 
-    public void mark() {
+    public void archive() {
         String location = context.get("breakpoint.location");
         Properties properties = ConfigHandler.create(location, ImmutableMap.of(
                 "self.location", location,

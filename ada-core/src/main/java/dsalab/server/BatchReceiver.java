@@ -12,10 +12,12 @@ import java.net.Socket;
  * @version 2018-05-11
  */
 public class BatchReceiver {
+    private AdaContext context;
     private String tmpDataLocation;
     private int serverPort;
 
     private BatchReceiver(AdaContext context) {
+        this.context = context;
         tmpDataLocation = context.get("data.tmp.location");
         serverPort = Integer.parseInt(context.get("socket.server.port"));
     }
@@ -33,13 +35,14 @@ public class BatchReceiver {
             new Thread(() -> {
                 while (true) {
                     try {
-                        Socket socket = server.accept();
-
                         AdaLogger.info(this, "New batch arrived.");
 
+                        Socket socket = server.accept();
                         receive(socket);
 
                         AdaLogger.info(this, String.format("New batch received. Stored at %s", tmpDataLocation));
+
+                        context.afterOneBatch(tmpDataLocation);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -53,6 +56,7 @@ public class BatchReceiver {
     private void receive(Socket socket) {
         byte[] inputByte;
         int length;
+        long totalSize = 0L;
         DataInputStream dataInputStream = null;
         FileOutputStream fileOutputStream = null;
         try {
@@ -64,9 +68,13 @@ public class BatchReceiver {
             fileOutputStream = new FileOutputStream(file);
             inputByte = new byte[1024];
             while ((length = dataInputStream.read(inputByte, 0, inputByte.length)) > 0) {
+                totalSize += (long) length;
                 fileOutputStream.write(inputByte, 0, length);
                 fileOutputStream.flush();
             }
+
+            AdaLogger.info(this, String.format("Received size is %dMB.", totalSize / 1024L / 1024L));
+
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
