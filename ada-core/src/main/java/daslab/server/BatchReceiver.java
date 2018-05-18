@@ -35,9 +35,10 @@ public class BatchReceiver {
             new Thread(() -> {
                 while (true) {
                     try {
+                        Socket socket = server.accept();
+
                         AdaLogger.info(this, "New batch arrived.");
 
-                        Socket socket = server.accept();
                         receive(socket);
 
                         AdaLogger.info(this, String.format("New batch received. Stored at %s", tmpDataLocation));

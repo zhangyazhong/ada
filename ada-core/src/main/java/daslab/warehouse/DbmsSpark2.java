@@ -92,7 +92,7 @@ public class DbmsSpark2 {
 
         AdaLogger.info(this, "Loaded batch into data table");
 
-        query = String.format("TRUNCATE %s CASCADE", context.get("dbms.batch.table"));
+        query = String.format("TRUNCATE TABLE %s", context.get("dbms.batch.table"));
         execute(query);
         query = String.format("LOAD DATA LOCAL INPATH \"%s\" INTO TABLE %s",
                 file.getAbsolutePath(), context.get("dbms.batch.table"));
@@ -102,7 +102,7 @@ public class DbmsSpark2 {
 
         query = String.format("SELECT count(*) AS size FROM %s", context.get("dbms.batch.table"));
         int size = (int) context.getDbmsSpark2().execute(query).getResultAsLong(0, "size");
-        return new Batch(context.get("dbms.warehouse"), context.get("dbms.batch.table"), size);
+        return new Batch(context.get("dbms.default.database"), context.get("dbms.batch.table"), size);
     }
 
     public Dataset<Row> getResultSet() {

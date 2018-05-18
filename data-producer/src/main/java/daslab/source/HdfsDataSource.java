@@ -48,6 +48,7 @@ public class HdfsDataSource extends DataSource {
 
             conf = new Configuration();
             conf.set("fs.defaultFS", host);
+            conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
             fileList = Lists.newArrayList();
             fileSystem = FileSystem.get(conf);
             RemoteIterator<LocatedFileStatus> remoteIterator = fileSystem.listFiles(path, false);
