@@ -12,8 +12,8 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
 import java.io.File;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 /**
  * @author zyz
@@ -38,6 +38,7 @@ public class DbmsSpark2 {
                 .enableHiveSupport()
                 .config("spark.sql.warehouse.dir", context.get("dbms.warehouse.dir"))
                 .getOrCreate();
+        sparkSession.sparkContext().setLogLevel(context.get("spark.log.level"));
 
         AdaLogger.info(this, "Available databases: " +
                 StringUtils.join(execute("SHOW DATABASES").getResultSet().collectAsList().stream().map(row -> row.getString(0)).toArray(), ", "));
@@ -69,7 +70,7 @@ public class DbmsSpark2 {
         execute(String.format("DESC %s", tableName));
         AtomicInteger index = new AtomicInteger(0);
         TableSchema tableSchema = new TableSchema(context.get("dbms.default.database"), tableName);
-        df.foreach(row -> {
+        df.collectAsList().forEach(row -> {
             int columnNo = index.get();
             String columnName = row.getString(0);
             TableColumnType columnType = TableColumnType.getType(row.getString(1));
@@ -100,12 +101,16 @@ public class DbmsSpark2 {
         AdaLogger.info(this, "Loaded batch into batch table");
 
         query = String.format("SELECT count(*) AS size FROM %s", context.get("dbms.batch.table"));
-        int size = context.getDbmsSpark2().execute(query).getResultAsInt(0, "size");
+        int size = (int) context.getDbmsSpark2().execute(query).getResultAsLong(0, "size");
         return new Batch(context.get("dbms.warehouse"), context.get("dbms.batch.table"), size);
     }
 
     public Dataset<Row> getResultSet() {
         return df;
+    }
+
+    public List<Row> getResultList() {
+        return df.collectAsList();
     }
 
     public String getResultAsString(int rowNo, String col) {
@@ -114,6 +119,10 @@ public class DbmsSpark2 {
 
     public int getResultAsInt(int rowNo, String col) {
         return df.collectAsList().get(rowNo).getInt(df.schema().fieldIndex(col));
+    }
+
+    public long getResultAsLong(int rowNo, String col) {
+        return df.collectAsList().get(rowNo).getLong(df.schema().fieldIndex(col));
     }
 
     public double getResultAsDouble(int rowNo, String col) {

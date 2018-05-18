@@ -34,12 +34,14 @@ public class TableMeta {
         String sql = String.format("SELECT %s FROM %s.%s", metaClause,
                 tableSchema.getDbName(), tableSchema.getTableName());
         context.getDbmsSpark2().execute(sql);
-        cardinality = context.getDbmsSpark2().getResultAsInt(0, "count");
+        cardinality = (int) context.getDbmsSpark2().getResultAsLong(0, "count");
         for (TableColumn column : tableSchema.getColumns()) {
-            double var = context.getDbmsSpark2().getResultAsDouble(0, "var_pop_" + column.getColumnName());
-            double sum = context.getDbmsSpark2().getResultAsDouble(0, "sum_" + column.getColumnName());
-            MetaInfo metaInfo = MetaInfo.calc(column, var, cardinality, sum, errorBound, confidence);
-            tableMetaMap.put(column, metaInfo);
+            if (column.getColumnType().isInt() || column.getColumnType().isDouble()) {
+                double var = context.getDbmsSpark2().getResultAsDouble(0, "var_pop_" + column.getColumnName());
+                double sum = context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
+                MetaInfo metaInfo = MetaInfo.calc(column, var, cardinality, sum, errorBound, confidence);
+                tableMetaMap.put(column, metaInfo);
+            }
         }
     }
 
@@ -49,22 +51,24 @@ public class TableMeta {
         String sql = String.format("SELECT %s FROM %s.%s", metaClause,
                 batch.getDbName(), batch.getTableName());
         context.getDbmsSpark2().execute(sql);
-        int newCount = context.getDbmsSpark2().getResultAsInt(0, "count");
+        int newCount = batch.getSize();
 //        int totalCount = newCount + ((MetaInfo[]) tableMetaMap.values().toArray())[0].getD();
         int totalCount = newCount + cardinality;
         Map<TableColumn, MetaInfo> batchMetaMap = Maps.newHashMap();
         for (TableColumn column : tableSchema.getColumns()) {
-            double oldVar = tableMetaMap.get(column).getS2();
-            double oldSum = tableMetaMap.get(column).getSum();
-            double oldAvg = tableMetaMap.get(column).getAvg();
-            double newVar = context.getDbmsSpark2().getResultAsDouble(0, "var_pop_" + column.getColumnName());
-            double newSum = context.getDbmsSpark2().getResultAsDouble(0, "sum_" + column.getColumnName());
-            double newAvg = newSum / newCount;
-            double totalSum = newSum + oldSum;
-            double totalAvg = totalSum / totalCount;
-            double totalVar = (cardinality * (oldVar + (totalAvg - oldAvg) * (totalAvg - oldAvg))
-                    + newCount * (newVar + (totalAvg - newAvg) * (totalAvg - newAvg))) / totalCount;
-            batchMetaMap.put(column, MetaInfo.calc(column, totalVar, totalCount, totalSum, errorBound, confidence));
+            if (column.getColumnType().isInt() || column.getColumnType().isDouble()) {
+                double oldVar = tableMetaMap.get(column).getS2();
+                double oldSum = tableMetaMap.get(column).getSum();
+                double oldAvg = tableMetaMap.get(column).getAvg();
+                double newVar = context.getDbmsSpark2().getResultAsDouble(0, "var_pop_" + column.getColumnName());
+                double newSum = context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
+                double newAvg = newSum / newCount;
+                double totalSum = newSum + oldSum;
+                double totalAvg = totalSum / totalCount;
+                double totalVar = (cardinality * (oldVar + (totalAvg - oldAvg) * (totalAvg - oldAvg))
+                        + newCount * (newVar + (totalAvg - newAvg) * (totalAvg - newAvg))) / totalCount;
+                batchMetaMap.put(column, MetaInfo.calc(column, totalVar, totalCount, totalSum, errorBound, confidence));
+            }
         }
 
         List<TableColumn> illegalColumns = verify(batch, batchMetaMap);
@@ -134,14 +138,15 @@ public class TableMeta {
     }
 
     private String metaClause() {
-        StringBuilder selectClause = new StringBuilder(countClause("count"));
+        StringBuilder selectClause = new StringBuilder(countClause("count")).append(", ");
         for (TableColumn column : tableSchema.getColumns()) {
             if (column.getColumnType().isInt() || column.getColumnType().isDouble()) {
-                selectClause.append(varClause(column, "var_pop_" + column.getColumnName()))
-                        .append(sumClause(column, "sum_" + column.getColumnName()));
+                selectClause
+                        .append(varClause(column, "var_pop_" + column.getColumnName())).append(", ")
+                        .append(sumClause(column, "sum_" + column.getColumnName())).append(", ");
             }
         }
-        this.metaClause = selectClause.toString();
+        this.metaClause = StringUtils.substringBeforeLast(selectClause.toString(), ",");
         return this.metaClause;
     }
 
