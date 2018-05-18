@@ -2,13 +2,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>dsalab</groupId>
+    <groupId>daslab</groupId>
     <artifactId>ada</artifactId>
-    <version>${ada.version}</version>
+    <version>1.0-SNAPSHOT</version>
     <modules>
         <module>data-producer</module>
         <module>ada-common</module>
         <module>ada-core</module>
+        <module>ada-exp</module>
     </modules>
     <packaging>pom</packaging>
 
@@ -88,17 +89,17 @@
             </dependency>
 
             <dependency>
-                <groupId>dsalab</groupId>
+                <groupId>daslab</groupId>
                 <artifactId>ada-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>dsalab</groupId>
+                <groupId>daslab</groupId>
                 <artifactId>data-producer</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>dsalab</groupId>
+                <groupId>daslab</groupId>
                 <artifactId>ada-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -127,6 +128,24 @@
                             <goal>compile</goal>
                             <goal>testCompile</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptorRefs>
+                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                            </descriptorRefs>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
