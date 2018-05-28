@@ -34,6 +34,11 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
         </dependency>
+        <dependency>
+            <groupId>edu.umich</groupId>
+            <artifactId>verdict-core</artifactId>
+            <version>0.4.7</version>
+        </dependency>
 
         <dependency>
             <groupId>daslab</groupId>

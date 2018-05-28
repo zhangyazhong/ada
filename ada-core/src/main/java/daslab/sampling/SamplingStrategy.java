@@ -2,16 +2,20 @@ package daslab.sampling;
 
 import daslab.context.AdaContext;
 
-import java.util.Set;
-
 /**
  * @author zyz
  * @version 2018-05-15
  */
 public abstract class SamplingStrategy {
+    private AdaContext context;
 
-    public static Set<SamplingStrategy> chooseStrategies(AdaContext context) {
-        return null;
+    public SamplingStrategy(AdaContext context) {
+        this.context = context;
     }
+
+    public AdaContext getContext() {
+        return context;
+    }
+
     public abstract void run();
 }

@@ -20,8 +20,8 @@ public class DatabaseRestore implements RestoreModule {
         execute("DROP DATABASE wiki_ada CASCADE");
         execute("CREATE DATABASE wiki_ada");
         execute("USE wiki_ada");
-        execute("create table pagecounts(date_time int, project_name string, page_name string, page_count int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ','");
-        execute("create table pagecounts_batch(date_time int, project_name string, page_name string, page_count int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ','");
+        execute("create table pagecounts(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ','");
+        execute("create table pagecounts_batch(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ','");
         execute("LOAD DATA LOCAL INPATH '/home/hadoop/wiki/n_pagecounts-20160101-000000' INTO TABLE pagecounts");
 
         AdaLogger.info(this, "Restored database to initial status.");

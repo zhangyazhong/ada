@@ -1,5 +1,6 @@
 package daslab;
 
+import daslab.exp1.Exp1;
 import daslab.restore.RestoreModule;
 import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
@@ -15,6 +16,10 @@ public class App {
                 case "restore":
                     AdaLogger.info(this, "Ada Exp operation: RESTORE");
                     SystemRestore.restoreModules().forEach(RestoreModule::restore);
+                    break;
+                case "exp1":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 1");
+                    new Exp1().run();
                     break;
             }
         }
