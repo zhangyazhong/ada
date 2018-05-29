@@ -24,6 +24,15 @@
         </contributor>
     </contributors>
 
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <properties>
+                <server.host>10.141.212.124</server.host>
+            </properties>
+        </profile>
+    </profiles>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <ada.version>1.0-SNAPSHOT</ada.version>
@@ -87,6 +96,7 @@
                 <groupId>edu.umich</groupId>
                 <artifactId>verdict-core</artifactId>
                 <version>${verdict.version}</version>
+                <scope>provided</scope>
             </dependency>
 
             <dependency>
