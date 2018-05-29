@@ -55,6 +55,7 @@ public class Exp1 {
                 .appName("Ada Exp - Exp1")
                 .enableHiveSupport()
                 .config("spark.sql.warehouse.dir", "hdfs://master:9000/home/hadoop/spark/")
+                .config("spark.executor.memory", "4g")
                 .getOrCreate();
         sparkSession.sparkContext().setLogLevel("ERROR");
         try {
