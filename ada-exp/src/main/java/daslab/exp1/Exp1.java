@@ -197,7 +197,7 @@ public class Exp1 {
         for (int i = DAY_START + 1; i <= DAY_TOTAL; i++) {
             for (int j = 0; j < 24; j++) {
                 int day = j - 1 < 0 ? i - 1 : i;
-                int hour = j - 1 < 0 ? 23 : j -1;
+                int hour = j - 1 < 0 ? 23 : j - 1;
                 time = String.format("%02d%02d", day, hour);
                 accurateResults.put(time, runAccurate());
                 appendData();
@@ -209,7 +209,7 @@ public class Exp1 {
         for (int i = DAY_START + 1; i <= DAY_TOTAL; i++) {
             for (int j = 0; j < 24; j++) {
                 int day = j - 1 < 0 ? i - 1 : i;
-                int hour = j - 1 < 0 ? 23 : j -1;
+                int hour = j - 1 < 0 ? 23 : j - 1;
                 time = String.format("%02d%02d", day, hour);
                 performances.put(time, runEvaluate(time));
             }
