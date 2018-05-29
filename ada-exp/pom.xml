@@ -86,7 +86,7 @@
                         </goals>
                         <configuration>
                             <fromFile>${project.parent.basedir}/release/${artifactId}-${project.version}-jar-with-dependencies.jar</fromFile>
-                            <url>scp://hadoop@10.141.212.124/home/hadoop/ada</url>
+                            <url>scp://${server.user}@${server.host}${server.upload.path}</url>
                         </configuration>
                     </execution>
                 </executions>

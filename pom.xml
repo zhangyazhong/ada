@@ -27,8 +27,13 @@
     <profiles>
         <profile>
             <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <properties>
+                <server.user>hadoop</server.user>
                 <server.host>10.141.212.124</server.host>
+                <server.upload.path>/home/hadoop/ada</server.upload.path>
             </properties>
         </profile>
     </profiles>
