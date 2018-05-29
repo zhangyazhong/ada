@@ -12,7 +12,7 @@ import daslab.utils.AdaLogger;
 public class App {
     public App(String[] args) {
         if (args.length > 0) {
-            switch (args[0]) {
+            switch (args[0].toLowerCase()) {
                 case "restore":
                     AdaLogger.info(this, "Ada Exp operation: RESTORE");
                     SystemRestore.restoreModules().forEach(RestoreModule::restore);
