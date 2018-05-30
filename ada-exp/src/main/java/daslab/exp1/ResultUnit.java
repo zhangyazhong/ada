@@ -21,6 +21,10 @@ public class ResultUnit {
         this.errorBound = errorBound;
     }
 
+    public void resultPlus(double result) {
+        this.result = result + result;
+    }
+
     @Override
     public String toString() {
         return String.format("{time: %d, result: %.2f, bound: %.2f}", time, result, errorBound);

@@ -1,6 +1,7 @@
 package daslab;
 
 import daslab.exp1.Exp1;
+import daslab.exp1.Exp1Cluster;
 import daslab.restore.RestoreModule;
 import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
@@ -20,6 +21,14 @@ public class App {
                 case "exp1":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 1");
                     new Exp1().run();
+                    break;
+                case "exp1_cluster":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 1 on Lab Cluster");
+                    new Exp1Cluster().run();
+                    break;
+                case "exp1_accurate":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 1 only Accurate");
+                    new Exp1Cluster().run();
                     break;
             }
         }

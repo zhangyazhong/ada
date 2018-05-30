@@ -19,6 +19,7 @@ import java.util.Map;
  * @author zyz
  * @version 2018-05-28
  */
+@SuppressWarnings("Duplicates")
 public class Exp1 {
     private SparkSession sparkSession;
     private VerdictSpark2Context verdictSpark2Context;
@@ -55,6 +56,9 @@ public class Exp1 {
                 .appName("Ada Exp - Exp1")
                 .enableHiveSupport()
                 .config("spark.sql.warehouse.dir", "hdfs://master:9000/home/hadoop/spark/")
+                .config("spark.executor.memory", "12g")
+//                .config("spark.shuffle.service.enabled", true)
+//                .config("spark.dynamicAllocation.enabled", true)
                 .getOrCreate();
         sparkSession.sparkContext().setLogLevel("ERROR");
         try {
@@ -69,7 +73,7 @@ public class Exp1 {
     }
 
     private void initialize() {
-        execute("DROP DATABASE wiki_ada CASCADE");
+        execute("DROP DATABASE IF EXISTS wiki_ada CASCADE");
         execute("CREATE DATABASE wiki_ada");
         execute("USE wiki_ada");
         execute("CREATE EXTERNAL TABLE pagecounts(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION '/home/hadoop/spark/wiki_ada.db/pagecounts'");
@@ -195,70 +199,85 @@ public class Exp1 {
 
     private void save() {
         try {
-            FileWriter fileWriter1 = new FileWriter(new File(EXP1_SAVE_PATH));
+            FileWriter fileWriter = new FileWriter(new File(EXP1_SAVE_PATH));
             StringBuilder header = new StringBuilder("date");
             for (int i = 0; i < QUERIES.size(); i++) {
                 header.append(",q").append(i + 1);
             }
             header.append("\r\n");
-            fileWriter1.write(header.toString());
+            fileWriter.write(header.toString());
             performances.forEach((time, hits) -> {
                 try {
                     StringBuilder body = new StringBuilder(time);
                     for (int i = 0; i < QUERIES.size(); i++) {
-                        body.append(hits.get(i));
+                        body.append(",").append(hits.get(i));
                     }
                     body.append("\r\n");
-                    fileWriter1.write(body.toString());
+                    fileWriter.write(body.toString());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             });
-            FileWriter fileWriter2 = new FileWriter(new File(APPROXIMATE_SAVE_PATH));
-            header = new StringBuilder("sample");
-            for (int i = 0; i < QUERIES.size(); i++) {
-                header.append(",q").append(i + 1);
-            }
-            header.append("\r\n");
-            fileWriter2.write(header.toString());
-            approximateResults.forEach((no, hits) -> {
-                try {
-                    StringBuilder body = new StringBuilder(no);
-                    for (int i = 0; i < QUERIES.size(); i++) {
-                        body.append(hits.get(i));
-                    }
-                    body.append("\r\n");
-                    fileWriter2.write(body.toString());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
-            FileWriter fileWriter3 = new FileWriter(new File(ACCURATE_SAVE_PATH));
-            header = new StringBuilder("date");
-            for (int i = 0; i < QUERIES.size(); i++) {
-                header.append(",q").append(i + 1);
-            }
-            header.append("\r\n");
-            fileWriter3.write(header.toString());
-            accurateResults.forEach((time, hits) -> {
-                try {
-                    StringBuilder body = new StringBuilder(time);
-                    for (int i = 0; i < QUERIES.size(); i++) {
-                        body.append(hits.get(i));
-                    }
-                    body.append("\r\n");
-                    fileWriter3.write(body.toString());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
-            fileWriter1.close();
-            fileWriter2.close();
-            fileWriter3.close();
+            fileWriter.close();
+            saveApproximate();
+            saveAccurate();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
 
+    private void saveApproximate() {
+        try {
+            FileWriter fileWriter = new FileWriter(new File(APPROXIMATE_SAVE_PATH));
+            StringBuilder header = new StringBuilder("sample");
+            for (int i = 0; i < QUERIES.size(); i++) {
+                header.append(",q").append(i + 1);
+            }
+            header.append("\r\n");
+            fileWriter.write(header.toString());
+            approximateResults.forEach((no, results) -> {
+                try {
+                    StringBuilder body = new StringBuilder(no);
+                    for (int i = 0; i < QUERIES.size(); i++) {
+                        body.append(",").append(results.get(i).result);
+                    }
+                    body.append("\r\n");
+                    fileWriter.write(body.toString());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+            fileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveAccurate() {
+        try {
+            FileWriter fileWriter = new FileWriter(new File(ACCURATE_SAVE_PATH));
+            StringBuilder header = new StringBuilder("date");
+            for (int i = 0; i < QUERIES.size(); i++) {
+                header.append(",q").append(i + 1);
+            }
+            header.append("\r\n");
+            fileWriter.write(header.toString());
+            accurateResults.forEach((time, results) -> {
+                try {
+                    StringBuilder body = new StringBuilder(time);
+                    for (int i = 0; i < QUERIES.size(); i++) {
+                        body.append(",").append(results.get(i).result);
+                    }
+                    body.append("\r\n");
+                    fileWriter.write(body.toString());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+            fileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void run() {
@@ -274,7 +293,8 @@ public class Exp1 {
             }
             this.approximateResults.put(i, results);
         }
-
+        saveApproximate();
+/*
         String time;
         for (int i = DAY_START + 1; i <= DAY_TOTAL; i++) {
             for (int j = 0; j < 24; j++) {
@@ -292,6 +312,7 @@ public class Exp1 {
         }
         time = String.format("%02d%02d", DAY_TOTAL, 23);
         accurateResults.put(time, runAccurate(DAY_TOTAL * 24 + 24));
+        saveAccurate();
 
         for (int i = DAY_START + 1; i <= DAY_TOTAL; i++) {
             for (int j = 0; j < 24; j++) {
@@ -305,6 +326,7 @@ public class Exp1 {
         performances.put(time, runEvaluate(time));
 
         save();
+*/
     }
 
     public static void main(String[] args) {

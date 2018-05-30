@@ -36,6 +36,14 @@
                 <server.upload.path>/home/hadoop/ada</server.upload.path>
             </properties>
         </profile>
+        <profile>
+            <id>lab</id>
+            <properties>
+                <server.user>scidb</server.user>
+                <server.host>10.141.211.91</server.host>
+                <server.upload.path>/home/scidb/zyz</server.upload.path>
+            </properties>
+        </profile>
     </profiles>
 
     <properties>
