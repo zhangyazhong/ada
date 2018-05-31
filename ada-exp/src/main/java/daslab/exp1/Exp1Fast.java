@@ -43,7 +43,7 @@ public class Exp1Fast {
     public Exp1Fast() {
         sparkSession = SparkSession
                 .builder()
-                .appName("Ada Exp - Exp1")
+                .appName("Ada Exp - Exp1 Fast")
                 .enableHiveSupport()
                 .config("spark.sql.warehouse.dir", "hdfs://master:9000/home/hadoop/spark/")
                 .config("spark.executor.memory", "12g")

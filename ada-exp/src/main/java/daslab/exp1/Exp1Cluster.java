@@ -45,7 +45,7 @@ public class Exp1Cluster {
     public Exp1Cluster() {
         sparkSession = SparkSession
                 .builder()
-                .appName("Ada Exp - Exp1")
+                .appName("Ada Exp - Exp1 on Lab Cluster")
                 .enableHiveSupport()
                 .config("spark.sql.warehouse.dir", "hdfs://ubuntu1:9000/zyz/wiki/")
                 .config("spark.executor.memory", "16g")
