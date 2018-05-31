@@ -237,9 +237,9 @@ public class Exp1 {
             fileWriter.write(header.toString());
             approximateResults.forEach((no, results) -> {
                 try {
-                    StringBuilder body = new StringBuilder(no);
+                    StringBuilder body = new StringBuilder().append(no);
                     for (int i = 0; i < QUERIES.size(); i++) {
-                        body.append(",").append(results.get(i).result);
+                        body.append(",").append(results.get(i).result).append("/").append(results.get(i).errorBound);
                     }
                     body.append("\r\n");
                     fileWriter.write(body.toString());
