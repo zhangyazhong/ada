@@ -3,6 +3,7 @@ package daslab.exp1;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import daslab.utils.AdaLogger;
 import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -50,7 +51,7 @@ public class Exp1Fast {
 //                .config("spark.shuffle.service.enabled", true)
 //                .config("spark.dynamicAllocation.enabled", true)
                 .getOrCreate();
-//        sparkSession = SparkSession.builder().master("local[*]").appName("Ada Exp - Exp1").getOrCreate();
+//        sparkSession = S  parkSession.builder().master("local[*]").appName("Ada Exp - Exp1").getOrCreate();
         sparkSession.sparkContext().setLogLevel("ERROR");
         accurateResults = Maps.newLinkedHashMap();
     }
@@ -101,11 +102,11 @@ public class Exp1Fast {
     public void run() {
         try {
             for (int day = 1; day <= DAY_TOTAL; day++) {
-                for (int hour = 0; hour < 3; hour++) {
+                for (int hour = 0; hour < 24; hour++) {
                     Dataset<Row> batch = readBatch(day, hour);
                     String time = String.format("%02d%02d", day, hour);
                     String viewName = String.format("batch_%s", time);
-                    System.out.println(time + " finished");
+                    AdaLogger.debug(this, "Handling " + time + "'s batch.");
                     batch.createTempView(viewName);
                     List<ResultUnit> results = Lists.newArrayList();
                     for (String query : QUERIES) {
@@ -121,9 +122,10 @@ public class Exp1Fast {
                 previousResults.add(new ResultUnit(0, 0.0));
             }
             for (int day = 1; day <= DAY_TOTAL; day++) {
-                for (int hour = 0; hour < 3; hour++) {
+                for (int hour = 0; hour < 24; hour++) {
                     String time = String.format("%02d%02d", day, hour);
                     int hours = day * 24 + hour - 23;
+                    AdaLogger.debug(this, "Reducing " + time + "'s result.");
                     List<ResultUnit> singleResults = accurateResults.get(time);
                     List<ResultUnit> totalResults = Lists.newArrayList();
                     for (int i = 0; i < QUERIES.size(); i++) {
