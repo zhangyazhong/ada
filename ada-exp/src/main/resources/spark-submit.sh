@@ -22,5 +22,7 @@
 java -jar ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp1_collect
 
 
-# run exp2 module on spark cluster
-~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp2
+# run exp2 core module on spark cluster
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp2_core
+# run exp2 sender module on spark cluster
+java -jar ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp2_sender

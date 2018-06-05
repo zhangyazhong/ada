@@ -22,7 +22,7 @@ public class ResultUnit {
     }
 
     public void resultPlus(double result) {
-        this.result = result + result;
+        this.result = this.result + result;
     }
 
     @Override

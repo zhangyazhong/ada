@@ -4,7 +4,8 @@ import daslab.exp1.Exp1;
 import daslab.exp1.Exp1Cluster;
 import daslab.exp1.Exp1Collect;
 import daslab.exp1.Exp1Fast;
-import daslab.exp2.Exp2;
+import daslab.exp2.Exp2Core;
+import daslab.exp2.Exp2Sender;
 import daslab.restore.RestoreModule;
 import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
@@ -37,9 +38,13 @@ public class App {
                     AdaLogger.info(this, "Ada Exp operation: Experiment 1 Collecting Results");
                     new Exp1Collect().run();
                     break;
-                case "exp2":
-                    AdaLogger.info(this, "Ada Exp operation: Experiment 2");
-                    new Exp2().run();
+                case "exp2_core":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 2 Core");
+                    new Exp2Core().run();
+                    break;
+                case "exp2_sender":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 2 Sender");
+                    new Exp2Sender().run();
                     break;
             }
         }
