@@ -50,7 +50,7 @@
                     <outputDirectory>${project.parent.basedir}/release</outputDirectory>
                     <archive>
                         <manifest>
-                            <mainClass>daslab.App</mainClass>
+                            <mainClass>daslab.exp.App</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

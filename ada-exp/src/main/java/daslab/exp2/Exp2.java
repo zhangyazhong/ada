@@ -12,7 +12,6 @@ import daslab.utils.AdaLogger;
  */
 public class Exp2 {
     public Exp2() {
-
     }
 
     public void run() {
@@ -30,9 +29,7 @@ public class Exp2 {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
     }
-
 
     public static void main(String[] args) {
         Exp2 exp2 = new Exp2();
