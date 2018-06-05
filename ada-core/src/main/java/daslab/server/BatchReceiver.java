@@ -48,7 +48,7 @@ public class BatchReceiver {
                         e.printStackTrace();
                     }
                 }
-            }).run();
+            }).start();
         } catch (Exception e) {
             e.printStackTrace();
         }

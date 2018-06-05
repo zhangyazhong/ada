@@ -1,6 +1,8 @@
 package daslab.restore;
 
 import daslab.utils.AdaLogger;
+import edu.umich.verdict.VerdictSpark2Context;
+import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.spark.sql.SparkSession;
 
 public class DatabaseRestore implements RestoreModule {
@@ -30,6 +32,18 @@ public class DatabaseRestore implements RestoreModule {
         }
 
         AdaLogger.info(this, "Restored database to initial status.");
+
+        try {
+            VerdictSpark2Context verdictSpark2Context = new VerdictSpark2Context(sparkSession.sparkContext());
+            verdictSpark2Context.sql("DROP SAMPLES OF wiki_ada.pagecounts");
+            verdictSpark2Context.sql("CREATE 10% UNIFORM SAMPLE OF wiki_ada.pagecounts");
+        } catch (VerdictException e) {
+            e.printStackTrace();
+        }
+
+        AdaLogger.info(this, "Restored sample to initial status.");
+
+        sparkSession.close();
     }
 
     private void execute(String sql) {
