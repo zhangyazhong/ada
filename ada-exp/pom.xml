@@ -47,6 +47,14 @@
             <groupId>daslab</groupId>
             <artifactId>ada-common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>daslab</groupId>
+            <artifactId>data-producer</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>daslab</groupId>
+            <artifactId>ada-core</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

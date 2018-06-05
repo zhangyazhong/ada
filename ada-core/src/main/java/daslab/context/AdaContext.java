@@ -2,9 +2,11 @@ package daslab.context;
 
 import com.google.common.collect.Maps;
 import daslab.bean.Batch;
+import daslab.bean.Sampling;
 import daslab.inspector.TableMeta;
 import daslab.sampling.SamplingController;
 import daslab.server.BatchReceiver;
+import daslab.utils.AdaLogger;
 import daslab.utils.ConfigHandler;
 import daslab.warehouse.DbmsSpark2;
 
@@ -60,7 +62,12 @@ public class AdaContext {
 
     public void afterOneBatch(String batchLocation) {
         Batch batch = getDbmsSpark2().load(batchLocation);
-        tableMeta.refresh(batch);
+        Long startTime = System.currentTimeMillis();
+        Sampling strategy = tableMeta.refresh(batch);
+        Long finishTime = System.currentTimeMillis();
+        String samplingTime = String.format("%d:%02d.%03d", (finishTime - startTime) / 60000, ((finishTime - startTime) / 1000) % 60, (finishTime - startTime) % 1000);
+
+        AdaLogger.info(this, String.format("Batch(%d) [%s] sampling time cost: %s ", batch.getSize(), strategy.toString(), samplingTime));
     }
 
 //    public DbmsHive2 getDbmsHive2() {

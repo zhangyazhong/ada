@@ -37,6 +37,7 @@ public class DbmsSpark2 {
                 .appName("Ada Core")
                 .enableHiveSupport()
                 .config("spark.sql.warehouse.dir", context.get("dbms.warehouse.dir"))
+                .config("spark.executor.memory", "12g")
                 .getOrCreate();
         sparkSession.sparkContext().setLogLevel(context.get("spark.log.level"));
 
@@ -56,8 +57,12 @@ public class DbmsSpark2 {
         return dbmsSpark2;
     }
 
+    public SparkSession getSparkSession() {
+        return sparkSession;
+    }
+
     public DbmsSpark2 execute(String sql) {
-        AdaLogger.debug(this, "About to run: " + sql);
+        AdaLogger.debug(this, "About to update: " + sql);
         df = sparkSession.sql(sql);
         return this;
     }

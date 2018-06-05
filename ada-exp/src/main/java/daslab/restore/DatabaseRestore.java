@@ -12,6 +12,7 @@ public class DatabaseRestore implements RestoreModule {
                 .appName("Ada Exp - DatabaseRestore")
                 .enableHiveSupport()
                 .config("spark.sql.warehouse.dir", "hdfs://master:9000/home/hadoop/spark/")
+                .config("spark.executor.memory", "12g")
                 .getOrCreate();
         sparkSession.sparkContext().setLogLevel("ERROR");
     }
@@ -22,7 +23,11 @@ public class DatabaseRestore implements RestoreModule {
         execute("USE wiki_ada");
         execute("create table pagecounts(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ','");
         execute("create table pagecounts_batch(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ','");
-        execute("LOAD DATA LOCAL INPATH '/home/hadoop/wiki/n_pagecounts-20160101-000000' INTO TABLE pagecounts");
+        for (int day = 1; day <= 7; day++) {
+            for (int hour = 0; hour < 24; hour++) {
+                execute(String.format("LOAD DATA LOCAL INPATH '/home/hadoop/wiki/n_pagecounts-201601%02d-%02d0000' INTO TABLE pagecounts", day, hour));
+            }
+        }
 
         AdaLogger.info(this, "Restored database to initial status.");
     }

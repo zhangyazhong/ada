@@ -3,6 +3,7 @@ package daslab.inspector;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import daslab.bean.Batch;
+import daslab.bean.Sampling;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
 import org.apache.commons.lang.StringUtils;
@@ -45,7 +46,7 @@ public class TableMeta {
         }
     }
 
-    public void refresh(Batch batch) {
+    public Sampling refresh(Batch batch) {
         double errorBound = Double.parseDouble(context.get("query.error_bound"));
         double confidence = Double.parseDouble(context.get("query.confidence_internal_"));
         String sql = String.format("SELECT %s FROM %s.%s", metaClause,
@@ -72,17 +73,20 @@ public class TableMeta {
         }
 
         List<TableColumn> illegalColumns = verify(batch, batchMetaMap);
+        cardinality += newCount;
 
         if (illegalColumns.size() > 0) {
             AdaLogger.info(this, String.format("Columns need to be updated: %s.",
                     StringUtils.join(illegalColumns.stream().map(TableColumn::toString).toArray(), ", ")));
-
-            context.getSamplingController().run();
+            AdaLogger.info(this, "Use " + context.getSamplingController().getResamplingStrategy().strategyName() + " strategy to resample.");
+            context.getSamplingController().resample(batch);
+            return Sampling.RESAMPLE;
         } else {
             AdaLogger.info(this, "No column needs to be updated.");
+            AdaLogger.info(this, "Use " + context.getSamplingController().getSamplingStrategy().strategyName() + " strategy to update sample.");
+            context.getSamplingController().update(batch);
+            return Sampling.UPDATE;
         }
-
-        cardinality += newCount;
     }
 
     private List<TableColumn> verify(Batch batch, Map<TableColumn, MetaInfo> batchMetaMap) {
