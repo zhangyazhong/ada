@@ -34,6 +34,7 @@ public class Exp1 {
 
     private final static int SAMPLE_COUNT = 100;
     private final static String SAMPLE_RATIO = "10%";
+    /*
     private final static List<String> QUERIES = ImmutableList.of(
             "SELECT AVG(page_count) FROM pagecounts",
             "SELECT AVG(page_count) FROM pagecounts WHERE page_size>80000",
@@ -44,16 +45,27 @@ public class Exp1 {
             "SELECT COUNT(page_count) FROM pagecounts WHERE project_name='aa'",
             "SELECT COUNT(page_count) FROM pagecounts WHERE project_name='kk'"
     );
+    */
+    private final static List<String> QUERIES = ImmutableList.of(
+            "SELECT SUM(page_count) FROM pagecounts",
+            "SELECT SUM(page_count) FROM pagecounts WHERE page_size>80000",
+            "SELECT SUM(page_count) FROM pagecounts WHERE project_name='aa'",
+            "SELECT SUM(page_count) FROM pagecounts WHERE project_name='kk'",
+            "SELECT STDDEV_POP(page_count) FROM pagecounts",
+            "SELECT STDDEV_POP(page_count) FROM pagecounts WHERE page_size>80000",
+            "SELECT STDDEV_POP(page_count) FROM pagecounts WHERE project_name='aa'",
+            "SELECT STDDEV_POP(page_count) FROM pagecounts WHERE project_name='kk'"
+    );
     private final static int DAY_START = 7;
     private final static int DAY_TOTAL = 21;
     private final static String EXP1_SAVE_PATH = "/tmp/ada/exp/exp1.csv";
-    private final static String APPROXIMATE_SAVE_PATH = "/tmp/ada/exp/exp_app.csv";
-    private final static String ACCURATE_SAVE_PATH = "/tmp/ada/exp/exp_acc.csv";
+    private final static String APPROXIMATE_SAVE_PATH = "/tmp/ada/exp/exp_app2.csv";
+    private final static String ACCURATE_SAVE_PATH = "/tmp/ada/exp/exp_acc2.csv";
 
     public Exp1() {
         sparkSession = SparkSession
                 .builder()
-                .appName("Ada Exp - Exp1")
+                .appName("Ada Exp - Exp1 Only Approximate")
                 .enableHiveSupport()
                 .config("spark.sql.warehouse.dir", "hdfs://master:9000/home/hadoop/spark/")
                 .config("spark.executor.memory", "12g")
@@ -82,7 +94,7 @@ public class Exp1 {
                 String path = String.format("/home/hadoop/wiki/n_pagecounts-201601%02d-%02d0000", day, hour);
                 String command = "hadoop fs -cp " + path + " /home/hadoop/spark/wiki_ada.db/pagecounts";
                 AdaLogger.debug(this, "Loading " + path + " into table");
-                systemCall(command);
+                call(command);
 //              execute("LOAD DATA INPATH " + path + " INTO TABLE pagecounts");
             }
         }
@@ -103,7 +115,7 @@ public class Exp1 {
         String path = String.format("/home/hadoop/wiki/n_pagecounts-201601%02d-%02d0000", currentDay, currentHour);
         String command = "hadoop fs -cp " + path + " /home/hadoop/spark/wiki_ada.db/pagecounts";
         AdaLogger.debug(this, "Loading " + StringUtils.substringAfterLast(path, "/") + " into table");
-        systemCall(command);
+        call(command);
 //      execute("LOAD DATA INPATH " + path + " INTO TABLE pagecounts");
         currentHour++;
         if (currentHour > 23) {
@@ -112,7 +124,7 @@ public class Exp1 {
         }
     }
 
-    private void systemCall(String cmd) {
+    private void call(String cmd) {
         try {
             Process process = Runtime.getRuntime().exec(cmd);
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new BufferedInputStream(process.getInputStream())));
@@ -148,7 +160,7 @@ public class Exp1 {
                 if (query.contains("AVG")) {
                     approximateResult = rows.collectAsList().get(0).getDouble(0);
                     errorBound = rows.collectAsList().get(0).getDouble(1);
-                } else if (query.contains("COUNT")) {
+                } else if (query.contains("COUNT") || query.contains("SUM") || query.contains("STDDEV_POP")) {
                     approximateResult = rows.collectAsList().get(0).getDouble(0);
                     errorBound = rows.collectAsList().get(0).getDouble(1);
                 }

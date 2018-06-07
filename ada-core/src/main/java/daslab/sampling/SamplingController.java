@@ -15,6 +15,9 @@ public class SamplingController {
     public SamplingController(AdaContext context) {
         this.context = context;
         switch (context.get("sampling.strategy")) {
+            case "verdict":
+                this.samplingStrategy = new VerdictSampling(context);
+                break;
             case "reservoir":
             default:
                 this.samplingStrategy = new ReservoirSampling(context);

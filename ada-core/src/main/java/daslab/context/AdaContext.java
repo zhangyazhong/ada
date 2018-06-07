@@ -10,6 +10,9 @@ import daslab.utils.AdaLogger;
 import daslab.utils.ConfigHandler;
 import daslab.warehouse.DbmsSpark2;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Properties;
@@ -27,6 +30,8 @@ public class AdaContext {
     private DbmsSpark2 dbmsSpark2;
     private TableMeta tableMeta;
     private SamplingController samplingController;
+    private FileWriter costWriter;
+    private int batchCount;
 
     public AdaContext() {
         configs = Maps.newHashMap();
@@ -35,7 +40,14 @@ public class AdaContext {
 //        dbmsHive2 = DbmsHive2.getInstance(this);
         dbmsSpark2 = DbmsSpark2.getInstance(this);
         tableMeta = new TableMeta(this, dbmsSpark2.desc());
+        batchCount = 0;
         samplingController = new SamplingController(this);
+        try {
+            costWriter = new FileWriter(new File(get("update.cost.path")));
+            costWriter.write("batch,strategy,cost\r\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void updateConfigsFromPropertyFile(String configFile) {
@@ -61,12 +73,33 @@ public class AdaContext {
     }
 
     public void afterOneBatch(String batchLocation) {
+        batchCount++;
         Batch batch = getDbmsSpark2().load(batchLocation);
+
+        /*
         Long startTime = System.currentTimeMillis();
         Sampling strategy = tableMeta.refresh(batch);
         Long finishTime = System.currentTimeMillis();
         String samplingTime = String.format("%d:%02d.%03d", (finishTime - startTime) / 60000, ((finishTime - startTime) / 1000) % 60, (finishTime - startTime) % 1000);
 
+        try {
+            costWriter.write(String.format("%d,%s,%s\r\n", batchCount, strategy.toString(), samplingTime));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        AdaLogger.info(this, String.format("Batch(%d) [%s] sampling time cost: %s ", batch.getSize(), strategy.toString(), samplingTime));
+        */
+
+        Long startTime = System.currentTimeMillis();
+        Sampling strategy = tableMeta.refresh(batch);
+        Long finishTime = System.currentTimeMillis();
+        String samplingTime = String.format("%d:%02d.%03d", (finishTime - startTime) / 60000, ((finishTime - startTime) / 1000) % 60, (finishTime - startTime) % 1000);
+
+        try {
+            costWriter.write(String.format("%d,%s,%s\r\n", batchCount, strategy.toString(), samplingTime));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         AdaLogger.info(this, String.format("Batch(%d) [%s] sampling time cost: %s ", batch.getSize(), strategy.toString(), samplingTime));
     }
 
