@@ -46,15 +46,15 @@ public class Exp1Fast {
             "SELECT SUM(page_count) FROM view_name",
             "SELECT SUM(page_count) FROM view_name WHERE page_size>80000",
             "SELECT SUM(page_count) FROM view_name WHERE project_name='aa'",
-            "SELECT SUM(page_count) FROM view_name WHERE project_name='kk'",
-            "SELECT VAR_POP(page_count) FROM view_name",
-            "SELECT VAR_POP(page_count) FROM view_name WHERE page_size>80000",
-            "SELECT VAR_POP(page_count) FROM view_name WHERE project_name='aa'",
-            "SELECT VAR_POP(page_count) FROM view_name WHERE project_name='kk'",
-            "SELECT COUNT(page_count) FROM view_name",
-            "SELECT COUNT(page_count) FROM view_name WHERE page_size>80000",
-            "SELECT COUNT(page_count) FROM view_name WHERE project_name='aa'",
-            "SELECT COUNT(page_count) FROM view_name WHERE project_name='kk'"
+            "SELECT SUM(page_count) FROM view_name WHERE project_name='kk'"
+//            "SELECT VAR_POP(page_count) FROM view_name",
+//            "SELECT VAR_POP(page_count) FROM view_name WHERE page_size>80000",
+//            "SELECT VAR_POP(page_count) FROM view_name WHERE project_name='aa'",
+//            "SELECT VAR_POP(page_count) FROM view_name WHERE project_name='kk'",
+//            "SELECT COUNT(page_count) FROM view_name",
+//            "SELECT COUNT(page_count) FROM view_name WHERE page_size>80000",
+//            "SELECT COUNT(page_count) FROM view_name WHERE project_name='aa'",
+//            "SELECT COUNT(page_count) FROM view_name WHERE project_name='kk'"
     );
 
     public Exp1Fast() {
@@ -92,27 +92,27 @@ public class Exp1Fast {
         try {
             FileWriter fileWriter = new FileWriter(new File(ACCURATE_SAVE_PATH));
             StringBuilder header = new StringBuilder("date");
-            /*
             for (int i = 0; i < QUERIES.size(); i++) {
                 header.append(",q").append(i + 1);
             }
-            */
+            /*
             for (int i = 0; i < 8; i++) {
                 header.append(",q").append(i + 1);
             }
+            */
             header.append("\r\n");
             fileWriter.write(header.toString());
             accurateResults.forEach((time, results) -> {
                 try {
                     StringBuilder body = new StringBuilder(time);
-                    /*
                     for (int i = 0; i < QUERIES.size(); i++) {
                         body.append(",").append(results.get(i).result);
                     }
-                    */
+                    /*
                     for (int i = 0; i < 8; i++) {
                         body.append(",").append(results.get(i).result);
                     }
+                    */
                     body.append("\r\n");
                     fileWriter.write(body.toString());
                 } catch (IOException e) {
@@ -193,7 +193,12 @@ public class Exp1Fast {
                 }
             }
             List<ResultUnit> previousResults = Lists.newArrayList();
+            /*
             for (int i = 0; i < 8; i++) {
+                previousResults.add(new ResultUnit(0, 0.0));
+            }
+            */
+            for (int i = 0; i < QUERIES.size(); i++) {
                 previousResults.add(new ResultUnit(0, 0.0));
             }
             for (int day = 1; day <= DAY_TOTAL; day++) {
@@ -203,6 +208,7 @@ public class Exp1Fast {
                     AdaLogger.debug(this, "Reducing " + time + "'s result.");
                     List<ResultUnit> singleResults = accurateResults.get(time);
                     List<ResultUnit> totalResults = Lists.newArrayList();
+                    /*
                     for (int i = 4; i < 8; i++) {
                         double totalAvg = (previousResults.get(i - 4).result + singleResults.get(i - 4).result)
                                 / (previousResults.get(i + 4).result + singleResults.get(i + 4).result);
@@ -212,6 +218,7 @@ public class Exp1Fast {
                                 + singleResults.get(i + 4).result * (singleResults.get(i).result + Math.pow(totalAvg - singleAvg, 2)))
                                 / (previousResults.get(i + 4).result + singleResults.get(i + 4).result);
                     }
+                    */
                     for (int i = 0; i < QUERIES.size(); i++) {
                         if (QUERIES.get(i).contains("VAR_POP")) {
                             continue;

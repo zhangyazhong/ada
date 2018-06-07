@@ -14,11 +14,12 @@ import java.util.regex.Pattern;
  * @version 2018-06-05
  */
 public class Exp1Collect {
-    private final static String APPROXIMATE_RESULT_PATH = "/tmp/ada/exp/exp_app.csv";
-    private final static String ACCURATE_RESULT_PATH = "/tmp/ada/exp/exp_acc.csv";
-    private final static String HIT_PATH = "/tmp/ada/exp/exp_hit.csv";
+    private final static String APPROXIMATE_RESULT_PATH = "/tmp/ada/exp/exp_app2.csv";
+    private final static String ACCURATE_RESULT_PATH = "/tmp/ada/exp/exp_acc2.csv";
+    private final static String HIT_PATH = "/tmp/ada/exp/exp_hit2.csv";
 
     private Map<Integer, List<Integer>> hits;
+    private final static int QUERY_COUNT = 4;
 
     public Exp1Collect() {
         hits = Maps.newHashMap();
@@ -41,7 +42,7 @@ public class Exp1Collect {
                 if (isInteger(parts[0])) {
                     int sampleNo = Integer.parseInt(parts[0]);
                     List<ResultUnit> results = Lists.newArrayList();
-                    for (int i = 1; i <= 8; i++) {
+                    for (int i = 1; i <= QUERY_COUNT; i++) {
                         results.add(new ResultUnit(24 * 7, Double.parseDouble(parts[i].split("/")[0]), Double.parseDouble(parts[i].split("/")[1])));
                     }
                     approximateResults.put(sampleNo, results);
@@ -53,7 +54,7 @@ public class Exp1Collect {
                     int date = Integer.parseInt(parts[0]);
                     date = (date / 100) * 24 + date % 100 - 24;
                     List<ResultUnit> results = Lists.newArrayList();
-                    for (int i = 1; i <= 8; i++) {
+                    for (int i = 1; i <= QUERY_COUNT; i++) {
                         results.add(new ResultUnit(date, Double.parseDouble(parts[i])));
                     }
                     accurateResults.put(date, results);
@@ -61,11 +62,11 @@ public class Exp1Collect {
             }
             accurateResults.forEach((date, results0) -> {
                 List<Integer> hitList = Lists.newArrayList();
-                for (int i = 0; i < 8; i++) {
+                for (int i = 0; i < QUERY_COUNT; i++) {
                     AtomicInteger hit = new AtomicInteger();
                     int finalI = i;
                     approximateResults.forEach((no, results1) -> {
-                        if (finalI < 4) {
+                        if (finalI > 4) {
                             if (Math.abs(results1.get(finalI).result - results0.get(finalI).result) <= results1.get(finalI).errorBound) {
                                 hit.getAndIncrement();
                             }
@@ -92,7 +93,7 @@ public class Exp1Collect {
         try {
             FileWriter fileWriter = new FileWriter(new File(HIT_PATH));
             StringBuilder header = new StringBuilder("date");
-            for (int i = 0; i < 8; i++) {
+            for (int i = 0; i < QUERY_COUNT; i++) {
                 header.append(",q").append(i + 1);
             }
             header.append("\r\n");
@@ -101,7 +102,7 @@ public class Exp1Collect {
                 try {
                     String time = String.format("%02d%02d", (date / 24) + 1, date % 24);
                     StringBuilder body = new StringBuilder(time);
-                    for (int i = 0; i < 8; i++) {
+                    for (int i = 0; i < QUERY_COUNT; i++) {
                         body.append(",").append(results.get(i));
                     }
                     body.append("\r\n");

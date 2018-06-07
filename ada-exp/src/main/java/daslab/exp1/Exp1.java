@@ -50,11 +50,11 @@ public class Exp1 {
             "SELECT SUM(page_count) FROM pagecounts",
             "SELECT SUM(page_count) FROM pagecounts WHERE page_size>80000",
             "SELECT SUM(page_count) FROM pagecounts WHERE project_name='aa'",
-            "SELECT SUM(page_count) FROM pagecounts WHERE project_name='kk'",
-            "SELECT STDDEV_POP(page_count) FROM pagecounts",
-            "SELECT STDDEV_POP(page_count) FROM pagecounts WHERE page_size>80000",
-            "SELECT STDDEV_POP(page_count) FROM pagecounts WHERE project_name='aa'",
-            "SELECT STDDEV_POP(page_count) FROM pagecounts WHERE project_name='kk'"
+            "SELECT SUM(page_count) FROM pagecounts WHERE project_name='kk'"
+//            "SELECT STDDEV_POP(page_count) FROM pagecounts",
+//            "SELECT STDDEV_POP(page_count) FROM pagecounts WHERE page_size>80000",
+//            "SELECT STDDEV_POP(page_count) FROM pagecounts WHERE project_name='aa'",
+//            "SELECT STDDEV_POP(page_count) FROM pagecounts WHERE project_name='kk'"
     );
     private final static int DAY_START = 7;
     private final static int DAY_TOTAL = 21;

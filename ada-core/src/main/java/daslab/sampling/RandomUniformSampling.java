@@ -18,7 +18,7 @@ public class RandomUniformSampling extends SamplingStrategy {
     }
 
     @Override
-    public String strategyName() {
+    public String name() {
         return "random uniform";
     }
 }

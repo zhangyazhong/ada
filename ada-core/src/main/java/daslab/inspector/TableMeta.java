@@ -78,12 +78,12 @@ public class TableMeta {
         if (illegalColumns.size() > 0) {
             AdaLogger.info(this, String.format("Columns need to be updated: %s.",
                     StringUtils.join(illegalColumns.stream().map(TableColumn::toString).toArray(), ", ")));
-            AdaLogger.info(this, "Use " + context.getSamplingController().getResamplingStrategy().strategyName() + " strategy to resample.");
+            AdaLogger.info(this, "Use " + context.getSamplingController().getResamplingStrategy().name() + " strategy to resample.");
             context.getSamplingController().resample(batch);
             return Sampling.RESAMPLE;
         } else {
             AdaLogger.info(this, "No column needs to be updated.");
-            AdaLogger.info(this, "Use " + context.getSamplingController().getSamplingStrategy().strategyName() + " strategy to update sample.");
+            AdaLogger.info(this, "Use " + context.getSamplingController().getSamplingStrategy().name() + " strategy to update sample.");
             context.getSamplingController().update(batch);
             return Sampling.UPDATE;
         }

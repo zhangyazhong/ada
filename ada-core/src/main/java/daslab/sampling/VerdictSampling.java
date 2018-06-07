@@ -36,7 +36,7 @@ public class VerdictSampling extends SamplingStrategy {
     }
 
     @Override
-    public String strategyName() {
+    public String name() {
         return "verdict sampling";
     }
 }

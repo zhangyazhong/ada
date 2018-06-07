@@ -59,5 +59,5 @@ public abstract class SamplingStrategy {
 
     public abstract void run(Batch batch);
 
-    public abstract String strategyName();
+    public abstract String name();
 }
