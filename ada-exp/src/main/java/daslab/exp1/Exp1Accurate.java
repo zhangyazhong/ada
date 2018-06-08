@@ -21,7 +21,7 @@ import java.util.Map;
  * @version 2018-05-30
  */
 @SuppressWarnings("Duplicates")
-public class Exp1Fast {
+public class Exp1Accurate {
     private SparkSession sparkSession;
 
     private final static int DAY_TOTAL = 21;
@@ -57,7 +57,7 @@ public class Exp1Fast {
 //            "SELECT COUNT(page_count) FROM view_name WHERE project_name='kk'"
     );
 
-    public Exp1Fast() {
+    public Exp1Accurate() {
         sparkSession = SparkSession
                 .builder()
                 .appName("Ada Exp - Exp1 Fast")
@@ -242,7 +242,7 @@ public class Exp1Fast {
     }
 
     public static void main(String[] args) {
-        Exp1Fast exp1Fast = new Exp1Fast();
-        exp1Fast.run();
+        Exp1Accurate exp1Accurate = new Exp1Accurate();
+        exp1Accurate.run();
     }
 }
