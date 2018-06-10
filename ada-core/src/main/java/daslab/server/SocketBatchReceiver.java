@@ -11,19 +11,19 @@ import java.net.Socket;
  * @author zyz
  * @version 2018-05-11
  */
-public class BatchReceiver {
+public class SocketBatchReceiver {
     private AdaContext context;
     private String tmpDataLocation;
     private int serverPort;
 
-    private BatchReceiver(AdaContext context) {
+    private SocketBatchReceiver(AdaContext context) {
         this.context = context;
         tmpDataLocation = context.get("data.tmp.location");
         serverPort = Integer.parseInt(context.get("socket.server.port"));
     }
 
-    public static BatchReceiver build(AdaContext context) {
-        return new BatchReceiver(context);
+    public static SocketBatchReceiver build(AdaContext context) {
+        return new SocketBatchReceiver(context);
     }
 
     public void start() {

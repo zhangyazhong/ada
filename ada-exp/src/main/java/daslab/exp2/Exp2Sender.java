@@ -1,5 +1,6 @@
 package daslab.exp2;
 
+import daslab.context.AdaContext;
 import daslab.context.ProducerContext;
 import daslab.utils.AdaLogger;
 
@@ -8,13 +9,16 @@ import daslab.utils.AdaLogger;
  * @version 2018-06-05
  */
 public class Exp2Sender {
+    private AdaContext context;
+
     public Exp2Sender() {
+        context = new AdaContext();
     }
 
     public void run() {
-            ProducerContext producerContext = new ProducerContext();
-            producerContext.start();
-            AdaLogger.info(this, "Data Producer has been started.");
+        ProducerContext producerContext = new ProducerContext();
+        producerContext.start();
+        AdaLogger.info(this, "Data Producer has been started.");
     }
 
     public static void main(String[] args) {

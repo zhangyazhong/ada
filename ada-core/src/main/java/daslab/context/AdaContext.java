@@ -5,7 +5,9 @@ import daslab.bean.Batch;
 import daslab.bean.Sampling;
 import daslab.inspector.TableMeta;
 import daslab.sampling.SamplingController;
-import daslab.server.BatchReceiver;
+import daslab.server.HdfsBathReceiver;
+import daslab.server.LocalFileBatchReceiver;
+import daslab.server.SocketBatchReceiver;
 import daslab.utils.AdaLogger;
 import daslab.utils.ConfigHandler;
 import daslab.warehouse.DbmsSpark2;
@@ -25,7 +27,9 @@ public class AdaContext {
     private final String CONFIG_FILE = "core.properties";
 
     private Map<String, String> configs;
-    private BatchReceiver receiver;
+    private SocketBatchReceiver socketReceiver;
+    private LocalFileBatchReceiver fileReceiver;
+    private HdfsBathReceiver hdfsReceiver;
 //    private DbmsHive2 dbmsHive2;
     private DbmsSpark2 dbmsSpark2;
     private TableMeta tableMeta;
@@ -36,7 +40,9 @@ public class AdaContext {
     public AdaContext() {
         configs = Maps.newHashMap();
         updateConfigsFromPropertyFile(CONFIG_FILE);
-        receiver = BatchReceiver.build(this);
+        socketReceiver = SocketBatchReceiver.build(this);
+        fileReceiver = LocalFileBatchReceiver.build(this);
+        hdfsReceiver = HdfsBathReceiver.build(this);
 //        dbmsHive2 = DbmsHive2.getInstance(this);
         dbmsSpark2 = DbmsSpark2.getInstance(this);
         tableMeta = new TableMeta(this, dbmsSpark2.desc());
@@ -69,7 +75,15 @@ public class AdaContext {
 
     public void start() {
         tableMeta.init();
-        receiver.start();
+//        socketReceiver.start();
+    }
+
+    public void receive(File file) {
+        fileReceiver.receive(file);
+    }
+
+    public void receive(String hdfsLocation) {
+        hdfsReceiver.receive(hdfsLocation);
     }
 
     public void afterOneBatch(String batchLocation) {

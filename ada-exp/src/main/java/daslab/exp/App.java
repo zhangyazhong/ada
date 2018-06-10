@@ -23,7 +23,8 @@ public class App {
                     SystemRestore.restoreModules().forEach(RestoreModule::restore);
                     break;
                 case "exp1":
-                    AdaLogger.info(this, "Ada Exp operation: Experiment 1");
+                case "exp1_approximate":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 1 Only Approximate");
                     new Exp1().run();
                     break;
                 case "exp1_cluster":
@@ -38,6 +39,7 @@ public class App {
                     AdaLogger.info(this, "Ada Exp operation: Experiment 1 Collecting Results");
                     new Exp1Collect().run();
                     break;
+                case "exp2":
                 case "exp2_core":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 2 Core");
                     new Exp2Core().run();

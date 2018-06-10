@@ -5,11 +5,6 @@ import edu.umich.verdict.VerdictSpark2Context;
 import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.spark.sql.SparkSession;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-
-@SuppressWarnings("Duplicates")
 public class DatabaseRestore implements RestoreModule {
     private SparkSession sparkSession;
 
@@ -54,24 +49,6 @@ public class DatabaseRestore implements RestoreModule {
     private void execute(String sql) {
         AdaLogger.debug(this, "About to run: " + sql);
         sparkSession.sql(sql);
-    }
-
-    private void systemCall(String cmd) {
-        try {
-            Process process = Runtime.getRuntime().exec(cmd);
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new BufferedInputStream(process.getInputStream())));
-            String line;
-            while ((line = bufferedReader.readLine()) != null)
-                AdaLogger.debug(this, "System print: " + line);
-            if (process.waitFor() != 0) {
-                if (process.exitValue() == 1) {
-                    AdaLogger.error(this, "Call {" + cmd + "} error!");
-                }
-            }
-            bufferedReader.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     public static void main(String[] args) {

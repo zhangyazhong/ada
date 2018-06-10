@@ -18,12 +18,18 @@ public class SamplingController {
             case "verdict":
                 this.samplingStrategy = new VerdictSampling(context);
                 break;
+            case "incremental":
+                this.samplingStrategy = new IncrementalSampling(context);
+                break;
             case "reservoir":
             default:
                 this.samplingStrategy = new ReservoirSampling(context);
                 break;
         }
         switch (context.get("resampling.strategy")) {
+            case "incremental":
+                this.samplingStrategy = new IncrementalSampling(context);
+                break;
             case "verdict":
             default:
                 this.resamplingStrategy = new VerdictSampling(context);

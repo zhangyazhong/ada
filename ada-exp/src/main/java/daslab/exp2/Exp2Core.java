@@ -18,8 +18,16 @@ public class Exp2Core {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
             AdaLogger.info(this, "Restored database.");
             Thread.sleep(1000);
-            AdaContext adaContext = new AdaContext();
-            adaContext.start();
+            AdaContext context = new AdaContext();
+            context.start();
+            for (int day = 8; day <= 21; day++) {
+                for (int hour = 0; hour < 24; hour++) {
+                    String location = String.format("/home/hadoop/wiki/n_pagecounts-201601%02d-%02d0000", day, hour);
+                    AdaLogger.info(this, "Send a new batch at " + location);
+                    context.receive(location);
+                    Thread.sleep(1000);
+                }
+            }
             AdaLogger.info(this, "Ada Core has been started.");
         } catch (InterruptedException e) {
             e.printStackTrace();
