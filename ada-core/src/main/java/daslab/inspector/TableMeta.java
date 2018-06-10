@@ -29,7 +29,7 @@ public class TableMeta {
     }
 
     public void init() {
-        double errorBound = Double.parseDouble(context.get("query.error_bound"));
+//        double errorBound = Double.parseDouble(context.get("query.error_bound"));
         double confidence = Double.parseDouble(context.get("query.confidence_internal_"));
         this.metaClause = metaClause();
         String sql = String.format("SELECT %s FROM %s.%s", metaClause,
@@ -40,6 +40,8 @@ public class TableMeta {
             if (column.getColumnType().isInt() || column.getColumnType().isDouble()) {
                 double var = context.getDbmsSpark2().getResultAsDouble(0, "var_pop_" + column.getColumnName());
                 double sum = context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
+                double avg = context.getDbmsSpark2().getResultAsDouble(0, "avg_" + column.getColumnName());
+                double errorBound = avg * 0.1;
                 MetaInfo metaInfo = MetaInfo.calc(column, var, cardinality, sum, errorBound, confidence);
                 tableMetaMap.put(column, metaInfo);
             }
@@ -47,7 +49,7 @@ public class TableMeta {
     }
 
     public Sampling refresh(Batch batch) {
-        double errorBound = Double.parseDouble(context.get("query.error_bound"));
+//        double errorBound = Double.parseDouble(context.get("query.error_bound"));
         double confidence = Double.parseDouble(context.get("query.confidence_internal_"));
         String sql = String.format("SELECT %s FROM %s.%s", metaClause,
                 batch.getDbName(), batch.getTableName());
@@ -68,6 +70,7 @@ public class TableMeta {
                 double totalAvg = totalSum / totalCount;
                 double totalVar = (cardinality * (oldVar + (totalAvg - oldAvg) * (totalAvg - oldAvg))
                         + newCount * (newVar + (totalAvg - newAvg) * (totalAvg - newAvg))) / totalCount;
+                double errorBound = tableMetaMap.get(column).getE();
                 batchMetaMap.put(column, MetaInfo.calc(column, totalVar, totalCount, totalSum, errorBound, confidence));
             }
         }
@@ -90,13 +93,14 @@ public class TableMeta {
     }
 
     private List<TableColumn> verify(Batch batch, Map<TableColumn, MetaInfo> batchMetaMap) {
-        double errorBound = Double.parseDouble(context.get("query.error_bound"));
+//        double errorBound = Double.parseDouble(context.get("query.error_bound"));
         double confidence = Double.parseDouble(context.get("query.confidence_internal_"));
         List<TableColumn> illegalColumns = Lists.newArrayList();
         for (TableColumn column : tableMetaMap.keySet()) {
             MetaInfo tableMetaInfo = tableMetaMap.get(column);
             MetaInfo batchMetaInfo = batchMetaMap.get(column);
 
+            double errorBound = tableMetaInfo.getE();
             double x = tableMetaInfo.getX();
             double deltaS2 = batchMetaInfo.getS2() - tableMetaInfo.getS2();
             double e2 = Math.pow(errorBound, 2);
@@ -147,7 +151,8 @@ public class TableMeta {
             if (column.getColumnType().isInt() || column.getColumnType().isDouble()) {
                 selectClause
                         .append(varClause(column, "var_pop_" + column.getColumnName())).append(", ")
-                        .append(sumClause(column, "sum_" + column.getColumnName())).append(", ");
+                        .append(sumClause(column, "sum_" + column.getColumnName())).append(", ")
+                        .append(avgClause(column, "avg_" + column.getColumnName())).append(", ");
             }
         }
         this.metaClause = StringUtils.substringBeforeLast(selectClause.toString(), ",");
@@ -160,6 +165,10 @@ public class TableMeta {
 
     private String sumClause(TableColumn column, String alias) {
         return String.format("sum(%s) as %s", column.getColumnName(), alias);
+    }
+
+    private String avgClause(TableColumn column, String alias) {
+        return String.format("avg(%s) as %s", column.getColumnName(), alias);
     }
 
     private String countClause(String alias) {
@@ -176,6 +185,7 @@ class MetaInfo {
     private int x;
     private double avg;
     private double sum;
+    private double e;
 
     public MetaInfo(TableColumn column) {
         this.column = column;
@@ -194,6 +204,7 @@ class MetaInfo {
         } else {
             metaInfo.x = (int) Math.floor(metaInfo.n);
         }
+        metaInfo.e = e;
         return metaInfo;
     }
 
@@ -223,5 +234,9 @@ class MetaInfo {
 
     public double getAvg() {
         return avg;
+    }
+
+    public double getE() {
+        return e;
     }
 }
