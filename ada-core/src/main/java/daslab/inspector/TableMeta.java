@@ -2,7 +2,7 @@ package daslab.inspector;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import daslab.bean.Batch;
+import daslab.bean.AdaBatch;
 import daslab.bean.Sampling;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
@@ -42,17 +42,18 @@ public class TableMeta {
                 double sum = context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
                 MetaInfo metaInfo = MetaInfo.calc(column, var, cardinality, sum, errorBound, confidence);
                 tableMetaMap.put(column, metaInfo);
+                AdaLogger.debug(this, "Initially table meta[" + column.getColumnName() + "]: " + metaInfo.toString());
             }
         }
     }
 
-    public Sampling refresh(Batch batch) {
+    public Sampling refresh(AdaBatch adaBatch) {
         double errorBound = Double.parseDouble(context.get("query.error_bound"));
         double confidence = Double.parseDouble(context.get("query.confidence_internal_"));
         String sql = String.format("SELECT %s FROM %s.%s", metaClause,
-                batch.getDbName(), batch.getTableName());
+                adaBatch.getDbName(), adaBatch.getTableName());
         context.getDbmsSpark2().execute(sql);
-        int newCount = batch.getSize();
+        int newCount = adaBatch.getSize();
 //        int totalCount = newCount + ((MetaInfo[]) tableMetaMap.values().toArray())[0].getD();
         int totalCount = newCount + cardinality;
         Map<TableColumn, MetaInfo> batchMetaMap = Maps.newHashMap();
@@ -69,27 +70,28 @@ public class TableMeta {
                 double totalVar = (cardinality * (oldVar + (totalAvg - oldAvg) * (totalAvg - oldAvg))
                         + newCount * (newVar + (totalAvg - newAvg) * (totalAvg - newAvg))) / totalCount;
                 batchMetaMap.put(column, MetaInfo.calc(column, totalVar, totalCount, totalSum, errorBound, confidence));
+                AdaLogger.debug(this, "Batch[" + context.getBatchCount() + "] table meta[" + column.getColumnName() + "]: " + batchMetaMap.get(column).toString());
             }
         }
 
-        List<TableColumn> illegalColumns = verify(batch, batchMetaMap);
+        List<TableColumn> illegalColumns = verify(adaBatch, batchMetaMap);
         cardinality += newCount;
 
         if (illegalColumns.size() > 0) {
             AdaLogger.info(this, String.format("Columns need to be updated: %s.",
                     StringUtils.join(illegalColumns.stream().map(TableColumn::toString).toArray(), ", ")));
             AdaLogger.info(this, "Use " + context.getSamplingController().getResamplingStrategy().name() + " strategy to resample.");
-            context.getSamplingController().resample(batch);
+            context.getSamplingController().resample(adaBatch);
             return Sampling.RESAMPLE;
         } else {
             AdaLogger.info(this, "No column needs to be updated.");
             AdaLogger.info(this, "Use " + context.getSamplingController().getSamplingStrategy().name() + " strategy to update sample.");
-            context.getSamplingController().update(batch);
+            context.getSamplingController().update(adaBatch);
             return Sampling.UPDATE;
         }
     }
 
-    private List<TableColumn> verify(Batch batch, Map<TableColumn, MetaInfo> batchMetaMap) {
+    private List<TableColumn> verify(AdaBatch adaBatch, Map<TableColumn, MetaInfo> batchMetaMap) {
         double errorBound = Double.parseDouble(context.get("query.error_bound"));
         double confidence = Double.parseDouble(context.get("query.confidence_internal_"));
         List<TableColumn> illegalColumns = Lists.newArrayList();
@@ -107,30 +109,30 @@ public class TableMeta {
             // judgement 1
             if (batchMetaInfo.getN_() > nt
                     && tableMetaInfo.getD() * x > batchMetaInfo.getN_() * (tableMetaInfo.getD() - x)
-                    && batch.getSize() > (e2 * tableMetaInfo.getD() * x - z2 * (tableMetaInfo.getS2() + deltaS2) * (tableMetaInfo.getD() - x)) / (tableMetaInfo.getS2() * z2 - e2 * x + z2 * deltaS2)
-                    && batch.getSize() <= (e2 * tableMetaInfo.getD() * nt - z2 * (tableMetaInfo.getS2() + deltaS2) * (tableMetaInfo.getD() - nt)) / (tableMetaInfo.getS2() * z2 - e2 *  nt + z2 * deltaS2)) {
+                    && adaBatch.getSize() > (e2 * tableMetaInfo.getD() * x - z2 * (tableMetaInfo.getS2() + deltaS2) * (tableMetaInfo.getD() - x)) / (tableMetaInfo.getS2() * z2 - e2 * x + z2 * deltaS2)
+                    && adaBatch.getSize() <= (e2 * tableMetaInfo.getD() * nt - z2 * (tableMetaInfo.getS2() + deltaS2) * (tableMetaInfo.getD() - nt)) / (tableMetaInfo.getS2() * z2 - e2 *  nt + z2 * deltaS2)) {
                 flag = true;
             }
             // judgement 2
             if (batchMetaInfo.getN_() > nt
                     && tableMetaInfo.getD() * nt > batchMetaInfo.getN_() * (tableMetaInfo.getD() - nt)
                     && tableMetaInfo.getD() * x < batchMetaInfo.getN_() * (tableMetaInfo.getD() - x)
-                    && batch.getSize() > 0
-                    && batch.getSize() <= (e2 * tableMetaInfo.getD() * nt - z2 * (tableMetaInfo.getS2() + deltaS2) * (tableMetaInfo.getD() - nt)) / (tableMetaInfo.getS2() * z2 - e2 * nt + z2 * deltaS2)) {
+                    && adaBatch.getSize() > 0
+                    && adaBatch.getSize() <= (e2 * tableMetaInfo.getD() * nt - z2 * (tableMetaInfo.getS2() + deltaS2) * (tableMetaInfo.getD() - nt)) / (tableMetaInfo.getS2() * z2 - e2 * nt + z2 * deltaS2)) {
                 flag = true;
             }
             // judgement 3
             if (x < batchMetaInfo.getN_()
                     && batchMetaInfo.getN_() < nt
                     && tableMetaInfo.getD() * x > batchMetaInfo.getN_() * (tableMetaInfo.getD() - x)
-                    && batch.getSize() > (e2 * tableMetaInfo.getD() * x - z2 * (tableMetaInfo.getS2() + deltaS2) * (tableMetaInfo.getD() - x)) / (tableMetaInfo.getS2() * z2 - e2 * x + z2 * deltaS2)) {
+                    && adaBatch.getSize() > (e2 * tableMetaInfo.getD() * x - z2 * (tableMetaInfo.getS2() + deltaS2) * (tableMetaInfo.getD() - x)) / (tableMetaInfo.getS2() * z2 - e2 * x + z2 * deltaS2)) {
                 flag = true;
             }
             // judgement 4
             if (x < batchMetaInfo.getN_()
                     && batchMetaInfo.getN_() < nt
                     && tableMetaInfo.getD() * x > batchMetaInfo.getN_() * (tableMetaInfo.getD() - x)
-                    && batch.getSize() > 0) {
+                    && adaBatch.getSize() > 0) {
                 flag = true;
             }
 
@@ -223,5 +225,11 @@ class MetaInfo {
 
     public double getAvg() {
         return avg;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("{column: %s, n: %.2f, n^: %.2f, s2: %.2f, d: %d, x: %d, avg: %.2f, sum: %.2f}",
+                column, n, n_, s2, d, x, avg, sum);
     }
 }

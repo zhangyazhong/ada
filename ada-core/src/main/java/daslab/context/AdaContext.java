@@ -1,7 +1,7 @@
 package daslab.context;
 
 import com.google.common.collect.Maps;
-import daslab.bean.Batch;
+import daslab.bean.AdaBatch;
 import daslab.bean.Sampling;
 import daslab.inspector.TableMeta;
 import daslab.sampling.SamplingController;
@@ -88,11 +88,11 @@ public class AdaContext {
 
     public void afterOneBatch(String batchLocation) {
         batchCount++;
-        Batch batch = getDbmsSpark2().load(batchLocation);
+        AdaBatch adaBatch = getDbmsSpark2().load(batchLocation);
 
         /*
         Long startTime = System.currentTimeMillis();
-        Sampling strategy = tableMeta.refresh(batch);
+        Sampling strategy = tableMeta.refresh(adaBatch);
         Long finishTime = System.currentTimeMillis();
         String samplingTime = String.format("%d:%02d.%03d", (finishTime - startTime) / 60000, ((finishTime - startTime) / 1000) % 60, (finishTime - startTime) % 1000);
 
@@ -101,11 +101,11 @@ public class AdaContext {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        AdaLogger.info(this, String.format("Batch(%d) [%s] sampling time cost: %s ", batch.getSize(), strategy.toString(), samplingTime));
+        AdaLogger.info(this, String.format("AdaBatch(%d) [%s] sampling time cost: %s ", adaBatch.getSize(), strategy.toString(), samplingTime));
         */
 
         Long startTime = System.currentTimeMillis();
-        Sampling strategy = tableMeta.refresh(batch);
+        Sampling strategy = tableMeta.refresh(adaBatch);
         Long finishTime = System.currentTimeMillis();
         String samplingTime = String.format("%d:%02d.%03d", (finishTime - startTime) / 60000, ((finishTime - startTime) / 1000) % 60, (finishTime - startTime) % 1000);
 
@@ -114,7 +114,7 @@ public class AdaContext {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        AdaLogger.info(this, String.format("Batch(%d) [%s] sampling time cost: %s ", batch.getSize(), strategy.toString(), samplingTime));
+        AdaLogger.info(this, String.format("AdaBatch(%d) [%s] sampling time cost: %s ", adaBatch.getSize(), strategy.toString(), samplingTime));
     }
 
 //    public DbmsHive2 getDbmsHive2() {
@@ -127,5 +127,9 @@ public class AdaContext {
 
     public SamplingController getSamplingController() {
         return samplingController;
+    }
+
+    public int getBatchCount() {
+        return batchCount;
     }
 }

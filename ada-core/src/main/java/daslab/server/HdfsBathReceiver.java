@@ -30,7 +30,7 @@ public class HdfsBathReceiver {
         }
         String command = String.format("hadoop fs -get %s %s", location, context.get("data.tmp.location"));
         call(command);
-        file = new File(location);
+        file = new File(context.get("data.tmp.location"));
         if (file.exists() && file.isFile()) {
             AdaLogger.info(this, "New batch arrived. HDFS location is: " + location + ". Size is " + (file.length() / 1024L / 1024L) + "MB");
             context.afterOneBatch(file.getAbsolutePath());

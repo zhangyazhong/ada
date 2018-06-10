@@ -1,7 +1,7 @@
 package daslab.sampling;
 
 import com.google.common.collect.Lists;
-import daslab.bean.Batch;
+import daslab.bean.AdaBatch;
 import daslab.bean.Sample;
 import daslab.context.AdaContext;
 import org.apache.spark.sql.Row;
@@ -57,7 +57,7 @@ public abstract class SamplingStrategy {
         return samples;
     }
 
-    public abstract void run(Batch batch);
+    public abstract void run(AdaBatch adaBatch);
 
     public abstract String name();
 }

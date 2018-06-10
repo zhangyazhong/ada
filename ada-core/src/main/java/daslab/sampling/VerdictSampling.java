@@ -1,6 +1,6 @@
 package daslab.sampling;
 
-import daslab.bean.Batch;
+import daslab.bean.AdaBatch;
 import daslab.bean.Sample;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
@@ -19,7 +19,7 @@ public class VerdictSampling extends SamplingStrategy {
     }
 
     @Override
-    public void run(Batch batch) {
+    public void run(AdaBatch adaBatch) {
         List<Sample> samples = getSamples();
         try {
             VerdictSpark2Context verdictSpark2Context = new VerdictSpark2Context(getContext().getDbmsSpark2().getSparkSession().sparkContext());

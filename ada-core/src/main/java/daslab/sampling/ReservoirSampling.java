@@ -3,7 +3,7 @@ package daslab.sampling;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import daslab.bean.Batch;
+import daslab.bean.AdaBatch;
 import daslab.bean.Sample;
 import daslab.bean.VerdictMetaName;
 import daslab.bean.VerdictMetaSize;
@@ -26,7 +26,7 @@ public class ReservoirSampling extends SamplingStrategy {
     }
 
     @Override
-    public void run(Batch batch) {
+    public void run(AdaBatch adaBatch) {
         Random randomGenerator = new Random();
         List<Sample> samples = getSamples();
         Map<Long, Integer> chosen = Maps.newHashMap();
@@ -35,7 +35,7 @@ public class ReservoirSampling extends SamplingStrategy {
             long tableSize = sample.tableSize;
             long sampleSize = sample.sampleSize;
             sampleSchema = sample.schemaName;
-            for (int i = 0; i < batch.getSize(); i++) {
+            for (int i = 0; i < adaBatch.getSize(); i++) {
                 long totalSize = tableSize + (long) i;
                 long position = (long) Math.floor(randomGenerator.nextDouble() * totalSize);
                 if (position < sampleSize) {
@@ -51,7 +51,7 @@ public class ReservoirSampling extends SamplingStrategy {
                     .withColumn("id", monotonically_increasing_id())
                     .filter((FilterFunction<Row>) row -> !outdated.contains(row.getLong(row.fieldIndex("id"))));
             Dataset<Row> sampleInserted = getContext().getDbmsSpark2()
-                    .execute(String.format("SELECT * FROM %s.%s", batch.getDbName(), batch.getTableName()))
+                    .execute(String.format("SELECT * FROM %s.%s", adaBatch.getDbName(), adaBatch.getTableName()))
                     .getResultSet()
                     .withColumn("id", monotonically_increasing_id())
                     .withColumn("verdict_rand", when(col("page_count").$greater$eq(0), randomGenerator.nextDouble() * sampleSize / tableSize))
@@ -62,7 +62,7 @@ public class ReservoirSampling extends SamplingStrategy {
                     .union(sampleInserted)
                     .drop("id")
                     .drop("verdict_vprob")
-                    .withColumn("verdict_vprob", lit(1.0 * sample.sampleSize / (sample.tableSize + (long) batch.getSize())));
+                    .withColumn("verdict_vprob", lit(1.0 * sample.sampleSize / (sample.tableSize + (long) adaBatch.getSize())));
 //            getContext().getDbmsSpark2().execute(String.format("CREATE TABLE %s.%s%s LIKE %s.%s",
 //                    sample.schemaName, sample.tableName, "_ada", sample.schemaName, sample.tableName));
             getContext().getDbmsSpark2()
@@ -74,10 +74,10 @@ public class ReservoirSampling extends SamplingStrategy {
         List<Dataset<Row>> metaNameDFs = Lists.newArrayList();
         for (Sample sample : samples) {
             Dataset<Row> metaSizeDF = getContext().getDbmsSpark2().getSparkSession()
-                    .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize + (long) batch.getSize())), VerdictMetaSize.class)
+                    .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize + (long) adaBatch.getSize())), VerdictMetaSize.class)
                     .toDF();
             Dataset<Row> metaNameDF = getContext().getDbmsSpark2().getSparkSession()
-                    .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, 1.0 * sample.sampleSize / (sample.tableSize + (long) batch.getSize()), sample.onColumn)), VerdictMetaName.class)
+                    .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, 1.0 * sample.sampleSize / (sample.tableSize + (long) adaBatch.getSize()), sample.onColumn)), VerdictMetaName.class)
                     .toDF();
             metaSizeDFs.add(metaSizeDF);
             metaNameDFs.add(metaNameDF);

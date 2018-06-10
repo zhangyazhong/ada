@@ -1,6 +1,6 @@
 package daslab.sampling;
 
-import daslab.bean.Batch;
+import daslab.bean.AdaBatch;
 import daslab.bean.PageCountSample;
 import daslab.bean.Sample;
 import daslab.context.AdaContext;
@@ -25,12 +25,12 @@ public class IncrementalSampling extends SamplingStrategy {
     }
 
     @Override
-    public void run(Batch batch) {
+    public void run(AdaBatch adaBatch) {
         Random randomGenerator = new Random();
         List<Sample> samples = getSamples();
         for (Sample sample : samples) {
             Dataset<Row> batchDF = getContext().getDbmsSpark2()
-                    .execute(String.format("SELECT * FROM %s.%s", batch.getDbName(), batch.getTableName()))
+                    .execute(String.format("SELECT * FROM %s.%s", adaBatch.getDbName(), adaBatch.getTableName()))
                     .getResultSet()
                     .withColumn("verdict_rand", when(col("page_count").$greater$eq(0), randomGenerator.nextDouble()))
                     .withColumn("verdict_vpart", when(col("page_count").$greater$eq(0),  Math.floor(randomGenerator.nextDouble() * 100)))

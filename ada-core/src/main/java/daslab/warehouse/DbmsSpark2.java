@@ -1,6 +1,6 @@
 package daslab.warehouse;
 
-import daslab.bean.Batch;
+import daslab.bean.AdaBatch;
 import daslab.context.AdaContext;
 import daslab.inspector.TableColumn;
 import daslab.inspector.TableColumnType;
@@ -86,11 +86,13 @@ public class DbmsSpark2 {
         return tableSchema;
     }
 
-    public Batch load(String file) {
+    public AdaBatch load(String file) {
         return load(new File(file));
     }
 
-    public Batch load(File file) {
+    public AdaBatch load(File file) {
+        execute("USE " + context.get("dbms.default.database"));
+
         String query = String.format("LOAD DATA LOCAL INPATH \"%s\" INTO TABLE %s",
                 file.getAbsolutePath(), context.get("dbms.data.table"));
         execute(query);
@@ -107,7 +109,9 @@ public class DbmsSpark2 {
 
         query = String.format("SELECT count(*) AS size FROM %s", context.get("dbms.batch.table"));
         int size = (int) context.getDbmsSpark2().execute(query).getResultAsLong(0, "size");
-        return new Batch(context.get("dbms.default.database"), context.get("dbms.batch.table"), size);
+
+        AdaLogger.info(this, String.format("AdaBatch loaded into %s.%s with size %d", context.get("dbms.default.database"), context.get("dbms.batch.table"), size));
+        return AdaBatch.build(context.get("dbms.default.database"), context.get("dbms.batch.table"), size);
     }
 
     public Dataset<Row> getResultSet() {
