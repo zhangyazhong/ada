@@ -1,6 +1,6 @@
 package daslab.sampling;
 
-import daslab.bean.Batch;
+import daslab.bean.AdaBatch;
 import daslab.context.AdaContext;
 
 /**
@@ -13,7 +13,7 @@ public class RandomUniformSampling extends SamplingStrategy {
     }
 
     @Override
-    public void run(Batch batch) {
+    public void run(AdaBatch adaBatch) {
 
     }
 

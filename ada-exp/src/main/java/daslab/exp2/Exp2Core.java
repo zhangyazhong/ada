@@ -20,7 +20,7 @@ public class Exp2Core {
             Thread.sleep(1000);
             AdaContext context = new AdaContext();
             context.start();
-            for (int day = 8; day <= 21; day++) {
+            for (int day = 2; day <= 21; day++) {
                 for (int hour = 0; hour < 24; hour++) {
                     String location = String.format("/home/hadoop/wiki/n_pagecounts-201601%02d-%02d0000", day, hour);
                     AdaLogger.info(this, "Send a new batch at " + location);

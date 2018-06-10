@@ -1,6 +1,6 @@
 package daslab.warehouse;
 
-import daslab.bean.Batch;
+import daslab.bean.AdaBatch;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
 
@@ -64,20 +64,20 @@ public class DbmsHive2 {
                     file.getAbsolutePath(), context.get("dbms.data.table"));
             execute(query);
 
-            AdaLogger.info(this, "Loaded batch into data table");
+            AdaLogger.info(this, "Loaded adaBatch into data table");
 
-            query = String.format("TRUNCATE %s CASCADE", context.get("dbms.batch.table"));
+            query = String.format("TRUNCATE %s CASCADE", context.get("dbms.adaBatch.table"));
             execute(query);
             query = String.format("LOAD DATA LOCAL INPATH \"%s\" INTO TABLE %s",
-                    file.getAbsolutePath(), context.get("dbms.batch.table"));
+                    file.getAbsolutePath(), context.get("dbms.adaBatch.table"));
             execute(query);
 
-            AdaLogger.info(this, "Loaded batch into batch table");
+            AdaLogger.info(this, "Loaded adaBatch into adaBatch table");
 
-            query = String.format("SELECT count(*) AS size FROM %s", context.get("dbms.batch.table"));
+            query = String.format("SELECT count(*) AS size FROM %s", context.get("dbms.adaBatch.table"));
             // OPTIMIZE: hive connector but invoke spark method.
             int size = context.getDbmsSpark2().execute(query).getResultAsInt(0, "size");
-            return new Batch(context.get("dbms.warehouse"), context.get("dbms.batch.table"), size);
+            return new Batch(context.get("dbms.warehouse"), context.get("dbms.adaBatch.table"), size);
     }
     */
 }
