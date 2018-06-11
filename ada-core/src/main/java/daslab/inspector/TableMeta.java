@@ -79,6 +79,7 @@ public class TableMeta {
 
         List<TableColumn> illegalColumns = verify(adaBatch, batchMetaMap);
         cardinality += newCount;
+        tableMetaMap = batchMetaMap;
 
         if (illegalColumns.size() > 0) {
             AdaLogger.info(this, String.format("Columns need to be updated: %s.",
@@ -113,8 +114,8 @@ public class TableMeta {
             // judgement 1
             if (batchMetaInfo.getN_() > nt
                     && tableMetaInfo.getD() * x > batchMetaInfo.getN_() * (tableMetaInfo.getD() - x)
-                    && adaBatch.getSize() > (e2 * tableMetaInfo.getD() * x - z2 * (tableMetaInfo.getS2() + deltaS2) * (tableMetaInfo.getD() - x)) / (tableMetaInfo.getS2() * z2 - e2 * x + z2 * deltaS2)
-                    && adaBatch.getSize() <= (e2 * tableMetaInfo.getD() * nt - z2 * (tableMetaInfo.getS2() + deltaS2) * (tableMetaInfo.getD() - nt)) / (tableMetaInfo.getS2() * z2 - e2 *  nt + z2 * deltaS2)) {
+                    && adaBatch.getSize() > (e2 * tableMetaInfo.getD() * x - z2 * batchMetaInfo.getS2() * (tableMetaInfo.getD() - x)) / (batchMetaInfo.getS2() * z2 - e2 * x)
+                    && adaBatch.getSize() <= (e2 * tableMetaInfo.getD() * nt - z2 * batchMetaInfo.getS2() * (tableMetaInfo.getD() - nt)) / (batchMetaInfo.getS2() * z2 - e2 *  nt)) {
                 flag = true;
             }
             // judgement 2
@@ -122,14 +123,14 @@ public class TableMeta {
                     && tableMetaInfo.getD() * nt > batchMetaInfo.getN_() * (tableMetaInfo.getD() - nt)
                     && tableMetaInfo.getD() * x < batchMetaInfo.getN_() * (tableMetaInfo.getD() - x)
                     && adaBatch.getSize() > 0
-                    && adaBatch.getSize() <= (e2 * tableMetaInfo.getD() * nt - z2 * (tableMetaInfo.getS2() + deltaS2) * (tableMetaInfo.getD() - nt)) / (tableMetaInfo.getS2() * z2 - e2 * nt + z2 * deltaS2)) {
+                    && adaBatch.getSize() <= (e2 * tableMetaInfo.getD() * nt - z2 * batchMetaInfo.getS2() * (tableMetaInfo.getD() - nt)) / (batchMetaInfo.getS2() * z2 - e2 * nt)) {
                 flag = true;
             }
             // judgement 3
             if (x < batchMetaInfo.getN_()
                     && batchMetaInfo.getN_() < nt
                     && tableMetaInfo.getD() * x > batchMetaInfo.getN_() * (tableMetaInfo.getD() - x)
-                    && adaBatch.getSize() > (e2 * tableMetaInfo.getD() * x - z2 * (tableMetaInfo.getS2() + deltaS2) * (tableMetaInfo.getD() - x)) / (tableMetaInfo.getS2() * z2 - e2 * x + z2 * deltaS2)) {
+                    && adaBatch.getSize() > (e2 * tableMetaInfo.getD() * x - z2 * batchMetaInfo.getS2() * (tableMetaInfo.getD() - x)) / (batchMetaInfo.getS2() * z2 - e2 * x)) {
                 flag = true;
             }
             // judgement 4
@@ -244,7 +245,7 @@ class MetaInfo {
 
     @Override
     public String toString() {
-        return String.format("{column: %s, n: %.2f, n^: %.2f, s2: %.2f, d: %d, x: %d, avg: %.2f, sum: %.2f}",
-                column, n, n_, s2, d, x, avg, sum);
+        return String.format("{column: %s, n: %.2f, n^: %.2f, s2: %.2f, d: %d, x: %d, avg: %.2f, sum: %.2f, e: %.2f}",
+                column, n, n_, s2, d, x, avg, sum, e);
     }
 }

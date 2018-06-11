@@ -1,5 +1,6 @@
 package daslab.restore;
 
+import daslab.exp.ExpConfig;
 import daslab.utils.AdaLogger;
 import edu.umich.verdict.VerdictSpark2Context;
 import edu.umich.verdict.exceptions.VerdictException;
@@ -43,7 +44,7 @@ public class DatabaseRestore implements RestoreModule {
         execute("USE wiki_ada");
         execute("CREATE EXTERNAL TABLE pagecounts(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION '/home/hadoop/spark/wiki_ada_pagecounts/'");
         execute("CREATE TABLE pagecounts_batch(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ','");
-        for (int day = 1; day <= 1; day++) {
+        for (int day = 1; day <= ExpConfig.DAY_START; day++) {
             for (int hour = 0; hour < 24; hour++) {
                 String path = String.format("/home/hadoop/wiki/n_pagecounts-201601%02d-%02d0000", day, hour);
                 String command = "hadoop fs -cp " + path + " /home/hadoop/spark/wiki_ada_pagecounts/";
