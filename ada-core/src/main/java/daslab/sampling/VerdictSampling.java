@@ -7,8 +7,6 @@ import daslab.utils.AdaLogger;
 import edu.umich.verdict.VerdictSpark2Context;
 import edu.umich.verdict.exceptions.VerdictException;
 
-import java.util.List;
-
 /**
  * @author zyz
  * @version 2018-06-05
@@ -19,17 +17,23 @@ public class VerdictSampling extends SamplingStrategy {
     }
 
     @Override
-    public void run(AdaBatch adaBatch) {
-        List<Sample> samples = getSamples();
+    public void run(Sample sample, AdaBatch adaBatch) {
         try {
             VerdictSpark2Context verdictSpark2Context = new VerdictSpark2Context(getContext().getDbmsSpark2().getSparkSession().sparkContext());
             AdaLogger.info(this, "About to drop all samples.");
+            /*
             verdictSpark2Context.sql(String.format("DROP SAMPLES OF %s.%s",
                     getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
             for (Sample sample : samples) {
                 AdaLogger.info(this, "About to create sample with sampling ratio " + sample.samplingRatio + " of " +  getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
                 verdictSpark2Context.sql("CREATE " + (sample.samplingRatio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
             }
+            */
+            verdictSpark2Context.sql(String.format("DROP %d%% SAMPLES OF %s.%s",
+                    Math.round(sample.samplingRatio * 100),
+                    getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
+            AdaLogger.info(this, "About to create sample with sampling ratio " + sample.samplingRatio + " of " +  getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
+            verdictSpark2Context.sql("CREATE " + Math.round(sample.samplingRatio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
         } catch (VerdictException e) {
             e.printStackTrace();
         }

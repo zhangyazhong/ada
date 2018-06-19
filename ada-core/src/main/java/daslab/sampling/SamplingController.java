@@ -1,6 +1,7 @@
 package daslab.sampling;
 
 import daslab.bean.AdaBatch;
+import daslab.bean.Sample;
 import daslab.context.AdaContext;
 
 /**
@@ -45,11 +46,11 @@ public class SamplingController {
         return resamplingStrategy;
     }
 
-    public void update(AdaBatch adaBatch) {
-        samplingStrategy.run(adaBatch);
+    public void update(Sample sample, AdaBatch adaBatch) {
+        samplingStrategy.run(sample, adaBatch);
     }
 
-    public void resample(AdaBatch adaBatch) {
-        resamplingStrategy.run(adaBatch);
+    public void resample(Sample sample, AdaBatch adaBatch) {
+        resamplingStrategy.run(sample, adaBatch);
     }
 }

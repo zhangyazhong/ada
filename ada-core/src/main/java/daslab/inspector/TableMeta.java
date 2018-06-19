@@ -3,6 +3,7 @@ package daslab.inspector;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import daslab.bean.AdaBatch;
+import daslab.bean.Sample;
 import daslab.bean.Sampling;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
@@ -19,7 +20,7 @@ public class TableMeta {
     private AdaContext context;
     private TableSchema tableSchema;
     private Map<TableColumn, MetaInfo> tableMetaMap;
-    private int cardinality;
+    private long cardinality;
     private String metaClause;
 
     public TableMeta(AdaContext context, TableSchema tableSchema) {
@@ -35,7 +36,7 @@ public class TableMeta {
         String sql = String.format("SELECT %s FROM %s.%s", metaClause,
                 tableSchema.getDbName(), tableSchema.getTableName());
         context.getDbmsSpark2().execute(sql);
-        cardinality = (int) context.getDbmsSpark2().getResultAsLong(0, "count");
+        cardinality = context.getDbmsSpark2().getResultAsLong(0, "count");
         for (TableColumn column : tableSchema.getColumns()) {
             if (column.getColumnType().isInt() || column.getColumnType().isDouble()) {
                 double var = context.getDbmsSpark2().getResultAsDouble(0, "var_pop_" + column.getColumnName());
@@ -49,7 +50,7 @@ public class TableMeta {
         }
     }
 
-    public Sampling refresh(AdaBatch adaBatch) {
+    public Map<Sample, Sampling> refresh(AdaBatch adaBatch) {
 //        double errorBound = Double.parseDouble(context.get("query.error_bound"));
         double confidence = Double.parseDouble(context.get("query.confidence_internal_"));
         String sql = String.format("SELECT %s FROM %s.%s", metaClause,
@@ -57,7 +58,7 @@ public class TableMeta {
         context.getDbmsSpark2().execute(sql);
         int newCount = adaBatch.getSize();
 //        int totalCount = newCount + ((MetaInfo[]) tableMetaMap.values().toArray())[0].getD();
-        int totalCount = newCount + cardinality;
+        long totalCount = newCount + cardinality;
         Map<TableColumn, MetaInfo> batchMetaMap = Maps.newHashMap();
         for (TableColumn column : tableSchema.getColumns()) {
             if (column.getColumnType().isInt() || column.getColumnType().isDouble()) {
@@ -77,10 +78,34 @@ public class TableMeta {
             }
         }
 
-        List<TableColumn> illegalColumns = verify(adaBatch, batchMetaMap);
+//        List<TableColumn> illegalColumns = verify(adaBatch, batchMetaMap);
+        Map<Sample, List<TableColumn>> illegalSamples = verify(adaBatch, batchMetaMap);
         cardinality += newCount;
         tableMetaMap = batchMetaMap;
 
+        AdaLogger.info(this, String.format("Table[%s] cardinality: %d", tableSchema.getTableName(), cardinality));
+
+        Map<Sample, Sampling> samplingMap = Maps.newHashMap();
+
+        illegalSamples.forEach((sample, illegalColumns) -> {
+            if (illegalColumns.size() > 0) {
+                AdaLogger.info(this, String.format("Sample's[%.2f] columns need to be updated: %s.",
+                        sample.samplingRatio,
+                        StringUtils.join(illegalColumns.stream().map(TableColumn::toString).toArray(), ", ")));
+                AdaLogger.info(this, "Use " + context.getSamplingController().getResamplingStrategy().name() + " strategy to resample.");
+                samplingMap.put(sample, Sampling.RESAMPLE);
+                context.getSamplingController().resample(sample, adaBatch);
+            } else {
+                AdaLogger.info(this, String.format("Sample's[%.2f]: no column needs to be updated.", sample.samplingRatio));
+                AdaLogger.info(this, "Use " + context.getSamplingController().getSamplingStrategy().name() + " strategy to update sample.");
+                samplingMap.put(sample, Sampling.UPDATE);
+                context.getSamplingController().update(sample, adaBatch);
+            }
+        });
+
+        return samplingMap;
+
+        /*
         if (illegalColumns.size() > 0) {
             AdaLogger.info(this, String.format("Columns need to be updated: %s.",
                     StringUtils.join(illegalColumns.stream().map(TableColumn::toString).toArray(), ", ")));
@@ -93,11 +118,45 @@ public class TableMeta {
             context.getSamplingController().update(adaBatch);
             return Sampling.UPDATE;
         }
+        */
     }
 
-    private List<TableColumn> verify(AdaBatch adaBatch, Map<TableColumn, MetaInfo> batchMetaMap) {
+    private Map<Sample, List<TableColumn>> verify(AdaBatch adaBatch, Map<TableColumn, MetaInfo> batchMetaMap) {
 //        double errorBound = Double.parseDouble(context.get("query.error_bound"));
         double confidence = Double.parseDouble(context.get("query.confidence_internal_"));
+        Map<Sample, List<TableColumn>> illegalSamples = Maps.newHashMap();
+        List<Sample> samples = context.getSamplingController().getSamplingStrategy().getSamples();
+        for (Sample sample : samples) {
+            AdaLogger.info(this, String.format("Sample[%.2f] size is: %d", sample.samplingRatio, sample.sampleSize));
+
+            List<TableColumn> illegalColumns = Lists.newArrayList();
+            for (TableColumn column : tableMetaMap.keySet()) {
+                MetaInfo tableMetaInfo = tableMetaMap.get(column);
+                MetaInfo batchMetaInfo = batchMetaMap.get(column);
+
+                boolean flag = false;
+                double errorBound = tableMetaInfo.getE();
+                double e2 = Math.pow(errorBound, 2);
+                double z2 = Math.pow(confidence, 2);
+                double s2 = batchMetaInfo.getS2();
+                double N = cardinality + (long) adaBatch.getSize();
+                double n_ = z2 * s2 / e2;
+
+                if (n_ * N / (n_ + N) <= sample.sampleSize) {
+                    flag = true;
+                }
+
+                if (!flag) {
+                    illegalColumns.add(column);
+                }
+            }
+//            if (illegalColumns.size() > 0) {
+//                illegalSamples.put(sample, illegalColumns);
+//            }
+            illegalSamples.put(sample, illegalColumns);
+        }
+        return illegalSamples;
+        /*
         List<TableColumn> illegalColumns = Lists.newArrayList();
         for (TableColumn column : tableMetaMap.keySet()) {
             MetaInfo tableMetaInfo = tableMetaMap.get(column);
@@ -146,6 +205,7 @@ public class TableMeta {
             }
         }
         return illegalColumns;
+        */
     }
 
     private String metaClause() {
@@ -184,7 +244,7 @@ class MetaInfo {
     private double n;
     private double n_;
     private double s2;
-    private int d;
+    private long d;
     private int x;
     private double avg;
     private double sum;
@@ -194,7 +254,7 @@ class MetaInfo {
         this.column = column;
     }
 
-    public static MetaInfo calc(TableColumn column, double s2, int d, double sum, double e, double z) {
+    public static MetaInfo calc(TableColumn column, double s2, long d, double sum, double e, double z) {
         MetaInfo metaInfo = new MetaInfo(column);
         metaInfo.s2 = s2;
         metaInfo.d = d;
@@ -223,7 +283,7 @@ class MetaInfo {
         return s2;
     }
 
-    public int getD() {
+    public long getD() {
         return d;
     }
 

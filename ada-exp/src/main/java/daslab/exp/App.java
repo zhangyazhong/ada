@@ -7,6 +7,7 @@ import daslab.exp1.Exp1Accurate;
 import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
 import daslab.exp3.Exp3;
+import daslab.exp3.Exp3Clean;
 import daslab.restore.RestoreModule;
 import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
@@ -57,6 +58,10 @@ public class App {
                     AdaLogger.info(this, "Ada Exp operation: Experiment 3 with Database Restore");
                     SystemRestore.restoreModules().forEach(RestoreModule::restore);
                     new Exp3().run();
+                    break;
+                case "exp3_clean":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 3");
+                    new Exp3Clean().run();
                     break;
             }
         }

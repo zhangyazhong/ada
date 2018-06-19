@@ -57,7 +57,7 @@ public abstract class SamplingStrategy {
         return samples;
     }
 
-    public abstract void run(AdaBatch adaBatch);
+    public abstract void run(Sample sample, AdaBatch adaBatch);
 
     public abstract String name();
 }

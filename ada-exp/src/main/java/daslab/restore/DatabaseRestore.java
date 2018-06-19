@@ -58,7 +58,9 @@ public class DatabaseRestore implements RestoreModule {
         try {
             VerdictSpark2Context verdictSpark2Context = new VerdictSpark2Context(sparkSession.sparkContext());
             verdictSpark2Context.sql("DROP SAMPLES OF wiki_ada.pagecounts");
-            verdictSpark2Context.sql("CREATE 10% UNIFORM SAMPLE OF wiki_ada.pagecounts");
+            for (int ratio : ExpConfig.SAMPLE_RATIO) {
+                verdictSpark2Context.sql("CREATE " + ratio + "% UNIFORM SAMPLE OF wiki_ada.pagecounts");
+            }
         } catch (VerdictException e) {
             e.printStackTrace();
         }

@@ -2,6 +2,7 @@ package daslab.context;
 
 import com.google.common.collect.Maps;
 import daslab.bean.AdaBatch;
+import daslab.bean.Sample;
 import daslab.bean.Sampling;
 import daslab.inspector.TableMeta;
 import daslab.sampling.SamplingController;
@@ -105,16 +106,16 @@ public class AdaContext {
         */
 
         Long startTime = System.currentTimeMillis();
-        Sampling strategy = tableMeta.refresh(adaBatch);
+        Map<Sample, Sampling> strategies = tableMeta.refresh(adaBatch);
         Long finishTime = System.currentTimeMillis();
         String samplingTime = String.format("%d:%02d.%03d", (finishTime - startTime) / 60000, ((finishTime - startTime) / 1000) % 60, (finishTime - startTime) % 1000);
 
         try {
-            costWriter.write(String.format("%d,%s,%s\r\n", batchCount, strategy.toString(), samplingTime));
+            costWriter.write(String.format("%d,%s,%s\r\n", batchCount, strategies.toString(), samplingTime));
         } catch (IOException e) {
             e.printStackTrace();
         }
-        AdaLogger.info(this, String.format("AdaBatch(%d) [%s] sampling time cost: %s ", adaBatch.getSize(), strategy.toString(), samplingTime));
+        AdaLogger.info(this, String.format("AdaBatch(%d) [%s] sampling time cost: %s ", adaBatch.getSize(), strategies.toString(), samplingTime));
     }
 
 //    public DbmsHive2 getDbmsHive2() {

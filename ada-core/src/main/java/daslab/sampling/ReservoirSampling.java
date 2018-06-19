@@ -26,59 +26,69 @@ public class ReservoirSampling extends SamplingStrategy {
     }
 
     @Override
-    public void run(AdaBatch adaBatch) {
+    public void run(Sample sample, AdaBatch adaBatch) {
         Random randomGenerator = new Random();
-        List<Sample> samples = getSamples();
         Map<Long, Integer> chosen = Maps.newHashMap();
         String sampleSchema = getContext().get("dbms.default.database") + "_verdict";
-        for (Sample sample : samples) {
-            long tableSize = sample.tableSize;
-            long sampleSize = sample.sampleSize;
-            sampleSchema = sample.schemaName;
-            for (int i = 0; i < adaBatch.getSize(); i++) {
-                long totalSize = tableSize + (long) i;
-                long position = (long) Math.floor(randomGenerator.nextDouble() * totalSize);
-                if (position < sampleSize) {
-                    chosen.put(position, i);
-                }
+        long tableSize = sample.tableSize;
+        long sampleSize = sample.sampleSize;
+        sampleSchema = sample.schemaName;
+        for (int i = 0; i < adaBatch.getSize(); i++) {
+            long totalSize = tableSize + (long) i;
+            long position = (long) Math.floor(randomGenerator.nextDouble() * totalSize);
+            if (position < sampleSize) {
+                chosen.put(position, i);
             }
-            Set<Long> outdated = chosen.keySet();
-            Set<Integer> inserted = new HashSet<>(chosen.values());
-            sample.setRows(getContext().getDbmsSpark2()
-                    .execute(String.format("SELECT * FROM %s.%s", sample.schemaName, sample.tableName))
-                    .getResultSet());
-            Dataset<Row> sampleCleaned = sample.getRows()
-                    .withColumn("id", monotonically_increasing_id())
-                    .filter((FilterFunction<Row>) row -> !outdated.contains(row.getLong(row.fieldIndex("id"))));
-            Dataset<Row> sampleInserted = getContext().getDbmsSpark2()
-                    .execute(String.format("SELECT * FROM %s.%s", adaBatch.getDbName(), adaBatch.getTableName()))
-                    .getResultSet()
-                    .withColumn("id", monotonically_increasing_id())
-                    .withColumn("verdict_rand", when(col("page_count").$greater$eq(0), randomGenerator.nextDouble() * sampleSize / tableSize))
-                    .withColumn("verdict_vpart", when(col("page_count").$greater$eq(0),  Math.floor(randomGenerator.nextDouble() * 100)))
-                    .withColumn("verdict_vprob", lit(sample.samplingRatio))
-                    .filter((FilterFunction<Row>) row -> inserted.contains((int) row.getLong(row.fieldIndex("id"))));
-            Dataset<Row> sampleUpdated = sampleCleaned
-                    .union(sampleInserted)
-                    .drop("id")
-                    .drop("verdict_vprob")
-                    .withColumn("verdict_vprob", lit(1.0 * sample.sampleSize / (sample.tableSize + (long) adaBatch.getSize())));
+        }
+        Set<Long> outdated = chosen.keySet();
+        Set<Integer> inserted = new HashSet<>(chosen.values());
+        sample.setRows(getContext().getDbmsSpark2()
+                .execute(String.format("SELECT * FROM %s.%s", sample.schemaName, sample.tableName))
+                .getResultSet());
+        Dataset<Row> sampleCleaned = sample.getRows()
+                .withColumn("id", monotonically_increasing_id())
+                .filter((FilterFunction<Row>) row -> !outdated.contains(row.getLong(row.fieldIndex("id"))));
+        Dataset<Row> sampleInserted = getContext().getDbmsSpark2()
+                .execute(String.format("SELECT * FROM %s.%s", adaBatch.getDbName(), adaBatch.getTableName()))
+                .getResultSet()
+                .withColumn("id", monotonically_increasing_id())
+                .withColumn("verdict_rand", when(col("page_count").$greater$eq(0), randomGenerator.nextDouble() * sampleSize / tableSize))
+                .withColumn("verdict_vpart", when(col("page_count").$greater$eq(0),  Math.floor(randomGenerator.nextDouble() * 100)))
+                .withColumn("verdict_vprob", lit(sample.samplingRatio))
+                .filter((FilterFunction<Row>) row -> inserted.contains((int) row.getLong(row.fieldIndex("id"))));
+        Dataset<Row> sampleUpdated = sampleCleaned
+                .union(sampleInserted)
+                .drop("id")
+                .drop("verdict_vprob")
+                .withColumn("verdict_vprob", lit(1.0 * sample.sampleSize / (sample.tableSize + (long) adaBatch.getSize())));
 //            getContext().getDbmsSpark2().execute(String.format("CREATE TABLE %s.%s%s LIKE %s.%s",
 //                    sample.schemaName, sample.tableName, "_ada", sample.schemaName, sample.tableName));
-            getContext().getDbmsSpark2()
-                    .execute(String.format("USE %s", sample.schemaName))
-                    .execute(String.format("TRUNCATE TABLE %s.%s", sample.schemaName, sample.tableName));
-            sampleUpdated.write().insertInto(sample.tableName);
-        }
+        getContext().getDbmsSpark2()
+                .execute(String.format("USE %s", sample.schemaName))
+                .execute(String.format("TRUNCATE TABLE %s.%s", sample.schemaName, sample.tableName));
+        sampleUpdated.write().insertInto(sample.tableName);
+
+        List<Sample> samples = getSamples();
         List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();
         List<Dataset<Row>> metaNameDFs = Lists.newArrayList();
-        for (Sample sample : samples) {
-            Dataset<Row> metaSizeDF = getContext().getDbmsSpark2().getSparkSession()
-                    .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize + (long) adaBatch.getSize())), VerdictMetaSize.class)
-                    .toDF();
-            Dataset<Row> metaNameDF = getContext().getDbmsSpark2().getSparkSession()
-                    .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, 1.0 * sample.sampleSize / (sample.tableSize + (long) adaBatch.getSize()), sample.onColumn)), VerdictMetaName.class)
-                    .toDF();
+        for (Sample _sample : samples) {
+            Dataset<Row> metaSizeDF;
+            Dataset<Row> metaNameDF;
+            if (Math.abs(_sample.samplingRatio - sample.samplingRatio) < 0.00001) {
+                metaSizeDF = getContext().getDbmsSpark2().getSparkSession()
+                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize + (long) adaBatch.getSize())), VerdictMetaSize.class)
+                        .toDF();
+                metaNameDF = getContext().getDbmsSpark2().getSparkSession()
+                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, 1.0 * Math.floor(100.0 * sample.sampleSize / (sample.tableSize + (long) adaBatch.getSize())) / 100.0, sample.onColumn)), VerdictMetaName.class)
+                        .toDF();
+            } else {
+                metaSizeDF = getContext().getDbmsSpark2().getSparkSession()
+                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize)), VerdictMetaSize.class)
+                        .toDF();
+                metaNameDF = getContext().getDbmsSpark2().getSparkSession()
+                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, sample.samplingRatio, sample.onColumn)), VerdictMetaName.class)
+                        .toDF();
+            }
             metaSizeDFs.add(metaSizeDF);
             metaNameDFs.add(metaNameDF);
         }
