@@ -6,10 +6,7 @@ import daslab.exp1.Exp1Collect;
 import daslab.exp1.Exp1Accurate;
 import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
-import daslab.exp3.Exp3;
-import daslab.exp3.Exp3Clean;
-import daslab.exp3.Exp3Stratified;
-import daslab.exp3.Exp3Uniform;
+import daslab.exp3.*;
 import daslab.restore.RestoreModule;
 import daslab.restore.SampleRestore;
 import daslab.restore.SystemRestore;
@@ -76,6 +73,10 @@ public class App {
                 case "exp3_stratified":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 3 Only Stratified Sample");
                     new Exp3Stratified().run();
+                    break;
+                case "exp3_ratio":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 3 with Different Ratio");
+                    new Exp3Ratio().run();
                     break;
             }
         }
