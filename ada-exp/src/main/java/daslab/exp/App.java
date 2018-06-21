@@ -8,6 +8,8 @@ import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
 import daslab.exp3.Exp3;
 import daslab.exp3.Exp3Clean;
+import daslab.exp3.Exp3Stratified;
+import daslab.exp3.Exp3Uniform;
 import daslab.restore.RestoreModule;
 import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
@@ -60,8 +62,16 @@ public class App {
                     new Exp3().run();
                     break;
                 case "exp3_clean":
-                    AdaLogger.info(this, "Ada Exp operation: Experiment 3");
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 3 Only Clean Database");
                     new Exp3Clean().run();
+                    break;
+                case "exp3_uniform":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 3 Only Uniform Sample");
+                    new Exp3Uniform().run();
+                    break;
+                case "exp3_stratified":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 3 Only Stratified Sample");
+                    new Exp3Stratified().run();
                     break;
             }
         }

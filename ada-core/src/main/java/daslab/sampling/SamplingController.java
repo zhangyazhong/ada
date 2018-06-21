@@ -47,10 +47,10 @@ public class SamplingController {
     }
 
     public void update(Sample sample, AdaBatch adaBatch) {
-        samplingStrategy.run(sample, adaBatch);
+        samplingStrategy.update(sample, adaBatch);
     }
 
-    public void resample(Sample sample, AdaBatch adaBatch) {
-        resamplingStrategy.run(sample, adaBatch);
+    public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
+        resamplingStrategy.resample(sample, adaBatch, ratio);
     }
 }

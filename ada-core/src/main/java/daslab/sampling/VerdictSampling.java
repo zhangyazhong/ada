@@ -7,10 +7,12 @@ import daslab.utils.AdaLogger;
 import edu.umich.verdict.VerdictSpark2Context;
 import edu.umich.verdict.exceptions.VerdictException;
 
+import static java.lang.Math.round;
 /**
  * @author zyz
  * @version 2018-06-05
  */
+@SuppressWarnings("Duplicates")
 public class VerdictSampling extends SamplingStrategy {
     public VerdictSampling(AdaContext context) {
         super(context);
@@ -34,6 +36,28 @@ public class VerdictSampling extends SamplingStrategy {
                     getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
             AdaLogger.info(this, "About to create sample with sampling ratio " + sample.samplingRatio + " of " +  getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
             verdictSpark2Context.sql("CREATE " + Math.round(sample.samplingRatio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
+        } catch (VerdictException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void update(Sample sample, AdaBatch adaBatch) {
+    }
+
+    @Override
+    public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
+        try {
+            VerdictSpark2Context verdictSpark2Context = new VerdictSpark2Context(getContext().getDbmsSpark2().getSparkSession().sparkContext());
+            AdaLogger.info(this, "About to drop sample with ratio " + sample.samplingRatio);
+            AdaLogger.info(this, "About to run: " + String.format("DROP %d%% SAMPLES OF %s.%s",
+                    round(sample.samplingRatio * 100),
+                    getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
+            verdictSpark2Context.sql(String.format("DROP %d%% SAMPLES OF %s.%s",
+                    round(sample.samplingRatio * 100),
+                    getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
+            AdaLogger.info(this, String.format("About to create sample with sampling ratio %f of %s.%s", round(ratio * 100) / 100.0, getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
+            verdictSpark2Context.sql("CREATE " + (int) round(ratio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
         } catch (VerdictException e) {
             e.printStackTrace();
         }

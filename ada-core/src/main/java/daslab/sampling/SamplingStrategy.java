@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import daslab.bean.AdaBatch;
 import daslab.bean.Sample;
 import daslab.context.AdaContext;
+import daslab.utils.AdaLogger;
 import org.apache.spark.sql.Row;
 
 import java.util.List;
@@ -54,10 +55,15 @@ public abstract class SamplingStrategy {
                 samples.add(sample);
             }
         }
+        samples.forEach(sample -> AdaLogger.debug(this, sample.toString()));
         return samples;
     }
 
     public abstract void run(Sample sample, AdaBatch adaBatch);
+
+    public abstract void update(Sample sample, AdaBatch adaBatch);
+
+    public abstract void resample(Sample sample, AdaBatch adaBatch, double ratio);
 
     public abstract String name();
 }

@@ -79,7 +79,7 @@ public class ReservoirSampling extends SamplingStrategy {
                         .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize + (long) adaBatch.getSize())), VerdictMetaSize.class)
                         .toDF();
                 metaNameDF = getContext().getDbmsSpark2().getSparkSession()
-                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, 1.0 * Math.floor(100.0 * sample.sampleSize / (sample.tableSize + (long) adaBatch.getSize())) / 100.0, sample.onColumn)), VerdictMetaName.class)
+                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, Math.round(100.0 * sample.sampleSize / (sample.tableSize + (long) adaBatch.getSize())) / 100.0, sample.onColumn)), VerdictMetaName.class)
                         .toDF();
             } else {
                 metaSizeDF = getContext().getDbmsSpark2().getSparkSession()
@@ -104,6 +104,15 @@ public class ReservoirSampling extends SamplingStrategy {
                 .execute(String.format("TRUNCATE TABLE %s.%s", sampleSchema, "verdict_meta_size"));
         metaNameDF.write().insertInto("verdict_meta_name");
         metaSizeDF.write().insertInto("verdict_meta_size");
+    }
+
+    @Override
+    public void update(Sample sample, AdaBatch adaBatch) {
+        run(sample, adaBatch);
+    }
+
+    @Override
+    public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
     }
 
     @Override

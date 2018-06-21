@@ -60,6 +60,15 @@ public class IncrementalSampling extends SamplingStrategy {
     }
 
     @Override
+    public void update(Sample sample, AdaBatch adaBatch) {
+        run(sample, adaBatch);
+    }
+
+    @Override
+    public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
+    }
+
+    @Override
     public String name() {
         return "incremental";
     }

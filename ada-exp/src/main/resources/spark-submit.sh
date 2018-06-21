@@ -34,3 +34,7 @@ java -jar ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp2_sender
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp3_with_restore
 # clean exp3 database
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp3_clean
+# run exp3 only uniform
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp3_uniform
+# run exp3 only stratified
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp3_stratified
