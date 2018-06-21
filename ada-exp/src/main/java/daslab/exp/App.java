@@ -11,6 +11,7 @@ import daslab.exp3.Exp3Clean;
 import daslab.exp3.Exp3Stratified;
 import daslab.exp3.Exp3Uniform;
 import daslab.restore.RestoreModule;
+import daslab.restore.SampleRestore;
 import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
 
@@ -26,6 +27,9 @@ public class App {
                     AdaLogger.info(this, "Ada Exp operation: RESTORE");
                     SystemRestore.restoreModules().forEach(RestoreModule::restore);
                     break;
+                case "clean_sample":
+                    AdaLogger.info(this, "Ada Exp operation: Clean Sample");
+                    new SampleRestore().restore();
                 case "exp1":
                 case "exp1_approximate":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 1 Only Approximate");
