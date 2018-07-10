@@ -5,6 +5,7 @@ import daslab.utils.AdaLogger;
 import edu.umich.verdict.VerdictSpark2Context;
 import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.catalyst.analysis.NoSuchDatabaseException;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -20,7 +21,8 @@ public class DatabaseRestore implements RestoreModule {
                 .appName("Ada Exp - DatabaseRestore")
                 .enableHiveSupport()
                 .config("spark.sql.warehouse.dir", "hdfs://master:9000/home/hadoop/spark/")
-                .config("spark.executor.memory", "12g")
+                .config("spark.executor.memory", "16g")
+                .config("spark.driver.memory", "4g")
                 .getOrCreate();
         sparkSession.sparkContext().setLogLevel("ERROR");
     }
@@ -44,6 +46,15 @@ public class DatabaseRestore implements RestoreModule {
         execute("USE wiki_ada");
         execute("CREATE EXTERNAL TABLE pagecounts(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION '/home/hadoop/spark/wiki_ada_pagecounts/'");
         execute("CREATE TABLE pagecounts_batch(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ','");
+        for (int i = 0; i < ExpConfig.HOUR_START; i++) {
+            int day = i / 24 + 1;
+            int hour = i % 24;
+            String path = String.format("/home/hadoop/wiki/n_pagecounts-201601%02d-%02d0000", day, hour);
+            String command = "hadoop fs -cp " + path + " /home/hadoop/spark/wiki_ada_pagecounts/";
+            AdaLogger.debug(this, "Loading " + path + " into table");
+            call(command);
+        }
+        /*
         for (int day = 1; day <= ExpConfig.DAY_START; day++) {
             for (int hour = 0; hour < 24; hour++) {
                 String path = String.format("/home/hadoop/wiki/n_pagecounts-201601%02d-%02d0000", day, hour);
@@ -52,10 +63,12 @@ public class DatabaseRestore implements RestoreModule {
                 call(command);
             }
         }
+        */
 
         AdaLogger.info(this, "Restored database to initial status.");
 
         try {
+            sparkSession.sql("DROP DATABASE IF EXISTS wiki_ada_verdict CASCADE");
             VerdictSpark2Context verdictSpark2Context = new VerdictSpark2Context(sparkSession.sparkContext());
             verdictSpark2Context.sql("DROP SAMPLES OF wiki_ada.pagecounts");
             for (int ratio : ExpConfig.SAMPLE_RATIO) {

@@ -5,7 +5,7 @@ import daslab.utils.AdaLogger;
 import edu.umich.verdict.exceptions.VerdictException;
 
 public class Exp3Ratio extends ExpTemplate {
-    private static int[] EXP_RATIO = {1, 2, 3, 5, 10, 20, 30, 50};
+    private static int[] EXP_RATIO = {1, 1, 2, 3, 5, 10, 20, 30, 50};
     private long[] cost;
     private final static int TIMES = 10;
     private final static int DATA = 50000_0000;
@@ -32,7 +32,7 @@ public class Exp3Ratio extends ExpTemplate {
                     AdaLogger.info(this, "Table cardinality is: " + count);
                     Thread.sleep(1000);
                     Long startTime = System.currentTimeMillis();
-                    getVerdict().execute("CREATE " + ratio + "% UNIFORM SAMPLE OF wiki_exp3.pagecounts ON project_name");
+                    getVerdict().execute("CREATE " + ratio + "% STRATIFIED SAMPLE OF wiki_exp3.pagecounts ON project_name");
                     Long finishTime = System.currentTimeMillis();
                     cost[index] = cost[index] + finishTime - startTime;
                     String samplingTime = String.format("%d:%02d.%03d", (finishTime - startTime) / 60000, ((finishTime - startTime) / 1000) % 60, (finishTime - startTime) % 1000);

@@ -21,6 +21,15 @@ public class Exp2Core {
             Thread.sleep(1000);
             AdaContext context = new AdaContext();
             context.start();
+            for (int i = ExpConfig.HOUR_START; i < ExpConfig.HOUR_TOTAL; i++) {
+                int day = i / 24 + 1;
+                int hour = i % 24;
+                String location = String.format("/home/hadoop/wiki/n_pagecounts-201601%02d-%02d0000", day, hour);
+                AdaLogger.info(this, "Send a new batch at " + location);
+                context.receive(location);
+                Thread.sleep(1000);
+            }
+            /*
             for (int day = ExpConfig.DAY_START + 1; day <= ExpConfig.DAY_TOTAL; day++) {
                 for (int hour = 0; hour < 24; hour++) {
                     String location = String.format("/home/hadoop/wiki/n_pagecounts-201601%02d-%02d0000", day, hour);
@@ -29,6 +38,7 @@ public class Exp2Core {
                     Thread.sleep(1000);
                 }
             }
+            */
             AdaLogger.info(this, "Ada Core has been started.");
         } catch (InterruptedException e) {
             e.printStackTrace();

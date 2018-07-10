@@ -27,6 +27,7 @@ public class App {
                 case "clean_sample":
                     AdaLogger.info(this, "Ada Exp operation: Clean Sample");
                     new SampleRestore().restore();
+                    break;
                 case "exp1":
                 case "exp1_approximate":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 1 Only Approximate");

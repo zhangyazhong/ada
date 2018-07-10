@@ -16,4 +16,36 @@ public class VerdictMetaSize {
         this.samplesize = samplesize;
         this.originaltablesize = originaltablesize;
     }
+
+    public String getSchemaname() {
+        return schemaname;
+    }
+
+    public void setSchemaname(String schemaname) {
+        this.schemaname = schemaname;
+    }
+
+    public String getTablename() {
+        return tablename;
+    }
+
+    public void setTablename(String tablename) {
+        this.tablename = tablename;
+    }
+
+    public long getSamplesize() {
+        return samplesize;
+    }
+
+    public void setSamplesize(long samplesize) {
+        this.samplesize = samplesize;
+    }
+
+    public long getOriginaltablesize() {
+        return originaltablesize;
+    }
+
+    public void setOriginaltablesize(long originaltablesize) {
+        this.originaltablesize = originaltablesize;
+    }
 }

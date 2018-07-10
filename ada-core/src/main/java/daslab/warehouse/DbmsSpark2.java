@@ -37,7 +37,8 @@ public class DbmsSpark2 {
                 .appName("Ada Core")
                 .enableHiveSupport()
                 .config("spark.sql.warehouse.dir", context.get("dbms.warehouse.dir"))
-                .config("spark.executor.memory", "12g")
+                .config("spark.executor.memory", "16g")
+                .config("spark.driver.memory", "16g")
                 .getOrCreate();
         sparkSession.sparkContext().setLogLevel(context.get("spark.log.level"));
 

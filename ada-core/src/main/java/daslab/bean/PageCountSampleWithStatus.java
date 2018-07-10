@@ -2,11 +2,7 @@ package daslab.bean;
 
 import java.io.Serializable;
 
-/**
- * @author zyz
- * @version 2018-06-07
- */
-public class PageCountSample implements Serializable {
+public class PageCountSampleWithStatus implements Serializable {
     public int date_time;
     public String project_name;
     public String page_name;
@@ -15,11 +11,12 @@ public class PageCountSample implements Serializable {
     public double verdict_rand;
     public double verdict_vpart;
     public double verdict_vprob;
+    public int status;
 
-    public PageCountSample() {
+    public PageCountSampleWithStatus() {
     }
 
-    public PageCountSample(int date_time, String project_name, String page_name, int page_count, int page_size, double verdict_rand, double verdict_vpart, double verdict_vprob) {
+    public PageCountSampleWithStatus(int date_time, String project_name, String page_name, int page_count, int page_size, double verdict_rand, double verdict_vpart, double verdict_vprob, int status) {
         this.date_time = date_time;
         this.project_name = project_name;
         this.page_name = page_name;
@@ -28,6 +25,7 @@ public class PageCountSample implements Serializable {
         this.verdict_rand = verdict_rand;
         this.verdict_vpart = verdict_vpart;
         this.verdict_vprob = verdict_vprob;
+        this.status = status;
     }
 
     public int getDate_time() {
@@ -92,5 +90,13 @@ public class PageCountSample implements Serializable {
 
     public void setVerdict_vprob(double verdict_vprob) {
         this.verdict_vprob = verdict_vprob;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
     }
 }

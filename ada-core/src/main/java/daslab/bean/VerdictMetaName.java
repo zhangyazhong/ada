@@ -22,4 +22,60 @@ public class VerdictMetaName {
         this.samplingratio = samplingratio;
         this.columnnames = columnnames;
     }
+
+    public String getOriginalschemaname() {
+        return originalschemaname;
+    }
+
+    public void setOriginalschemaname(String originalschemaname) {
+        this.originalschemaname = originalschemaname;
+    }
+
+    public String getOriginaltablename() {
+        return originaltablename;
+    }
+
+    public void setOriginaltablename(String originaltablename) {
+        this.originaltablename = originaltablename;
+    }
+
+    public String getSampleschemaaname() {
+        return sampleschemaaname;
+    }
+
+    public void setSampleschemaaname(String sampleschemaaname) {
+        this.sampleschemaaname = sampleschemaaname;
+    }
+
+    public String getSampletablename() {
+        return sampletablename;
+    }
+
+    public void setSampletablename(String sampletablename) {
+        this.sampletablename = sampletablename;
+    }
+
+    public String getSampletype() {
+        return sampletype;
+    }
+
+    public void setSampletype(String sampletype) {
+        this.sampletype = sampletype;
+    }
+
+    public double getSamplingratio() {
+        return samplingratio;
+    }
+
+    public void setSamplingratio(double samplingratio) {
+        this.samplingratio = samplingratio;
+    }
+
+    public String getColumnnames() {
+        return columnnames;
+    }
+
+    public void setColumnnames(String columnnames) {
+        this.columnnames = columnnames;
+    }
 }

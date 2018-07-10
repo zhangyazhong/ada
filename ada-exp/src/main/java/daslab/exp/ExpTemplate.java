@@ -16,7 +16,8 @@ public abstract class ExpTemplate {
                     .appName(name)
                     .enableHiveSupport()
                     .config("spark.sql.warehouse.dir", "hdfs://master:9000/home/hadoop/spark/")
-                    .config("spark.executor.memory", "12g")
+                    .config("spark.executor.memory", "16g")
+                    .config("spark.driver.memory", "4g")
                     .getOrCreate();
             sparkSession.sparkContext().setLogLevel("ERROR");
         } else {

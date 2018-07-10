@@ -105,6 +105,8 @@ public class AdaContext {
         AdaLogger.info(this, String.format("AdaBatch(%d) [%s] sampling time cost: %s ", adaBatch.getSize(), strategy.toString(), samplingTime));
         */
 
+        getSamplingController().getSamplingStrategy().getSamples().forEach(sample -> AdaLogger.info("Ada Current Sample - " + sample.toString()));
+
         Long startTime = System.currentTimeMillis();
         Map<Sample, Sampling> strategies = tableMeta.refresh(adaBatch);
         Long finishTime = System.currentTimeMillis();

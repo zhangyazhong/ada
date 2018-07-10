@@ -55,7 +55,10 @@ public abstract class SamplingStrategy {
                 samples.add(sample);
             }
         }
-        samples.forEach(sample -> AdaLogger.debug(this, sample.toString()));
+        samples.forEach(sample -> AdaLogger.info(this, sample.toString()));
+        if (samples.size() == 0) {
+            AdaLogger.info(this, "Sample - no sample available");
+        }
         return samples;
     }
 
