@@ -6,7 +6,6 @@ import com.google.common.collect.Maps;
 import daslab.bean.*;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
-import org.apache.spark.api.java.function.FilterFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -111,17 +110,17 @@ public class ReservoirSampling extends SamplingStrategy {
             Dataset<Row> metaSizeDF;
             Dataset<Row> metaNameDF;
             if (Math.abs(_sample.samplingRatio - sample.samplingRatio) < 0.00001) {
-                metaSizeDF = getContext().getDbmsSpark2().getSparkSession()
+                metaSizeDF = spark
                         .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize + (long) adaBatch.getSize())), VerdictMetaSize.class)
                         .toDF();
-                metaNameDF = getContext().getDbmsSpark2().getSparkSession()
+                metaNameDF = spark
                         .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, Math.round(100.0 * sample.sampleSize / (sample.tableSize + (long) adaBatch.getSize())) / 100.0, sample.onColumn)), VerdictMetaName.class)
                         .toDF();
             } else {
-                metaSizeDF = getContext().getDbmsSpark2().getSparkSession()
+                metaSizeDF = spark
                         .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize)), VerdictMetaSize.class)
                         .toDF();
-                metaNameDF = getContext().getDbmsSpark2().getSparkSession()
+                metaNameDF = spark
                         .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, sample.samplingRatio, sample.onColumn)), VerdictMetaName.class)
                         .toDF();
             }
@@ -136,10 +135,10 @@ public class ReservoirSampling extends SamplingStrategy {
         }
         getContext().getDbmsSpark2()
                 .execute(String.format("USE %s", sampleSchema))
-                .execute(String.format("TRUNCATE TABLE %s.%s", sampleSchema, "verdict_meta_name"))
-                .execute(String.format("TRUNCATE TABLE %s.%s", sampleSchema, "verdict_meta_size"));
-        metaNameDF.write().insertInto("verdict_meta_name");
-        metaSizeDF.write().insertInto("verdict_meta_size");
+                .execute(String.format("DROP TABLE %s.%s", sampleSchema, "verdict_meta_name"))
+                .execute(String.format("DROP TABLE %s.%s", sampleSchema, "verdict_meta_size"));
+        metaNameDF.write().saveAsTable("verdict_meta_name");
+        metaSizeDF.write().saveAsTable("verdict_meta_size");
     }
 
     @Override

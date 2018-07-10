@@ -1,14 +1,19 @@
 package daslab.bean;
 
+import java.io.Serializable;
+
 /**
  * @author zyz
  * @version 2018-06-06
  */
-public class VerdictMetaSize {
+public class VerdictMetaSize implements Serializable {
     public String schemaname;
     public String tablename;
     public long samplesize;
     public long originaltablesize;
+
+    public VerdictMetaSize() {
+    }
 
     public VerdictMetaSize(String schemaname, String tablename, long samplesize, long originaltablesize) {
         this.schemaname = schemaname;
