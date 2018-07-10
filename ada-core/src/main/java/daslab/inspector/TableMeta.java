@@ -163,8 +163,8 @@ public class TableMeta {
             for (TableColumnSample column: illegalColumns) {
                 ratio = Math.max(ratio, column.getRatio());
             }
-//            if (illegalColumns.size() > 0) {
-            if (illegalColumns.size() < 0) {
+            if (illegalColumns.size() > 0) {
+//            if (illegalColumns.size() < 0) {
                 AdaLogger.info(this, String.format("Sample's[%.2f] columns need to be updated: %s.",
                         sample.samplingRatio,
                         StringUtils.join(illegalColumns.stream().map(column -> column.getColumn().toString()).toArray(), ", ")));
@@ -214,7 +214,7 @@ public class TableMeta {
                 }
                 if (!flag) {
                     double ratio = 1.0 * batchMetaInfo.getN() / batchMetaInfo.getD();
-                    ratio = ratio * 1.1;
+                    ratio = Math.min(ratio * 1.1, 1);
                     ratio = Math.ceil(ratio * 100) / 100;
                     illegalColumns.add(new TableColumnSample(column, ratio));
                 }
