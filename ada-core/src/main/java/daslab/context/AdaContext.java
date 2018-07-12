@@ -124,6 +124,10 @@ public class AdaContext {
 //        return dbmsHive2;
 //    }
 
+    public DbmsSpark2 getDbms() {
+        return getDbmsSpark2();
+    }
+
     public DbmsSpark2 getDbmsSpark2() {
         return dbmsSpark2;
     }

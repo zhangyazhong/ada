@@ -53,4 +53,14 @@ public class VerdictMetaSize implements Serializable {
     public void setOriginaltablesize(long originaltablesize) {
         this.originaltablesize = originaltablesize;
     }
+
+    @Override
+    public String toString() {
+        return "VerdictMetaSize{" +
+                "schemaname='" + schemaname + '\'' +
+                ", tablename='" + tablename + '\'' +
+                ", samplesize=" + samplesize +
+                ", originaltablesize=" + originaltablesize +
+                '}';
+    }
 }

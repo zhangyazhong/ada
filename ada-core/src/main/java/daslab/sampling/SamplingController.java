@@ -3,6 +3,7 @@ package daslab.sampling;
 import daslab.bean.AdaBatch;
 import daslab.bean.Sample;
 import daslab.context.AdaContext;
+import daslab.utils.AdaLogger;
 
 /**
  * @author zyz
@@ -48,9 +49,17 @@ public class SamplingController {
 
     public void update(Sample sample, AdaBatch adaBatch) {
         samplingStrategy.update(sample, adaBatch);
+        samplingStrategy.getMetaSizes().forEach(verdictMetaSize ->
+                AdaLogger.debug(this, "Final Meta Size: " + verdictMetaSize.toString()));
+        samplingStrategy.getMetaNames().forEach(verdictMetaName ->
+                AdaLogger.debug(this, "Final Meta Name: " + verdictMetaName.toString()));
     }
 
     public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
         resamplingStrategy.resample(sample, adaBatch, ratio);
+        resamplingStrategy.getMetaSizes().forEach(verdictMetaSize ->
+                AdaLogger.debug(this, "Final Meta Size: " + verdictMetaSize.toString()));
+        resamplingStrategy.getMetaNames().forEach(verdictMetaName ->
+                AdaLogger.debug(this, "Final Meta Name: " + verdictMetaName.toString()));
     }
 }

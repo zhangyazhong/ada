@@ -3,6 +3,8 @@ package daslab.sampling;
 import com.google.common.collect.Lists;
 import daslab.bean.AdaBatch;
 import daslab.bean.Sample;
+import daslab.bean.VerdictMetaName;
+import daslab.bean.VerdictMetaSize;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
 import org.apache.spark.sql.Row;
@@ -60,6 +62,41 @@ public abstract class SamplingStrategy {
             AdaLogger.info(this, "Sample - no sample available");
         }
         return samples;
+    }
+
+    public List<VerdictMetaName> getMetaNames() {
+        String sampleDb = context.get("dbms.sample.database");
+        String sql = String.format("SELECT * FROM %s.verdict_meta_name", sampleDb);
+        List<Row> metaNameRows = context.getDbmsSpark2().execute(sql).getResultList();
+        List<VerdictMetaName> metaNameList = Lists.newArrayList();
+        for (Row row : metaNameRows) {
+            metaNameList.add(new VerdictMetaName(
+                    row.getString(row.fieldIndex("originalschemaname")),
+                    row.getString(row.fieldIndex("originaltablename")),
+                    row.getString(row.fieldIndex("sampleschemaaname")),
+                    row.getString(row.fieldIndex("sampletablename")),
+                    row.getString(row.fieldIndex("sampletype")),
+                    row.getDouble(row.fieldIndex("samplingratio")),
+                    row.getString(row.fieldIndex("columnnames"))
+            ));
+        }
+        return metaNameList;
+    }
+
+    public List<VerdictMetaSize> getMetaSizes() {
+        String sampleDb = context.get("dbms.sample.database");
+        String sql = String.format("SELECT * FROM %s.verdict_meta_size", sampleDb);
+        List<Row> metaSizeRows = context.getDbmsSpark2().execute(sql).getResultList();
+        List<VerdictMetaSize> metaSizeList = Lists.newArrayList();
+        for (Row row : metaSizeRows) {
+            metaSizeList.add(new VerdictMetaSize(
+                    row.getString(row.fieldIndex("schemaname")),
+                    row.getString(row.fieldIndex("tablename")),
+                    row.getLong(row.fieldIndex("samplesize")),
+                    row.getLong(row.fieldIndex("originaltablesize"))
+            ));
+        }
+        return metaSizeList;
     }
 
     public abstract void run(Sample sample, AdaBatch adaBatch);

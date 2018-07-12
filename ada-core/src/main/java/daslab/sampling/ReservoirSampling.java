@@ -38,7 +38,6 @@ public class ReservoirSampling extends SamplingStrategy {
                 chosen.put(position, i);
             }
         }
-//        getContext().getDbmsSpark2().getSparkSession().sparkContext().parallelize()
         AdaLogger.info(this, "Chosen key set size: " + chosen.keySet().size());
         AdaLogger.info(this, "Chosen value set size: " + chosen.values().size());
 
@@ -47,41 +46,57 @@ public class ReservoirSampling extends SamplingStrategy {
         sample.setRows(getContext().getDbmsSpark2()
                 .execute(String.format("SELECT * FROM %s.%s", sample.schemaName, sample.tableName))
                 .getResultSet());
-        Dataset<Row> originSample = sample.getRows()
-                .withColumn("id", monotonically_increasing_id());
+        Dataset<Row> originSample = sample.getRows();
+//                .withColumn("id", monotonically_increasing_id());
 //                .filter((FilterFunction<Row>) row -> !outdated.contains(row.getLong(row.fieldIndex("id"))));
+
+        /*
         List<SampleRowStatus> outdated = Lists.newArrayList();
         for (long position: chosen.keySet()) {
             outdated.add(new SampleRowStatus(position));
         }
         Dataset<Row> expiredSample = spark.createDataFrame(outdated, SampleRowStatus.class);
+        */
+
+        /*
         Dataset<Row> cleanedSample = originSample
                 .join(expiredSample, originSample.col("id").$eq$eq$eq(expiredSample.col("id")), "left_outer");
         cleanedSample = cleanedSample
                 .filter(cleanedSample.col("status").isNull())
                 .drop("status")
                 .drop("id");
+        */
+//        Dataset<Row> cleanedSample = originSample.orderBy(rand()).limit((int) (sample.sampleSize - outdated.size()));
+        Dataset<Row> cleanedSample = originSample.sample(false, 1.0 * (sampleSize - chosen.keySet().size()) / sampleSize);
 
         AdaLogger.info(this, "Sample cleaned row count: " + cleanedSample.count());
 
+        /*
         List<SampleRowStatus> inserted = Lists.newArrayList();
         for (int position: chosen.values()) {
             inserted.add(new SampleRowStatus(position));
         }
         Dataset<Row> unexpiredSample = spark.createDataFrame(inserted, SampleRowStatus.class);
+        */
         Dataset<Row> insertedSample = getContext().getDbmsSpark2()
                 .execute(String.format("SELECT * FROM %s.%s", adaBatch.getDbName(), adaBatch.getTableName()))
                 .getResultSet()
-                .withColumn("id", monotonically_increasing_id())
+//                .withColumn("id", monotonically_increasing_id())
                 .withColumn("verdict_rand", when(col("page_count").$greater$eq(0), randomGenerator.nextDouble() * sampleSize / tableSize))
                 .withColumn("verdict_vpart", when(col("page_count").$greater$eq(0),  Math.floor(randomGenerator.nextDouble() * 100)))
                 .withColumn("verdict_vprob", lit(sample.samplingRatio));
 //                .filter((FilterFunction<Row>) row -> inserted.contains((int) row.getLong(row.fieldIndex("id"))));
+        /*
         insertedSample = insertedSample
                 .join(unexpiredSample, insertedSample.col("id").$eq$eq$eq(unexpiredSample.col("id")), "left_outer");
         insertedSample = insertedSample.filter(insertedSample.col("status").isNull())
                 .drop("status")
                 .drop("id");
+         */
+        insertedSample = insertedSample.sample(false, 1.0 * chosen.keySet().size() / adaBatch.getSize());
+
+        AdaLogger.info(this, "Sample inserted row count: " + insertedSample.count());
+
         Dataset<Row> updatedSample = cleanedSample
                 .union(insertedSample)
                 .drop("verdict_vprob")
@@ -110,11 +125,15 @@ public class ReservoirSampling extends SamplingStrategy {
             Dataset<Row> metaSizeDF;
             Dataset<Row> metaNameDF;
             if (Math.abs(_sample.samplingRatio - sample.samplingRatio) < 0.00001) {
+                VerdictMetaSize metaSize = new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize + (long) adaBatch.getSize());
+                VerdictMetaName metaName = new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, Math.round(100.0 * sample.sampleSize / (sample.tableSize + (long) adaBatch.getSize())) / 100.0, sample.onColumn);
+                AdaLogger.debug(this, "Updated meta size: " + metaSize.toString());
+                AdaLogger.debug(this, "Updated meta name: " + metaName.toString());
                 metaSizeDF = spark
-                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize + (long) adaBatch.getSize())), VerdictMetaSize.class)
+                        .createDataFrame(ImmutableList.of(metaSize), VerdictMetaSize.class)
                         .toDF();
                 metaNameDF = spark
-                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, Math.round(100.0 * sample.sampleSize / (sample.tableSize + (long) adaBatch.getSize())) / 100.0, sample.onColumn)), VerdictMetaName.class)
+                        .createDataFrame(ImmutableList.of(metaName), VerdictMetaName.class)
                         .toDF();
             } else {
                 metaSizeDF = spark
@@ -137,8 +156,8 @@ public class ReservoirSampling extends SamplingStrategy {
                 .execute(String.format("USE %s", sampleSchema))
                 .execute(String.format("DROP TABLE %s.%s", sampleSchema, "verdict_meta_name"))
                 .execute(String.format("DROP TABLE %s.%s", sampleSchema, "verdict_meta_size"));
-        metaNameDF.write().saveAsTable("verdict_meta_name");
-        metaSizeDF.write().saveAsTable("verdict_meta_size");
+        metaNameDF.select("originalschemaname", "originaltablename", "sampleschemaaname", "sampletablename", "sampletype", "samplingratio", "columnnames").write().saveAsTable("verdict_meta_name");
+        metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
     }
 
     @Override

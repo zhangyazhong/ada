@@ -78,4 +78,17 @@ public class VerdictMetaName {
     public void setColumnnames(String columnnames) {
         this.columnnames = columnnames;
     }
+
+    @Override
+    public String toString() {
+        return "VerdictMetaName{" +
+                "originalschemaname='" + originalschemaname + '\'' +
+                ", originaltablename='" + originaltablename + '\'' +
+                ", sampleschemaaname='" + sampleschemaaname + '\'' +
+                ", sampletablename='" + sampletablename + '\'' +
+                ", sampletype='" + sampletype + '\'' +
+                ", samplingratio=" + samplingratio +
+                ", columnnames='" + columnnames + '\'' +
+                '}';
+    }
 }
