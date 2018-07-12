@@ -68,8 +68,9 @@ public class ReservoirSampling extends SamplingStrategy {
         */
 //        Dataset<Row> cleanedSample = originSample.orderBy(rand()).limit((int) (sample.sampleSize - outdated.size()));
         Dataset<Row> cleanedSample = originSample.sample(false, 1.0 * (sampleSize - chosen.keySet().size()) / sampleSize);
+        long cleanedCount = cleanedSample.count();
 
-        AdaLogger.info(this, "Sample cleaned row count: " + cleanedSample.count());
+        AdaLogger.info(this, "Sample cleaned row count: " + cleanedCount);
 
         /*
         List<SampleRowStatus> inserted = Lists.newArrayList();
@@ -94,13 +95,15 @@ public class ReservoirSampling extends SamplingStrategy {
                 .drop("id");
          */
         insertedSample = insertedSample.sample(false, 1.0 * chosen.keySet().size() / adaBatch.getSize());
+        long insertedCount = insertedSample.count();
 
-        AdaLogger.info(this, "Sample inserted row count: " + insertedSample.count());
+        AdaLogger.info(this, "Sample inserted row count: " + insertedCount);
 
+        long updatedCount = cleanedCount + insertedCount;
         Dataset<Row> updatedSample = cleanedSample
                 .union(insertedSample)
                 .drop("verdict_vprob")
-                .withColumn("verdict_vprob", lit(1.0 * sample.sampleSize / (sample.tableSize + (long) adaBatch.getSize())));
+                .withColumn("verdict_vprob", lit(1.0 * updatedCount / (sample.tableSize + (long) adaBatch.getSize())));
 
 //            getContext().getDbmsSpark2().execute(String.format("CREATE TABLE %s.%s%s LIKE %s.%s",
 //                    sample.schemaName, sample.tableName, "_ada", sample.schemaName, sample.tableName));
@@ -125,8 +128,8 @@ public class ReservoirSampling extends SamplingStrategy {
             Dataset<Row> metaSizeDF;
             Dataset<Row> metaNameDF;
             if (Math.abs(_sample.samplingRatio - sample.samplingRatio) < 0.00001) {
-                VerdictMetaSize metaSize = new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize + (long) adaBatch.getSize());
-                VerdictMetaName metaName = new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, Math.round(100.0 * sample.sampleSize / (sample.tableSize + (long) adaBatch.getSize())) / 100.0, sample.onColumn);
+                VerdictMetaSize metaSize = new VerdictMetaSize(sample.schemaName, sample.tableName, updatedCount, sample.tableSize + (long) adaBatch.getSize());
+                VerdictMetaName metaName = new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, Math.round(100.0 * updatedCount / (sample.tableSize + (long) adaBatch.getSize())) / 100.0, sample.onColumn);
                 AdaLogger.debug(this, "Updated meta size: " + metaSize.toString());
                 AdaLogger.debug(this, "Updated meta name: " + metaName.toString());
                 metaSizeDF = spark
