@@ -12,6 +12,8 @@ import daslab.server.SocketBatchReceiver;
 import daslab.utils.AdaLogger;
 import daslab.utils.ConfigHandler;
 import daslab.warehouse.DbmsSpark2;
+import edu.umich.verdict.VerdictSpark2Context;
+import edu.umich.verdict.exceptions.VerdictException;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -37,6 +39,7 @@ public class AdaContext {
     private SamplingController samplingController;
     private FileWriter costWriter;
     private int batchCount;
+    private VerdictSpark2Context verdictSpark2Context;
 
     public AdaContext() {
         configs = Maps.newHashMap();
@@ -49,6 +52,11 @@ public class AdaContext {
         tableMeta = new TableMeta(this, dbmsSpark2.desc());
         batchCount = 0;
         samplingController = new SamplingController(this);
+        try {
+            verdictSpark2Context = new VerdictSpark2Context(getDbms().getSparkSession().sparkContext());
+        } catch (VerdictException e) {
+            e.printStackTrace();
+        }
         try {
             costWriter = new FileWriter(new File(get("update.cost.path")));
             costWriter.write("batch,strategy,cost\r\n");
@@ -123,6 +131,10 @@ public class AdaContext {
 //    public DbmsHive2 getDbmsHive2() {
 //        return dbmsHive2;
 //    }
+
+    public VerdictSpark2Context getVerdict() {
+        return verdictSpark2Context;
+    }
 
     public DbmsSpark2 getDbms() {
         return getDbmsSpark2();
