@@ -71,6 +71,7 @@ public class VerdictSampling extends SamplingStrategy {
             deleteSampleMeta(sample);
             AdaLogger.info(this, String.format("About to create sample with sampling ratio %f of %s.%s", round(ratio * 100) / 100.0, getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
             verdictSpark2Context.sql("CREATE " + (int) round(ratio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
+            refreshMetaSize();
         } catch (VerdictException e) {
             e.printStackTrace();
         }
@@ -101,19 +102,49 @@ public class VerdictSampling extends SamplingStrategy {
                 metaNameDFs.add(metaNameDF);
             }
         }
-        Dataset<Row> metaSizeDF = metaSizeDFs.get(0);
-        Dataset<Row> metaNameDF = metaNameDFs.get(0);
-        for (int i = 1; i < metaNameDFs.size(); i++) {
-            metaSizeDF = metaSizeDF.union(metaSizeDFs.get(i));
-            metaNameDF = metaNameDF.union(metaNameDFs.get(i));
-        }
         getContext().getDbmsSpark2()
                 .execute(String.format("USE %s", sample.schemaName))
                 .execute(String.format("DROP TABLE %s.%s", sample.schemaName, "verdict_meta_name"))
                 .execute(String.format("DROP TABLE %s.%s", sample.schemaName, "verdict_meta_size"));
-        metaNameDF.select("originalschemaname", "originaltablename", "sampleschemaaname", "sampletablename", "sampletype", "samplingratio", "columnnames").write().saveAsTable("verdict_meta_name");
-        metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
+        if (metaNameDFs.size() > 0) {
+            Dataset<Row> metaSizeDF = metaSizeDFs.get(0);
+            Dataset<Row> metaNameDF = metaNameDFs.get(0);
+            for (int i = 1; i < metaNameDFs.size(); i++) {
+                metaSizeDF = metaSizeDF.union(metaSizeDFs.get(i));
+                metaNameDF = metaNameDF.union(metaNameDFs.get(i));
+            }
+            metaNameDF.select("originalschemaname", "originaltablename", "sampleschemaaname", "sampletablename", "sampletype", "samplingratio", "columnnames").write().saveAsTable("verdict_meta_name");
+            metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
+        }
+    }
 
+    private void refreshMetaSize() {
+        SparkSession spark = getContext().getDbmsSpark2().getSparkSession();
+        long cardinality = Long.parseLong(getContext().get(getContext().get("dbms.data.table") + "_cardinality"));
+        List<Row> metaSizes = spark.sql(String.format("SELECT * FROM %s.%s", getContext().get("dbms.sample.database"), "verdict_meta_size")).collectAsList();
+        List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();
+        for (Row row : metaSizes) {
+            long tableSize;
+            if (row.getString(row.fieldIndex("tablename")).contains("vs_" + getContext().get("dbms.data.table") + "_")) {
+                tableSize = cardinality;
+            } else {
+                tableSize = row.getLong(row.fieldIndex("originaltablesize"));
+            }
+            Dataset<Row> metaSizeDF = spark
+                    .createDataFrame(ImmutableList.of(new VerdictMetaSize(row.getString(row.fieldIndex("schemaname")), row.getString(row.fieldIndex("tablename")), row.getLong(row.fieldIndex("samplesize")), tableSize)), VerdictMetaSize.class)
+                    .toDF();
+            metaSizeDFs.add(metaSizeDF);
+        }
+        if (metaSizeDFs.size() > 0) {
+            getContext().getDbmsSpark2()
+                    .execute(String.format("USE %s", getContext().get("dbms.sample.database")))
+                    .execute(String.format("DROP TABLE %s.%s", getContext().get("dbms.sample.database"), "verdict_meta_size"));
+            Dataset<Row> metaSizeDF = metaSizeDFs.get(0);
+            for (int i = 1; i < metaSizeDFs.size(); i++) {
+                metaSizeDF = metaSizeDF.union(metaSizeDFs.get(i));
+            }
+            metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
+        }
     }
 
     @Override

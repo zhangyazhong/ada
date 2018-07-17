@@ -155,6 +155,7 @@ public class TableMeta {
         tableMetaMap = batchMetaMap;
 
         AdaLogger.info(this, String.format("Table[%s] cardinality: %d", tableSchema.getTableName(), cardinality));
+        context.set(tableSchema.getTableName() + "_cardinality", String.valueOf(cardinality));
 
         Map<Sample, Sampling> samplingMap = Maps.newHashMap();
 
