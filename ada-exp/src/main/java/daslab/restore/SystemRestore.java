@@ -8,7 +8,8 @@ public class SystemRestore {
     public static Set<RestoreModule> restoreModules() {
         return ImmutableSet.of(
                 new DatabaseRestore(),
-                new ProducerRestore()
+                new ProducerRestore(),
+                new SampleCleaner()
         );
     }
 }

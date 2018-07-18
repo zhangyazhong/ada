@@ -5,7 +5,6 @@ import daslab.utils.AdaLogger;
 import edu.umich.verdict.VerdictSpark2Context;
 import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.catalyst.analysis.NoSuchDatabaseException;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -21,8 +20,8 @@ public class DatabaseRestore implements RestoreModule {
                 .appName("Ada Exp - DatabaseRestore")
                 .enableHiveSupport()
                 .config("spark.sql.warehouse.dir", "hdfs://master:9000/home/hadoop/spark/")
-                .config("spark.executor.memory", "16g")
-                .config("spark.driver.memory", "4g")
+                .config("spark.executor.memory", ExpConfig.SPARK_EXECUTOR_MEMORY)
+                .config("spark.driver.memory", ExpConfig.SPARK_DRIVER_MEMORY)
                 .getOrCreate();
         sparkSession.sparkContext().setLogLevel("ERROR");
     }
@@ -80,7 +79,7 @@ public class DatabaseRestore implements RestoreModule {
 
         AdaLogger.info(this, "Restored sample to initial status.");
 
-        sparkSession.close();
+//        sparkSession.close();
     }
 
     private void execute(String sql) {

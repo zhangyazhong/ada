@@ -7,8 +7,10 @@ import daslab.exp1.Exp1Accurate;
 import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
 import daslab.exp3.*;
+import daslab.exp4.Exp4Accurate;
+import daslab.exp4.Exp4Verdict;
 import daslab.restore.RestoreModule;
-import daslab.restore.SampleRestore;
+import daslab.restore.SampleCleaner;
 import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
 
@@ -26,7 +28,7 @@ public class App {
                     break;
                 case "clean_sample":
                     AdaLogger.info(this, "Ada Exp operation: Clean Sample");
-                    new SampleRestore().restore();
+                    new SampleCleaner().restore();
                     break;
                 case "exp1":
                 case "exp1_approximate":
@@ -78,6 +80,14 @@ public class App {
                 case "exp3_ratio":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 3 with Different Ratio");
                     new Exp3Ratio().run();
+                    break;
+                case "exp4_accurate":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 4 for Accurate Result");
+                    new Exp4Accurate().run();
+                    break;
+                case "exp4_verdict":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 4 for Verdict Result");
+                    new Exp4Verdict().run();
                     break;
             }
         }

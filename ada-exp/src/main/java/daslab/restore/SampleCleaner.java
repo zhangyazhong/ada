@@ -1,21 +1,22 @@
 package daslab.restore;
 
+import daslab.exp.ExpConfig;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
 import java.util.List;
 
-public class SampleRestore implements RestoreModule {
+public class SampleCleaner implements RestoreModule {
 
     private SparkSession sparkSession;
 
-    public SampleRestore() {
+    public SampleCleaner() {
         sparkSession = SparkSession
                 .builder()
                 .appName("Ada Exp - DatabaseRestore")
                 .enableHiveSupport()
                 .config("spark.sql.warehouse.dir", "hdfs://master:9000/home/hadoop/spark/")
-                .config("spark.executor.memory", "12g")
+                .config("spark.executor.memory", ExpConfig.SPARK_EXECUTOR_MEMORY)
                 .getOrCreate();
         sparkSession.sparkContext().setLogLevel("ERROR");
     }
@@ -32,7 +33,7 @@ public class SampleRestore implements RestoreModule {
     }
 
     public static void main(String[] args) {
-        RestoreModule r = new SampleRestore();
+        RestoreModule r = new SampleCleaner();
         r.restore();
     }
 }
