@@ -8,6 +8,7 @@ import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
 import daslab.exp3.*;
 import daslab.exp4.Exp4Accurate;
+import daslab.exp4.Exp4Ada;
 import daslab.exp4.Exp4Verdict;
 import daslab.restore.RestoreModule;
 import daslab.restore.SampleCleaner;
@@ -88,6 +89,10 @@ public class App {
                 case "exp4_verdict":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 4 for Verdict Result");
                     new Exp4Verdict().run();
+                    break;
+                case "exp4_ada":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 4 for Ada Result");
+                    new Exp4Ada().run();
                     break;
             }
         }

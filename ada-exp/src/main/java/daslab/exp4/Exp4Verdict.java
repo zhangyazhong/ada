@@ -63,7 +63,13 @@ public class Exp4Verdict extends ExpTemplate {
         save(expResult, "/tmp/ada/exp/exp4/exp4_verdict");
     }
 
-    private List<String> generateHeader() {
+    /**
+     * "q0_0", "q1_0", "q2_0", "q3_0", "q0_1", "q1_1"...
+     *  first number for query No. and second number for sample No.
+     *
+     * @return header list
+     */
+    public static List<String> generateHeader() {
         List<String> header = Lists.newLinkedList();
         header.add("time");
         for (int i = 0; i < SAMPLE_COUNT; i++) {
