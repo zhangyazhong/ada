@@ -11,7 +11,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-public abstract class ExpTemplate {
+public abstract class ExpTemplate implements ExpRunnable {
     private static SparkSession sparkSession;
     private static VerdictSpark2Context verdictSpark2Context;
 
@@ -30,10 +30,17 @@ public abstract class ExpTemplate {
             sparkSession.conf().set("spark.app.name", name);
         }
         try {
-            if (verdictSpark2Context == null) {
-                verdictSpark2Context = new VerdictSpark2Context(sparkSession.sparkContext());
-                verdictSpark2Context.sql("USE " + ExpConfig.get("table.schema"));
-            }
+            verdictSpark2Context = new VerdictSpark2Context(sparkSession.sparkContext());
+            verdictSpark2Context.sql("USE " + ExpConfig.get("table.schema"));
+        } catch (VerdictException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void resetVerdict() {
+        try {
+            verdictSpark2Context = new VerdictSpark2Context(sparkSession.sparkContext());
+            verdictSpark2Context.sql("USE " + ExpConfig.get("table.schema"));
         } catch (VerdictException e) {
             e.printStackTrace();
         }
@@ -53,6 +60,7 @@ public abstract class ExpTemplate {
         return verdictSpark2Context;
     }
 
+    @Override
     public abstract void run();
 
     public void append(String schema, String table, String path) {

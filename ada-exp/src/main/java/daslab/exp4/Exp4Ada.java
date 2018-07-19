@@ -39,6 +39,7 @@ public class Exp4Ada extends ExpTemplate {
         for (int k = 0; k < REPEAT_TIME; k++) {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
             AdaLogger.info(this, "Restored database.");
+            resetVerdict();
             AdaContext context = new AdaContext();
             context.start();
             for (int i = ExpConfig.HOUR_START; i < ExpConfig.HOUR_TOTAL; i++) {
