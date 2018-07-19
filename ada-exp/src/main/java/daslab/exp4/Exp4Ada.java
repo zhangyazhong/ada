@@ -9,6 +9,7 @@ import daslab.restore.RestoreModule;
 import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
 import edu.umich.verdict.exceptions.VerdictException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.spark.sql.Row;
 
 import java.util.List;
@@ -57,6 +58,7 @@ public class Exp4Ada extends ExpTemplate {
                 } catch (VerdictException e) {
                     e.printStackTrace();
                 }
+                AdaLogger.info(this, String.format("Ada Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ", ")));
             }
         }
         save(expResult, "/tmp/ada/exp/exp4/exp4_ada");
