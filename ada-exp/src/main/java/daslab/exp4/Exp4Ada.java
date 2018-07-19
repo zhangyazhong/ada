@@ -18,10 +18,10 @@ public class Exp4Ada extends ExpTemplate {
     private final static int REPEAT_TIME = 10;
 
     private final static List<String> QUERIES = ImmutableList.of(
-            "SELECT AVG(page_count) FROM pagecounts",
-            "SELECT AVG(page_count) FROM pagecounts WHERE page_size>80000",
-            "SELECT AVG(page_count) FROM pagecounts WHERE project_name='aa'",
-            "SELECT AVG(page_count) FROM pagecounts WHERE project_name='kk'"
+            String.format("SELECT AVG(page_count) FROM %s.%s", ExpConfig.get("table.schema"), ExpConfig.get("table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE page_size>80000",  ExpConfig.get("table.schema"), ExpConfig.get("table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='aa'", ExpConfig.get("table.schema"), ExpConfig.get("table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='kk'",  ExpConfig.get("table.schema"), ExpConfig.get("table.name"))
     );
 
     public Exp4Ada() {
