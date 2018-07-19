@@ -1,7 +1,9 @@
 package daslab.context;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import daslab.bean.AdaBatch;
+import daslab.bean.ExecutionReport;
 import daslab.bean.Sample;
 import daslab.bean.Sampling;
 import daslab.inspector.TableMeta;
@@ -19,6 +21,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -40,6 +43,7 @@ public class AdaContext {
     private FileWriter costWriter;
     private int batchCount;
     private VerdictSpark2Context verdictSpark2Context;
+    private List<ExecutionReport> executionReports;
 
     public AdaContext() {
         configs = Maps.newHashMap();
@@ -52,6 +56,7 @@ public class AdaContext {
         tableMeta = new TableMeta(this, dbmsSpark2.desc());
         batchCount = 0;
         samplingController = new SamplingController(this);
+        executionReports = Lists.newLinkedList();
         try {
             verdictSpark2Context = new VerdictSpark2Context(getDbms().getSparkSession().sparkContext());
         } catch (VerdictException e) {
@@ -91,8 +96,10 @@ public class AdaContext {
         fileReceiver.receive(file);
     }
 
-    public void receive(String hdfsLocation) {
+    public ExecutionReport receive(String hdfsLocation) {
+        createReport();
         hdfsReceiver.receive(hdfsLocation);
+        return currentReport();
     }
 
     public void afterOneBatch(String batchLocation) {
@@ -119,6 +126,7 @@ public class AdaContext {
         Map<Sample, Sampling> strategies = tableMeta.refresh(adaBatch);
         Long finishTime = System.currentTimeMillis();
         String samplingTime = String.format("%d:%02d.%03d", (finishTime - startTime) / 60000, ((finishTime - startTime) / 1000) % 60, (finishTime - startTime) % 1000);
+        currentReport().put("sampling.cost.total", finishTime - startTime);
 
         try {
             costWriter.write(String.format("%d,%s,%s\r\n", batchCount, strategies.toString(), samplingTime));
@@ -151,4 +159,18 @@ public class AdaContext {
     public int getBatchCount() {
         return batchCount;
     }
+
+    private void createReport() {
+        executionReports.add(new ExecutionReport());
+    }
+
+    private ExecutionReport currentReport() {
+        return executionReports.get(executionReports.size() - 1);
+    }
+
+    public AdaContext writeIntoReport(String key, Object value) {
+        currentReport().put(key, value);
+        return this;
+    }
+
 }

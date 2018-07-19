@@ -47,7 +47,7 @@ public class Exp4Accurate extends ExpTemplate {
             AdaLogger.info(this, String.format("Accurate Result[%s]: {%s}", time, StringUtils.join(results, ", ")));
             expResult.addResult(time, results);
         }
-        expResult.setHeader("time", "q1", "q2", "q3", "q4");
+        expResult.setHeader("time", "q0", "q1", "q2", "q3");
         save(expResult, "/tmp/ada/exp/exp4/exp4_accurate");
     }
 }

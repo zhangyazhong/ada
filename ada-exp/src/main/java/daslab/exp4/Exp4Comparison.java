@@ -3,6 +3,7 @@ package daslab.exp4;
 import com.google.common.collect.Lists;
 import daslab.exp.ExpResult;
 import daslab.exp.ExpRunnable;
+import daslab.utils.AdaLogger;
 
 import java.io.*;
 import java.util.List;
@@ -53,15 +54,17 @@ public class Exp4Comparison implements ExpRunnable {
                 double accurate = 0;
                 for (int i = 1; i < queries.size(); i++) {
                     if (queries.get(i).contains(query)) {
-                        accurate = Double.parseDouble(accurateResult.getColumns(key).get(i));
+                        accurate = Double.parseDouble(accurateResult.getColumns(key).get(i - 1));
                     }
                 }
+                AdaLogger.info(this, String.format("%s: %.8f", key, accurate));
                 int verdictHit = 0;
                 for (int i = 1; i < verdictHeader.size(); i++) {
                     if (verdictHeader.get(i).contains(query)) {
-                        String[] result = verdictResult.getColumns(key).get(i).split("/");
+                        String[] result = verdictResult.getColumns(key).get(i - 1).split("/");
                         double verdict = Double.parseDouble(result[0]);
                         double err = Double.parseDouble(result[1]);
+                        AdaLogger.info(this, String.format("[%s][q%d][No.%d]: %.8f/%.8f", key, k, i, verdict, err));
                         if (Math.abs(accurate - verdict) <= err) {
                             verdictHit++;
                         }
@@ -71,9 +74,10 @@ public class Exp4Comparison implements ExpRunnable {
                 int adaHit = 0;
                 for (int i = 1; i < adaHeader.size(); i++) {
                     if (adaHeader.get(i).contains(query)) {
-                        String[] result = adaResult.getColumns(key).get(i).split("/");
+                        String[] result = adaResult.getColumns(key).get(i - 1).split("/");
                         double ada = Double.parseDouble(result[0]);
                         double err = Double.parseDouble(result[1]);
+                        AdaLogger.info(this, String.format("[%s][q%d][No.%d]: %.8f/%.8f", key, k, i, ada, err));
                         if (Math.abs(accurate - ada) <= err) {
                             adaHit++;
                         }
