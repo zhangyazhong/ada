@@ -62,6 +62,6 @@ public class Exp4Ada extends ExpTemplate {
                 AdaLogger.info(this, String.format("Ada Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ", ")));
             }
         }
-        save(expResult, "/tmp/ada/exp/exp4/exp4_ada");
+        save(expResult, Exp4Comparison.ADA_PATH);
     }
 }

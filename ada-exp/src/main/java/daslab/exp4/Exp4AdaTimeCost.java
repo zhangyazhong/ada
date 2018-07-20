@@ -1,5 +1,6 @@
 package daslab.exp4;
 
+import com.google.common.collect.ImmutableList;
 import daslab.bean.ExecutionReport;
 import daslab.context.AdaContext;
 import daslab.exp.ExpConfig;
@@ -23,7 +24,7 @@ public class Exp4AdaTimeCost extends ExpTemplate {
 
     @Override
     public void run() {
-        ExpResult expResult = new ExpResult(Exp4Verdict.generateHeader());
+        ExpResult expResult = new ExpResult(ImmutableList.of("time", "ada_total(ms)", "ada_pre-process(ms)", "ada_sampling(ms)"));
         for (int k = 0; k < REPEAT_TIME; k++) {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
             AdaLogger.info(this, "Restored database.");
@@ -38,9 +39,11 @@ public class Exp4AdaTimeCost extends ExpTemplate {
                 AdaLogger.info(this, "Send a new batch at " + location);
                 ExecutionReport executionReport = context.receive(location);
                 expResult.addResult(time, executionReport.getString("sampling.method") + "/" + String.valueOf(executionReport.getLong("sampling.cost.total")));
+                expResult.addResult(time, executionReport.getString("sampling.cost.pre-process"));
+                expResult.addResult(time, executionReport.getString("sampling.cost.sampling"));
                 AdaLogger.info(this, String.format("Ada Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ", ")));
             }
         }
-        save(expResult, "/tmp/ada/exp/exp4/exp4_ada_cost");
+        save(expResult, "/tmp/ada/exp/exp4/exp4_ada_cost_30");
     }
 }

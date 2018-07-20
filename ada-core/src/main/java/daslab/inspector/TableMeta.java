@@ -113,7 +113,7 @@ public class TableMeta {
                 double var = context.getDbmsSpark2().getResultAsDouble(0, "var_pop_" + column.getColumnName());
                 double sum = context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
                 double avg = context.getDbmsSpark2().getResultAsDouble(0, "avg_" + column.getColumnName());
-                double errorBound = avg * 0.1;
+                double errorBound = avg * 0.3;
                 MetaInfo metaInfo = MetaInfo.calc(column, var, cardinality, sum, errorBound, confidence);
                 tableMetaMap.put(column, metaInfo);
                 AdaLogger.debug(this, "Initially table meta[" + column.getColumnName() + "]: " + metaInfo.toString());
@@ -122,6 +122,7 @@ public class TableMeta {
     }
 
     public Map<Sample, Sampling> refresh(AdaBatch adaBatch) {
+        long startVerifyTime = System.currentTimeMillis();
 //        double errorBound = Double.parseDouble(context.get("query.error_bound"));
         double confidence = Double.parseDouble(context.get("query.confidence_internal_"));
         String sql = String.format("SELECT %s FROM %s.%s", metaClause,
@@ -156,9 +157,12 @@ public class TableMeta {
 
         AdaLogger.info(this, String.format("Table[%s] cardinality: %d", tableSchema.getTableName(), cardinality));
         context.set(tableSchema.getTableName() + "_cardinality", String.valueOf(cardinality));
+        long finishVerifyTime = System.currentTimeMillis();
+        context.writeIntoReport("sampling.cost.pre-process", String.valueOf(finishVerifyTime - startVerifyTime));
 
         Map<Sample, Sampling> samplingMap = Maps.newHashMap();
 
+        long startSamplingTime = System.currentTimeMillis();
         illegalSamples.forEach((sample, illegalColumns) -> {
             double ratio = 0;
             for (TableColumnSample column: illegalColumns) {
@@ -172,13 +176,17 @@ public class TableMeta {
                 AdaLogger.info(this, "Use " + context.getSamplingController().getResamplingStrategy().name() + " strategy to resample.");
                 samplingMap.put(sample, Sampling.RESAMPLE);
                 context.getSamplingController().resample(sample, adaBatch, ratio);
+                context.writeIntoReport("sampling.method", "resample");
             } else {
                 AdaLogger.info(this, String.format("Sample's[%.2f]: no column needs to be updated.", sample.samplingRatio));
                 AdaLogger.info(this, "Use " + context.getSamplingController().getSamplingStrategy().name() + " strategy to update sample.");
                 samplingMap.put(sample, Sampling.UPDATE);
                 context.getSamplingController().update(sample, adaBatch);
+                context.writeIntoReport("sampling.method", "update");
             }
         });
+        long finishSamplingTime = System.currentTimeMillis();
+        context.writeIntoReport("sampling.cost.sampling", String.valueOf(finishSamplingTime - startSamplingTime));
 
         return samplingMap;
 
