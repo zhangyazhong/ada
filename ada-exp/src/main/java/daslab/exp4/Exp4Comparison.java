@@ -11,8 +11,9 @@ import java.util.List;
 public class Exp4Comparison implements ExpRunnable {
     public final static String VERDICT_PATH = "/tmp/ada/exp/exp4/exp4_verdict";
     public final static String ADA_PATH = "/tmp/ada/exp/exp4/exp4_ada_30";
+//    public final static String ADA_PATH = "/tmp/ada/exp/exp4/exp4_verdict";
     public final static String ACCURATE_PATH = "/tmp/ada/exp/exp4/exp4_accurate";
-    public final static String SUMMARY_PATH = "/tmp/ada/exp/exp4/exp4_summary_30.csv";
+    public final static String SUMMARY_PATH = "/tmp/ada/exp/exp4/exp4_summary.csv";
 
     private ExpResult load(String path) {
         ExpResult expResult = new ExpResult();

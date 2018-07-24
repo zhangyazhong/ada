@@ -1,13 +1,19 @@
 package daslab.utils;
 
 public class AdaTimer {
-    private static long timer;
+    private long timer;
 
-    public static long start() {
+    public static AdaTimer create() {
+        AdaTimer timer = new AdaTimer();
+        timer.start();
+        return timer;
+    }
+
+    public long start() {
         return timer = System.currentTimeMillis();
     }
 
-    public static long stop() {
+    public long stop() {
         return System.currentTimeMillis() - timer;
     }
 }

@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class ExecutionReport implements Serializable {
     private Map<String, Object> report;
@@ -26,5 +27,20 @@ public class ExecutionReport implements Serializable {
 
     public Long getLong(String key) {
         return (Long) report.get(key);
+    }
+
+    public Map<String, Object> search(String key) {
+        Map<String, Object> part = Maps.newConcurrentMap();
+        if (report.containsKey(key)) {
+            part.put(key, get(key));
+        }
+        String reg = key + "\\..*";
+        Pattern pattern = Pattern.compile(reg);
+        report.keySet().forEach(_key -> {
+            if (pattern.matcher(_key).matches()) {
+                part.put(_key, get(_key));
+            }
+        });
+        return part;
     }
 }

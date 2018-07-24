@@ -41,59 +41,21 @@ public class ReservoirSampling extends SamplingStrategy {
         AdaLogger.info(this, "Chosen key set size: " + chosen.keySet().size());
         AdaLogger.info(this, "Chosen value set size: " + chosen.values().size());
 
-//        HashSet<Long> outdated = new HashSet<>(chosen.keySet());
-//        HashSet<Integer> inserted = new HashSet<>(chosen.values());
         sample.setRows(getContext().getDbmsSpark2()
                 .execute(String.format("SELECT * FROM %s.%s", sample.schemaName, sample.tableName))
                 .getResultSet());
         Dataset<Row> originSample = sample.getRows();
-//                .withColumn("id", monotonically_increasing_id());
-//                .filter((FilterFunction<Row>) row -> !outdated.contains(row.getLong(row.fieldIndex("id"))));
-
-        /*
-        List<SampleRowStatus> outdated = Lists.newArrayList();
-        for (long position: chosen.keySet()) {
-            outdated.add(new SampleRowStatus(position));
-        }
-        Dataset<Row> expiredSample = spark.createDataFrame(outdated, SampleRowStatus.class);
-        */
-
-        /*
-        Dataset<Row> cleanedSample = originSample
-                .join(expiredSample, originSample.col("id").$eq$eq$eq(expiredSample.col("id")), "left_outer");
-        cleanedSample = cleanedSample
-                .filter(cleanedSample.col("status").isNull())
-                .drop("status")
-                .drop("id");
-        */
-//        Dataset<Row> cleanedSample = originSample.orderBy(rand()).limit((int) (sample.sampleSize - outdated.size()));
         Dataset<Row> cleanedSample = originSample.sample(false, 1.0 * (sampleSize - chosen.keySet().size()) / sampleSize);
         long cleanedCount = cleanedSample.count();
 
         AdaLogger.info(this, "Sample cleaned row count: " + cleanedCount);
 
-        /*
-        List<SampleRowStatus> inserted = Lists.newArrayList();
-        for (int position: chosen.values()) {
-            inserted.add(new SampleRowStatus(position));
-        }
-        Dataset<Row> unexpiredSample = spark.createDataFrame(inserted, SampleRowStatus.class);
-        */
         Dataset<Row> insertedSample = getContext().getDbmsSpark2()
                 .execute(String.format("SELECT * FROM %s.%s", adaBatch.getDbName(), adaBatch.getTableName()))
                 .getResultSet()
-//                .withColumn("id", monotonically_increasing_id())
                 .withColumn("verdict_rand", when(col("page_count").$greater$eq(0), randomGenerator.nextDouble() * sampleSize / tableSize))
                 .withColumn("verdict_vpart", when(col("page_count").$greater$eq(0),  Math.floor(randomGenerator.nextDouble() * 100)))
                 .withColumn("verdict_vprob", lit(sample.samplingRatio));
-//                .filter((FilterFunction<Row>) row -> inserted.contains((int) row.getLong(row.fieldIndex("id"))));
-        /*
-        insertedSample = insertedSample
-                .join(unexpiredSample, insertedSample.col("id").$eq$eq$eq(unexpiredSample.col("id")), "left_outer");
-        insertedSample = insertedSample.filter(insertedSample.col("status").isNull())
-                .drop("status")
-                .drop("id");
-         */
         insertedSample = insertedSample.sample(false, 1.0 * chosen.keySet().size() / adaBatch.getSize());
         long insertedCount = insertedSample.count();
 
@@ -105,21 +67,13 @@ public class ReservoirSampling extends SamplingStrategy {
                 .drop("verdict_vprob")
                 .withColumn("verdict_vprob", lit(1.0 * updatedCount / (sample.tableSize + (long) adaBatch.getSize())));
 
-//            getContext().getDbmsSpark2().execute(String.format("CREATE TABLE %s.%s%s LIKE %s.%s",
-//                    sample.schemaName, sample.tableName, "_ada", sample.schemaName, sample.tableName));
-
         getContext().getDbmsSpark2().execute(String.format("USE %s", sample.schemaName));
         updatedSample.write().saveAsTable(sample.tableName + "_tmp");
 
         getContext().getDbmsSpark2()
                 .execute(String.format("USE %s", sample.schemaName))
-//                .execute(String.format("TRUNCATE TABLE %s.%s", sample.schemaName, sample.tableName))
                 .execute(String.format("DROP TABLE %s.%s", sample.schemaName, sample.tableName))
                 .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
-//        sampleUpdated.write().insertInto(sample.tableName);
-//        AdaLogger.info(this, "Sample updated size is: " + sampleUpdated.count());
-
-//        sampleUpdated.write().saveAsTable(sample.tableName);
 
         List<Sample> samples = getSamples();
         List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();

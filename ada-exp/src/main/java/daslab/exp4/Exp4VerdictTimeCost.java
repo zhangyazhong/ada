@@ -53,11 +53,11 @@ public class Exp4VerdictTimeCost extends ExpTemplate {
                     expResult.addResult(time, String.valueOf(cost));
                     for (String QUERY : QUERIES) {
                         try {
-                            AdaTimer.start();
+                            AdaTimer timer = AdaTimer.create();
                             Row row = getVerdict().sql(QUERY).first();
                             double avg = row.getDouble(0);
                             double err = row.getDouble(1);
-                            expResult.addResult(time, String.valueOf(AdaTimer.stop()));
+                            expResult.addResult(time, String.valueOf(timer.stop()));
                         } catch (VerdictException e) {
                             e.printStackTrace();
                         }

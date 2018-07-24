@@ -8,6 +8,7 @@ import daslab.bean.VerdictMetaName;
 import daslab.bean.VerdictMetaSize;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
+import daslab.utils.AdaTimer;
 import edu.umich.verdict.VerdictSpark2Context;
 import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.spark.sql.Dataset;
@@ -23,6 +24,8 @@ import static java.lang.Math.round;
  */
 @SuppressWarnings("Duplicates")
 public class VerdictSampling extends SamplingStrategy {
+    private VerdictSpark2Context verdictSpark2Context;
+
     public VerdictSampling(AdaContext context) {
         super(context);
     }
@@ -30,7 +33,7 @@ public class VerdictSampling extends SamplingStrategy {
     @Override
     public void run(Sample sample, AdaBatch adaBatch) {
         try {
-            VerdictSpark2Context verdictSpark2Context = new VerdictSpark2Context(getContext().getDbmsSpark2().getSparkSession().sparkContext());
+            verdictSpark2Context = new VerdictSpark2Context(getContext().getDbmsSpark2().getSparkSession().sparkContext());
             AdaLogger.info(this, "About to drop all samples.");
             /*
             verdictSpark2Context.sql(String.format("DROP SAMPLES OF %s.%s",
@@ -56,25 +59,16 @@ public class VerdictSampling extends SamplingStrategy {
 
     @Override
     public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
-        try {
-            VerdictSpark2Context verdictSpark2Context = getContext().getVerdict();
-            AdaLogger.info(this, "About to drop sample with ratio " + sample.samplingRatio);
-            /*
-            AdaLogger.info(this, "About to run: " + String.format("DROP %d%% SAMPLES OF %s.%s",
-                    round(sample.samplingRatio * 100),
-                    getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
-            verdictSpark2Context.sql(String.format("DROP %d%% SAMPLES OF %s.%s",
-                    round(sample.samplingRatio * 100),
-                    getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
-            */
-            deleteSampleTable(sample);
-            deleteSampleMeta(sample);
-            AdaLogger.info(this, String.format("About to create sample with sampling ratio %f of %s.%s", round(ratio * 100) / 100.0, getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
-            verdictSpark2Context.sql("CREATE " + (int) round(ratio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
-            refreshMetaSize();
-        } catch (VerdictException e) {
-            e.printStackTrace();
-        }
+        verdictSpark2Context = getContext().getVerdict();
+        AdaLogger.info(this, "About to drop sample with ratio " + sample.samplingRatio);
+        deleteSampleTable(sample);
+        deleteSampleMeta(sample);
+        // REPORT: sampling.cost.create-sample (start)
+        AdaTimer timer = AdaTimer.create();
+        createSample(ratio);
+        refreshMetaSize();
+        // REPORT: sampling.cost.create-sample (stop)
+        getContext().writeIntoReport("sampling.cost.create-sample", timer.stop());
     }
 
     private void deleteSampleTable(Sample sample) {
@@ -144,6 +138,15 @@ public class VerdictSampling extends SamplingStrategy {
                 metaSizeDF = metaSizeDF.union(metaSizeDFs.get(i));
             }
             metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
+        }
+    }
+
+    private void createSample(double ratio) {
+        try {
+            AdaLogger.info(this, String.format("About to create sample with sampling ratio %f of %s.%s", round(ratio * 100) / 100.0, getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
+            verdictSpark2Context.sql("CREATE " + (int) round(ratio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
+        } catch (VerdictException e) {
+            e.printStackTrace();
         }
     }
 

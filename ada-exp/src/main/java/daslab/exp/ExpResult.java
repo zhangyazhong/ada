@@ -50,6 +50,19 @@ public class ExpResult {
         results.get(key).add(result);
     }
 
+    public void push(String key, String result) {
+        addResult(key, result);
+    }
+
+    public String getCell(String time, String column) {
+        for (int i = 1; i < header.size(); i++) {
+            if (header.get(i).equals(column)) {
+                return results.get(time).get(i - 1);
+            }
+        }
+        return null;
+    }
+
     public List<String> getRowKeys() {
         List<String> rowKeys = Lists.newLinkedList();
         results.forEach((key, value) -> rowKeys.add(key));

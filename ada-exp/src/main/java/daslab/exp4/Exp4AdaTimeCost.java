@@ -35,7 +35,7 @@ public class Exp4AdaTimeCost extends ExpTemplate {
 
     @Override
     public void run() {
-        ExpResult expResult = new ExpResult(ImmutableList.of("time", "ada_total(ms)", "ada_pre-process(ms)", "ada_sampling(ms)", "q0", "q1", "q2", "q3"));
+        ExpResult expResult = new ExpResult(ImmutableList.of("time", "ada_total", "ada_pre-process", "ada_sampling", "ada_create-sample", "q0", "q1", "q2", "q3"));
         for (int k = 0; k < REPEAT_TIME; k++) {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
             AdaLogger.info(this, "Restored database.");
@@ -52,6 +52,7 @@ public class Exp4AdaTimeCost extends ExpTemplate {
                 expResult.addResult(time, executionReport.getString("sampling.method") + "/" + String.valueOf(executionReport.getLong("sampling.cost.total")));
                 expResult.addResult(time, executionReport.getString("sampling.cost.pre-process"));
                 expResult.addResult(time, executionReport.getString("sampling.cost.sampling"));
+                expResult.push(time, executionReport.getString("sampling.cost.create-sample"));
                 AdaLogger.info(this, String.format("Ada Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ", ")));
                 for (String QUERY : QUERIES) {
                     try {
@@ -60,13 +61,13 @@ public class Exp4AdaTimeCost extends ExpTemplate {
                         double avg = row.getDouble(0);
                         double err = row.getDouble(1);
                         long finish = System.currentTimeMillis();
-                        expResult.addResult(time, String.valueOf(finish - start));
+                        expResult.push(time, String.valueOf(finish - start));
                     } catch (VerdictException e) {
                         e.printStackTrace();
                     }
                 }
             }
         }
-        save(expResult, "/tmp/ada/exp/exp4/exp4_ada_cost_30");
+        save(expResult, "/tmp/ada/exp/exp4/exp4_ada_cost.csv");
     }
 }
