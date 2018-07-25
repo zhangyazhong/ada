@@ -27,7 +27,7 @@ public class IncrementalSampling extends SamplingStrategy {
     @Override
     public void run(Sample sample, AdaBatch adaBatch) {
         Random randomGenerator = new Random();
-        List<Sample> samples = getSamples();
+        List<Sample> samples = getSamples(true);
         Dataset<Row> batchDF = getContext().getDbmsSpark2()
                 .execute(String.format("SELECT * FROM %s.%s", adaBatch.getDbName(), adaBatch.getTableName()))
                 .getResultSet()

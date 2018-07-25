@@ -79,7 +79,7 @@ public class VerdictSampling extends SamplingStrategy {
 
     private void deleteSampleMeta(Sample sample) {
         SparkSession spark = getContext().getDbmsSpark2().getSparkSession();
-        List<Sample> samples = getSamples();
+        List<Sample> samples = getSamples(true);
         List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();
         List<Dataset<Row>> metaNameDFs = Lists.newArrayList();
         for (Sample _sample : samples) {

@@ -75,7 +75,7 @@ public class ReservoirSampling extends SamplingStrategy {
                 .execute(String.format("DROP TABLE %s.%s", sample.schemaName, sample.tableName))
                 .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
 
-        List<Sample> samples = getSamples();
+        List<Sample> samples = getSamples(true);
         List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();
         List<Dataset<Row>> metaNameDFs = Lists.newArrayList();
         for (Sample _sample : samples) {

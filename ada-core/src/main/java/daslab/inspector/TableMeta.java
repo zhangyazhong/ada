@@ -1,16 +1,12 @@
 package daslab.inspector;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import daslab.bean.AdaBatch;
-import daslab.bean.Sample;
-import daslab.bean.Sampling;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
 import daslab.utils.AdaTimer;
 import org.apache.commons.lang.StringUtils;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -18,7 +14,7 @@ import java.util.Map;
  * @version 2018-05-14
  */
 public class TableMeta {
-    static class MetaInfo {
+    public static class MetaInfo {
         private TableColumn column;
         private double n;
         private double n_;
@@ -121,7 +117,7 @@ public class TableMeta {
         }
     }
 
-    public Map<Sample, Sampling> refresh(AdaBatch adaBatch) {
+    public TableMeta refresh(AdaBatch adaBatch) {
         // REPORT: sampling.cost.pre-process (start)
         AdaTimer timer = AdaTimer.create();
         double confidence = Double.parseDouble(context.get("query.confidence_internal_"));
@@ -148,73 +144,15 @@ public class TableMeta {
                 AdaLogger.debug(this, "Batch[" + context.getBatchCount() + "] table meta[" + column.getColumnName() + "]: " + batchMetaMap.get(column).toString());
             }
         }
-
-        Map<Sample, List<TableColumnSample>> illegalSamples = verify(batchMetaMap);
         cardinality += newCount;
         tableMetaMap = batchMetaMap;
-
-        AdaLogger.info(this, String.format("Table[%s] cardinality: %d", tableSchema.getTableName(), cardinality));
-        context.set(tableSchema.getTableName() + "_cardinality", String.valueOf(cardinality));
         // REPORT: sampling.cost.pre-process (stop)
         context.writeIntoReport("sampling.cost.pre-process", timer.stop());
 
-        Map<Sample, Sampling> samplingMap = Maps.newHashMap();
+        AdaLogger.info(this, String.format("Table[%s] cardinality: %d", tableSchema.getTableName(), cardinality));
+        context.set(tableSchema.getTableName() + "_cardinality", String.valueOf(cardinality));
 
-        // REPORT: sampling.cost.sampling (start)
-        timer = AdaTimer.create();
-        illegalSamples.forEach((sample, illegalColumns) -> {
-            double ratio = 0;
-            for (TableColumnSample column: illegalColumns) {
-                ratio = Math.max(ratio, column.getRatio());
-            }
-            if (illegalColumns.size() > 0) {
-//            if (illegalColumns.size() < 0) {
-                AdaLogger.info(this, String.format("Sample's[%.2f] columns need to be updated: %s.",
-                        sample.samplingRatio,
-                        StringUtils.join(illegalColumns.stream().map(column -> column.getColumn().toString()).toArray(), ", ")));
-                AdaLogger.info(this, "Use " + context.getSamplingController().getResamplingStrategy().name() + " strategy to resample.");
-                samplingMap.put(sample, Sampling.RESAMPLE);
-                context.getSamplingController().resample(sample, adaBatch, ratio);
-                // REPORT: sampling.method
-                context.writeIntoReport("sampling.method", "resample");
-            } else {
-                AdaLogger.info(this, String.format("Sample's[%.2f]: no column needs to be updated.", sample.samplingRatio));
-                AdaLogger.info(this, "Use " + context.getSamplingController().getSamplingStrategy().name() + " strategy to update sample.");
-                samplingMap.put(sample, Sampling.UPDATE);
-                context.getSamplingController().update(sample, adaBatch);
-                // REPORT: sampling.method
-                context.writeIntoReport("sampling.method", "update");
-            }
-        });
-        // REPORT: sampling.cost.sampling (stop)
-        context.writeIntoReport("sampling.cost.sampling", String.valueOf(timer.stop()));
-
-        return samplingMap;
-    }
-
-    private Map<Sample, List<TableColumnSample>> verify(Map<TableColumn, MetaInfo> batchMetaMap) {
-        Map<Sample, List<TableColumnSample>> illegalSamples = Maps.newHashMap();
-        List<Sample> samples = context.getSamplingController().getSamplingStrategy().getSamples();
-        for (Sample sample : samples) {
-            AdaLogger.info(this, String.format("Sample[%.2f] size is: %d", sample.samplingRatio, sample.sampleSize));
-
-            List<TableColumnSample> illegalColumns = Lists.newArrayList();
-            for (TableColumn column : tableMetaMap.keySet()) {
-                MetaInfo batchMetaInfo = batchMetaMap.get(column);
-                boolean flag = false;
-                if (batchMetaInfo.getN() <= sample.sampleSize) {
-                    flag = true;
-                }
-                if (!flag) {
-                    double ratio = 1.0 * batchMetaInfo.getN() / batchMetaInfo.getD();
-                    ratio = Math.min(ratio * 1.1, 1);
-                    ratio = Math.ceil(ratio * 100) / 100;
-                    illegalColumns.add(new TableColumnSample(column, ratio));
-                }
-            }
-            illegalSamples.put(sample, illegalColumns);
-        }
-        return illegalSamples;
+        return this;
     }
 
     private String metaClause() {
@@ -229,6 +167,14 @@ public class TableMeta {
         }
         this.metaClause = StringUtils.substringBeforeLast(selectClause.toString(), ",");
         return this.metaClause;
+    }
+
+    public long getCardinality() {
+        return cardinality;
+    }
+
+    public Map<TableColumn, MetaInfo> getTableMetaMap() {
+        return tableMetaMap;
     }
 
     private String varClause(TableColumn column, String alias) {

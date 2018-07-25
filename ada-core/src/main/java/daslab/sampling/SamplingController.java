@@ -2,8 +2,13 @@ package daslab.sampling;
 
 import daslab.bean.AdaBatch;
 import daslab.bean.Sample;
+import daslab.bean.SampleStatus;
 import daslab.context.AdaContext;
+import daslab.inspector.TableColumn;
+import daslab.inspector.TableMeta;
 import daslab.utils.AdaLogger;
+
+import java.util.Map;
 
 /**
  * @author zyz
@@ -61,5 +66,9 @@ public class SamplingController {
                 AdaLogger.debug(this, "Final Meta Size: " + verdictMetaSize.toString()));
         resamplingStrategy.getMetaNames().forEach(verdictMetaName ->
                 AdaLogger.debug(this, "Final Meta Name: " + verdictMetaName.toString()));
+    }
+
+    public Map<Sample, SampleStatus> verify(Map<TableColumn, TableMeta.MetaInfo> metaMap, long tableSize) {
+        return samplingStrategy.verify(metaMap, tableSize);
     }
 }
