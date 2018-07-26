@@ -127,7 +127,7 @@ public class ReservoirSampling extends SamplingStrategy {
         for (Sample _sample : samples) {
             Dataset<Row> metaSizeDF;
             Dataset<Row> metaNameDF;
-            if (Math.abs(_sample.samplingRatio - sample.samplingRatio) < 0.00001) {
+            if (Math.abs(_sample.samplingRatio - sample.samplingRatio) < 0.00001 && _sample.sampleType.equals(sample.sampleType) && _sample.onColumn.equals(sample.onColumn)) {
                 VerdictMetaSize metaSize = new VerdictMetaSize(sample.schemaName, sample.tableName, updatedCount, sample.tableSize + (long) adaBatch.getSize());
                 VerdictMetaName metaName = new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, Math.round(100.0 * updatedCount / (sample.tableSize + (long) adaBatch.getSize())) / 100.0, sample.onColumn);
                 AdaLogger.debug(this, "Updated meta size: " + metaSize.toString());
