@@ -7,10 +7,7 @@ import daslab.exp1.Exp1Accurate;
 import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
 import daslab.exp3.*;
-import daslab.exp4.Exp4Accurate;
-import daslab.exp4.Exp4Ada;
-import daslab.exp4.Exp4Comparison;
-import daslab.exp4.Exp4Verdict;
+import daslab.exp4.*;
 import daslab.restore.RestoreModule;
 import daslab.restore.SampleCleaner;
 import daslab.restore.SystemRestore;
@@ -98,6 +95,14 @@ public class App {
                 case "exp4_comparison":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 4 for Result Comparison");
                     new Exp4Comparison().run();
+                    break;
+                case "exp4_verdict_cost":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 4 for Verdict Time Cost");
+                    new Exp4VerdictTimeCost().run();
+                    break;
+                case "exp4_ada_cost":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 4 for Ada Time Cost");
+                    new Exp4AdaTimeCost().run();
                     break;
             }
         }

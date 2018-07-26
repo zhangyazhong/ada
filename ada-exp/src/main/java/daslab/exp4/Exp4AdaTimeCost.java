@@ -1,6 +1,7 @@
 package daslab.exp4;
 
 import com.google.common.collect.ImmutableList;
+import daslab.bean.ExecutionReport;
 import daslab.context.AdaContext;
 import daslab.exp.ExpConfig;
 import daslab.exp.ExpResult;
@@ -14,9 +15,8 @@ import org.apache.spark.sql.Row;
 
 import java.util.List;
 
-@SuppressWarnings("Duplicates")
-public class Exp4Ada extends ExpTemplate {
-    private final static int REPEAT_TIME = 10;
+public class Exp4AdaTimeCost extends ExpTemplate {
+    private final static int REPEAT_TIME = 1;
 
     private final static List<String> QUERIES = ImmutableList.of(
             String.format("SELECT AVG(page_count) FROM %s.%s", ExpConfig.get("table.schema"), ExpConfig.get("table.name")),
@@ -25,17 +25,17 @@ public class Exp4Ada extends ExpTemplate {
             String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='kk'",  ExpConfig.get("table.schema"), ExpConfig.get("table.name"))
     );
 
-    public Exp4Ada() {
-        this("Ada Exp4 - Ada Result for Queries");
+    public Exp4AdaTimeCost() {
+        this("Ada Exp4 - Ada Sampling Time Cost");
     }
 
-    public Exp4Ada(String name) {
+    public Exp4AdaTimeCost(String name) {
         super(name);
     }
 
     @Override
     public void run() {
-        ExpResult expResult = new ExpResult(Exp4Verdict.generateHeader());
+        ExpResult expResult = new ExpResult(ImmutableList.of("time", "ada_total", "ada_pre-process", "ada_sampling", "ada_create-sample", "q0", "q1", "q2", "q3"));
         for (int k = 0; k < REPEAT_TIME; k++) {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
             AdaLogger.info(this, "Restored database.");
@@ -48,20 +48,26 @@ public class Exp4Ada extends ExpTemplate {
                 String time = String.format("%02d%02d", day, hour);
                 String location = String.format("/home/hadoop/wiki/n_pagecounts-201601%02d-%02d0000", day, hour);
                 AdaLogger.info(this, "Send a new batch at " + location);
-                context.receive(location);
-                try {
-                    for (String QUERY : QUERIES) {
+                ExecutionReport executionReport = context.receive(location);
+                expResult.addResult(time, executionReport.getString("sampling.method") + "/" + String.valueOf(executionReport.getLong("sampling.cost.total")));
+                expResult.addResult(time, executionReport.getString("sampling.cost.pre-process"));
+                expResult.addResult(time, executionReport.getString("sampling.cost.sampling"));
+                expResult.push(time, executionReport.getString("sampling.cost.create-sample"));
+                AdaLogger.info(this, String.format("Ada Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ", ")));
+                for (String QUERY : QUERIES) {
+                    try {
+                        long start = System.currentTimeMillis();
                         Row row = getVerdict().sql(QUERY).first();
                         double avg = row.getDouble(0);
                         double err = row.getDouble(1);
-                        expResult.addResult(time, String.format("%.8f/%.8f", avg, err));
+                        long finish = System.currentTimeMillis();
+                        expResult.push(time, String.valueOf(finish - start));
+                    } catch (VerdictException e) {
+                        e.printStackTrace();
                     }
-                } catch (VerdictException e) {
-                    e.printStackTrace();
                 }
-                AdaLogger.info(this, String.format("Ada Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ", ")));
             }
         }
-        save(expResult, Exp4Comparison.ADA_PATH);
+        save(expResult, "/tmp/ada/exp/exp4/exp4_ada_cost.csv");
     }
 }

@@ -1,15 +1,17 @@
 package daslab.sampling;
 
 import com.google.common.collect.Lists;
-import daslab.bean.AdaBatch;
-import daslab.bean.Sample;
-import daslab.bean.VerdictMetaName;
-import daslab.bean.VerdictMetaSize;
+import com.google.common.collect.Maps;
+import daslab.bean.*;
 import daslab.context.AdaContext;
+import daslab.inspector.TableColumn;
+import daslab.inspector.TableColumnSample;
+import daslab.inspector.TableMeta;
 import daslab.utils.AdaLogger;
 import org.apache.spark.sql.Row;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author zyz
@@ -17,6 +19,7 @@ import java.util.List;
  */
 public abstract class SamplingStrategy {
     private AdaContext context;
+    private List<Sample> samples;
 
     public SamplingStrategy(AdaContext context) {
         this.context = context;
@@ -26,7 +29,10 @@ public abstract class SamplingStrategy {
         return context;
     }
 
-    public List<Sample> getSamples() {
+    public List<Sample> getSamples(boolean refresh) {
+        if (!refresh) {
+            return samples;
+        }
         String sampleDb = context.get("dbms.sample.database");
         String sql = String.format(
                 "SELECT s.`originaltablename` AS `original_table`, "
@@ -42,7 +48,7 @@ public abstract class SamplingStrategy {
                         + "ON s.`sampleschemaaname` = t.`schemaname` AND s.`sampletablename` = t.`tablename` "
                         + "ORDER BY `original_table`, `sample_type`, `sampling_ratio`, `on_columns`", sampleDb, sampleDb);
         List<Row> rows = context.getDbmsSpark2().execute(sql).getResultList();
-        List<Sample> samples = Lists.newArrayList();
+        samples = Lists.newArrayList();
         for (Row row: rows) {
             if (row.getString(0).equals(context.get("dbms.data.table"))
                     && row.getString(1).equals("uniform")) {
@@ -97,6 +103,19 @@ public abstract class SamplingStrategy {
             ));
         }
         return metaSizeList;
+    }
+
+    public Map<Sample, SampleStatus> verify(Map<TableColumn, TableMeta.MetaInfo> metaMap, long tableSize) {
+        Map<Sample, SampleStatus> sampleStatusMap = Maps.newHashMap();
+        List<Sample> samples = getSamples(false);
+        for (Sample sample : samples) {
+            AdaLogger.info(this, String.format("Sample[%.2f] size is: %d", sample.samplingRatio, sample.sampleSize));
+            SampleStatus sampleStatus = new SampleStatus(sample, tableSize);
+            for (TableColumn column : metaMap.keySet()) {
+                sampleStatus.push(column, (long) metaMap.get(column).getN());
+            }
+        }
+        return sampleStatusMap;
     }
 
     public abstract void run(Sample sample, AdaBatch adaBatch);

@@ -2,8 +2,14 @@ package daslab.sampling;
 
 import daslab.bean.AdaBatch;
 import daslab.bean.Sample;
+import daslab.bean.SampleStatus;
 import daslab.context.AdaContext;
+import daslab.inspector.TableColumn;
+import daslab.inspector.TableMeta;
 import daslab.utils.AdaLogger;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author zyz
@@ -37,6 +43,7 @@ public class SamplingController {
                 this.resamplingStrategy = new VerdictSampling(context);
                 break;
         }
+        buildGroupSizeTable();
     }
 
     public SamplingStrategy getSamplingStrategy() {
@@ -61,5 +68,25 @@ public class SamplingController {
                 AdaLogger.debug(this, "Final Meta Size: " + verdictMetaSize.toString()));
         resamplingStrategy.getMetaNames().forEach(verdictMetaName ->
                 AdaLogger.debug(this, "Final Meta Name: " + verdictMetaName.toString()));
+    }
+
+    public Map<Sample, SampleStatus> verify(Map<TableColumn, TableMeta.MetaInfo> metaMap, long tableSize) {
+        return samplingStrategy.verify(metaMap, tableSize);
+    }
+
+    public void buildGroupSizeTable() {
+        List<Sample> samples = samplingStrategy.getSamples(true);
+        samples.stream().filter(sample -> sample.sampleType.equals("stratified")).forEach(sample -> {
+                String onColumn = sample.onColumn;
+                context.getDbms()
+                        .execute(String.format("USE %s", context.get("dbms.verdict.database")))
+                        .execute(String.format("CREATE TABLE ada_%s_group_%s AS SELECT %s, COUNT(*) AS group_size FROM %s.%s GROUP BY %s", sample.originalTable, onColumn, onColumn, context.get("dbms.default.database"), sample.originalTable, onColumn));
+        });
+    }
+
+    public void buildGroupSizeTable(String originSchema, String originTable, String groupSchema, String groupTable, String onColumn) {
+        context.getDbms()
+                .execute(String.format("USE %s", context.get(groupSchema)))
+                .execute(String.format("CREATE TABLE %s AS SELECT %s, COUNT(*) AS group_size FROM %s.%s GROUP BY %s", groupTable, onColumn, originSchema, originTable, onColumn));
     }
 }

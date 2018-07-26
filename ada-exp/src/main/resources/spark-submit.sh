@@ -53,3 +53,7 @@ java -jar ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp2_sender
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp4_ada
 # run exp4 comparison module to compare results between ada and verdict
 java -jar ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp4_comparison
+# run exp4 ada time cost
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp4_verdict_cost
+# run exp4 ada time cost
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp4_ada_cost
