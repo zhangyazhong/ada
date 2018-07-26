@@ -180,4 +180,7 @@ public class AdaContext {
         getSamplingController().getSamplingStrategy().getSamples(true).forEach(sample -> AdaLogger.info("Ada Current Sample - " + sample.toString()));
     }
 
+    public TableMeta getTableMeta() {
+        return tableMeta;
+    }
 }

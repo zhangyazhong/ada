@@ -3,14 +3,15 @@ package daslab.sampling;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import daslab.bean.*;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
 import org.apache.commons.lang.RandomStringUtils;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.sql.*;
 
+import javax.xml.crypto.Data;
 import java.util.*;
 
 import static org.apache.spark.sql.functions.*;
@@ -139,17 +140,157 @@ public class ReservoirSampling extends SamplingStrategy {
     }
 
     private void updateStratified(Sample sample, AdaBatch adaBatch) {
+        Random randomGenerator = new Random();
+        SparkSession spark = getContext().getDbmsSpark2().getSparkSession();
         String uniqueString = RandomStringUtils.randomAlphanumeric(6);
+        // build batch group table
         getContext().getSamplingController().buildGroupSizeTable(adaBatch.getDbName(), adaBatch.getTableName(), sample.schemaName,"ada_" + uniqueString + "_group_" + sample.onColumn, sample.onColumn);
 
         String onColumn = sample.onColumn;
         String originGroupTable = String.format("%s.ada_%s_group_%s", sample.schemaName, sample.originalTable, onColumn);
         String batchGroupTable = String.format("%s.ada_%s_group_%s", sample.schemaName, uniqueString, onColumn);
-        String groupInfoSQL = String.format("SELECT a.%s AS a_%s, a.group_size AS a_group_size, b.%s AS b_%s, b.group_size AS b_group_size FROM %s a FULL OUTER JOIN %s b",
-                sample.onColumn, sample.onColumn, sample.onColumn, sample.onColumn, originGroupTable, batchGroupTable);
+        String originSampleTable = String.format("%s.%s", sample.schemaName, sample.tableName);
+        String originBatchTable = String.format("%s.%s", adaBatch.getDbName(), adaBatch.getTableName());
+        String groupInfoSQL = String.format(
+                "SELECT a.%s AS a_group_name, CASE WHEN (a.group_size IS NULL) THEN 0 ELSE a.group_size AS a_group_size, b.%s AS b_group_name, CASE WHEN (b.group_size IS NULL) THEN 0 ELSE b.group_size AS b_group_size, c.%s AS c_group_name, CASE WHEN (c.group_size IS NULL) THEN 0 ELSE c.group_size AS c_group_size " +
+                        "FROM %s a " +
+                        "FULL OUTER JOIN %s b ON a.%s=b.%s " +
+                        "FULL OUTER JOIN (SELECT %s, COUNT(*) AS group_size FROM %s GROUP BY %s) c ON a.%s=c.%s",
+                sample.onColumn, sample.onColumn, sample.onColumn,
+                originGroupTable,
+                batchGroupTable, sample.onColumn, sample.onColumn,
+                sample.onColumn, originSampleTable, sample.onColumn, sample.onColumn, sample.onColumn);
         Dataset<Row> groupInfoDF = getContext().getDbms().execute(groupInfoSQL).getResultSet();
         long groupCount = groupInfoDF.count();
+        groupInfoDF.createOrReplaceTempView("group_joined_info");
 
+        long sampleCardinality = sample.sampleSize;
+        long eachGroupSampleCardinality; //= Math.max(10, sampleCardinality / groupCount + 1);
+        List<Long> groupInfoList = groupInfoDF.map((MapFunction<Row, Long>) row ->
+                (row.get(row.fieldIndex("a_group_size")) != null ? row.getLong(row.fieldIndex("a_group_size")) : 0)
+                + (row.get(row.fieldIndex("b_group_size")) != null ? row.getLong(row.fieldIndex("b_group_size")) : 0),
+                Encoders.bean(Long.class)).collectAsList();
+        long eachGroupSampleCardinalityMin = 0, eachGroupSampleCardinalityMax = sampleCardinality;
+        while (true) {
+            long eachGroupSampleCardinalityMid = (eachGroupSampleCardinalityMin + eachGroupSampleCardinalityMax) >> 1;
+            long expectedSampleCardinality = 0;
+            for (Long count : groupInfoList) {
+                expectedSampleCardinality += Math.min(count, eachGroupSampleCardinalityMid);
+            }
+            if (expectedSampleCardinality < sampleCardinality) {
+                eachGroupSampleCardinalityMin = eachGroupSampleCardinalityMid;
+            } else if (expectedSampleCardinality > sampleCardinality * 1.1) {
+                eachGroupSampleCardinalityMax = eachGroupSampleCardinalityMid;
+            } else {
+                eachGroupSampleCardinality = eachGroupSampleCardinalityMid;
+                break;
+            }
+        }
+
+        Dataset<Row> groupExchangeInfoDF = groupInfoDF.map((MapFunction<Row, StratifiedJoinedGroup>) row -> {
+            String groupName = row.getString(row.fieldIndex("a_group_name"));
+            long aGroupSize = row.get(row.fieldIndex("a_group_size")) != null ? row.getLong(row.fieldIndex("a_group_size")) : 0;
+            long bGroupSize = row.get(row.fieldIndex("b_group_size")) != null ? row.getLong(row.fieldIndex("b_group_size")) : 0;
+            long cGroupSize = row.get(row.fieldIndex("c_group_size")) != null ? row.getLong(row.fieldIndex("c_group_size")) : 0;
+            long aExchangeSize = Math.max(0, cGroupSize - eachGroupSampleCardinality);
+            long bExchangeSize = Math.max(0, eachGroupSampleCardinality - cGroupSize);
+            Set<Long> exchangeSet = Sets.newHashSet();
+            long tableSize = Math.max(aGroupSize, eachGroupSampleCardinality);
+            for (long i = bExchangeSize; i < adaBatch.getSize(); i++) {
+                long totalSize = tableSize + i;
+                long position = (long) Math.floor(randomGenerator.nextDouble() * totalSize);
+                if (position < eachGroupSampleCardinality) {
+                    exchangeSet.add(position);
+                }
+            }
+            aExchangeSize = aExchangeSize + exchangeSet.size() * Math.min(1, cGroupSize / eachGroupSampleCardinality);
+            bExchangeSize = bExchangeSize + exchangeSet.size() * Math.min(1, cGroupSize / eachGroupSampleCardinality);
+            double aExchangeRatio = Math.max(0, 1.0 * (cGroupSize - aExchangeSize) / cGroupSize);
+            double bExchangeRatio = Math.min(1, 1.0 * bExchangeSize / bGroupSize);
+            double verdictProb = 1.0 * (cGroupSize - aExchangeSize + bExchangeSize) / (aGroupSize + bGroupSize);
+            return new StratifiedJoinedGroup(groupName, aGroupSize, bGroupSize, aExchangeSize, bExchangeSize, aExchangeRatio, bExchangeRatio, verdictProb);
+        }, Encoders.bean(StratifiedJoinedGroup.class)).toDF();
+        groupExchangeInfoDF.createOrReplaceTempView("group_exchange_info");
+
+        String sqlForClean = String.format("SELECT u.*, Rand(Unix_timestamp()) AS ada_rand FROM %s AS u INNER JOIN %s AS v ON u.%s=v.%s WHERE ada_rand<v.a_exchange_ratio",
+                originSampleTable, "group_exchange_info", sample.onColumn, "group_name");
+        Dataset<Row> cleanedSample = getContext().getDbms()
+                .execute(sqlForClean)
+                .getResultSet()
+                .drop("ada_rand", "verdict_vprob");
+        String sqlForInsert = String.format("SELECT u.*, Rand(Unix_timestamp()) AS ada_rand FROM %s AS u INNER JOIN %s AS v ON u.%s=v.%s WHERE ada_rand<v.b_exchange_ratio",
+                originBatchTable, "group_exchange_info", sample.onColumn, "group_name");
+        Dataset<Row> insertedSample = getContext().getDbms()
+                .execute(sqlForInsert)
+                .getResultSet()
+                .drop("ada_rand")
+                .withColumn("verdict_vpart", when(col("page_count").$greater$eq(0), Math.floor(randomGenerator.nextDouble() * 100)));
+        Dataset<Row> updatedSample = cleanedSample
+                .union(insertedSample);
+        updatedSample.createOrReplaceTempView("updated_sample");
+        String sqlForProb = String.format("SELECT m.*, n.verdict_vprob AS verdict_vprob FROM %s m INNER JOIN %s n ON m.%s=n.group_name",
+                "updated_sample", "group_exchange_info", sample.onColumn);
+        Dataset<Row> updatedSampleWithProb = getContext().getDbms()
+                .execute(sqlForProb)
+                .getResultSet();
+        getContext().getDbmsSpark2().execute(String.format("USE %s", sample.schemaName));
+        updatedSampleWithProb.write().saveAsTable(sample.tableName + "_tmp");
+
+        getContext().getDbmsSpark2()
+                .execute(String.format("USE %s", sample.schemaName))
+                .execute(String.format("DROP TABLE %s.%s", sample.schemaName, sample.tableName))
+                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
+
+        long updatedCount = updatedSampleWithProb.count();
+        List<Sample> samples = getSamples(true);
+        List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();
+        List<Dataset<Row>> metaNameDFs = Lists.newArrayList();
+        for (Sample _sample : samples) {
+            Dataset<Row> metaSizeDF;
+            Dataset<Row> metaNameDF;
+            if (Math.abs(_sample.samplingRatio - sample.samplingRatio) < 0.00001 && _sample.sampleType.equals(sample.sampleType) && _sample.onColumn.equals(sample.onColumn)) {
+                double ratio = Math.round(sample.samplingRatio * 100) / 100;
+                VerdictMetaSize metaSize = new VerdictMetaSize(sample.schemaName, sample.tableName, updatedCount, getContext().getTableMeta().getCardinality());
+                VerdictMetaName metaName = new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, ratio, sample.onColumn);
+                AdaLogger.debug(this, "Updated meta size: " + metaSize.toString());
+                AdaLogger.debug(this, "Updated meta name: " + metaName.toString());
+                metaSizeDF = spark
+                        .createDataFrame(ImmutableList.of(metaSize), VerdictMetaSize.class)
+                        .toDF();
+                metaNameDF = spark
+                        .createDataFrame(ImmutableList.of(metaName), VerdictMetaName.class)
+                        .toDF();
+            } else {
+                metaSizeDF = spark
+                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize)), VerdictMetaSize.class)
+                        .toDF();
+                metaNameDF = spark
+                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, sample.samplingRatio, sample.onColumn)), VerdictMetaName.class)
+                        .toDF();
+            }
+            metaSizeDFs.add(metaSizeDF);
+            metaNameDFs.add(metaNameDF);
+        }
+        Dataset<Row> metaSizeDF = metaSizeDFs.get(0);
+        Dataset<Row> metaNameDF = metaNameDFs.get(0);
+        for (int i = 1; i < metaNameDFs.size(); i++) {
+            metaSizeDF = metaSizeDF.union(metaSizeDFs.get(i));
+            metaNameDF = metaNameDF.union(metaNameDFs.get(i));
+        }
+        getContext().getDbmsSpark2()
+                .execute(String.format("USE %s", sample.schemaName))
+                .execute(String.format("DROP TABLE %s.%s", sample.schemaName, "verdict_meta_name"))
+                .execute(String.format("DROP TABLE %s.%s", sample.schemaName, "verdict_meta_size"));
+        metaNameDF.select("originalschemaname", "originaltablename", "sampleschemaaname", "sampletablename", "sampletype", "samplingratio", "columnnames").write().saveAsTable("verdict_meta_name");
+        metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
+
+        // update origin group table
+        String sqlForUpdateGroupTable = String.format("CREATE TABLE %s_tmp AS SELECT a_group_name AS %s, (a_group_size+b_group_size) AS group_size FROM %s", originGroupTable, sample.onColumn, "group_joined_info");
+        getContext().getDbmsSpark2()
+                .execute(String.format("USE %s", sample.schemaName))
+                .execute(sqlForUpdateGroupTable)
+                .execute(String.format("DROP TABLE %s", originGroupTable))
+                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", originGroupTable, sample.tableName));
     }
 
     @Override

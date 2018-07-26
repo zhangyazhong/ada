@@ -65,7 +65,7 @@ public class VerdictSampling extends SamplingStrategy {
         deleteSampleMeta(sample);
         // REPORT: sampling.cost.create-sample (start)
         AdaTimer timer = AdaTimer.create();
-        createSample(ratio);
+        createSample(sample, ratio);
         refreshMetaSize();
         // REPORT: sampling.cost.create-sample (stop)
         getContext().writeIntoReport("sampling.cost.create-sample", timer.stop());
@@ -85,7 +85,7 @@ public class VerdictSampling extends SamplingStrategy {
         for (Sample _sample : samples) {
             Dataset<Row> metaSizeDF;
             Dataset<Row> metaNameDF;
-            if (Math.abs(_sample.samplingRatio - sample.samplingRatio) > 0.00001) {
+            if (Math.abs(_sample.samplingRatio - sample.samplingRatio) > 0.00001 && _sample.sampleType.equals(sample.sampleType) && _sample.onColumn.equals(sample.onColumn)) {
                 metaSizeDF = spark
                         .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize)), VerdictMetaSize.class)
                         .toDF();
@@ -141,10 +141,19 @@ public class VerdictSampling extends SamplingStrategy {
         }
     }
 
-    private void createSample(double ratio) {
+    private void createSample(Sample sample, double ratio) {
         try {
-            AdaLogger.info(this, String.format("About to create sample with sampling ratio %f of %s.%s", round(ratio * 100) / 100.0, getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
-            verdictSpark2Context.sql("CREATE " + (int) round(ratio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
+            switch (sample.sampleType) {
+                case "uniform":
+                    AdaLogger.info(this, String.format("About to create uniform sample with sampling ratio %f of %s.%s", round(ratio * 100) / 100.0, getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
+                    verdictSpark2Context.sql("CREATE " + (int) round(ratio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
+                    break;
+                case "stratified":
+                    AdaLogger.info(this, String.format("About to create stratified sample with sampling ratio %f of %s.%s", round(ratio * 100) / 100.0, getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
+                    verdictSpark2Context.sql("CREATE " + (int) round(ratio * 100) + "% STRATIFIED SAMPLE OF " + getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
+                    break;
+            }
+
         } catch (VerdictException e) {
             e.printStackTrace();
         }
