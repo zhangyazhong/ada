@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import daslab.bean.*;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -25,6 +26,26 @@ public class ReservoirSampling extends SamplingStrategy {
 
     @Override
     public void run(Sample sample, AdaBatch adaBatch) {
+
+    }
+
+    @Override
+    public void update(Sample sample, AdaBatch adaBatch) {
+        switch (sample.sampleType) {
+            case "stratified":
+                updateStratified(sample, adaBatch);
+                break;
+            case "uniform":
+                updateUniform(sample, adaBatch);
+                break;
+        }
+    }
+
+    @Override
+    public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
+    }
+
+    private void updateUniform(Sample sample, AdaBatch adaBatch) {
         Random randomGenerator = new Random();
         SparkSession spark = getContext().getDbmsSpark2().getSparkSession();
         Map<Long, Integer> chosen = Maps.newHashMap();
@@ -117,13 +138,18 @@ public class ReservoirSampling extends SamplingStrategy {
         metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
     }
 
-    @Override
-    public void update(Sample sample, AdaBatch adaBatch) {
-        run(sample, adaBatch);
-    }
+    private void updateStratified(Sample sample, AdaBatch adaBatch) {
+        String uniqueString = RandomStringUtils.randomAlphanumeric(6);
+        getContext().getSamplingController().buildGroupSizeTable(adaBatch.getDbName(), adaBatch.getTableName(), sample.schemaName,"ada_" + uniqueString + "_group_" + sample.onColumn, sample.onColumn);
 
-    @Override
-    public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
+        String onColumn = sample.onColumn;
+        String originGroupTable = String.format("%s.ada_%s_group_%s", sample.schemaName, sample.originalTable, onColumn);
+        String batchGroupTable = String.format("%s.ada_%s_group_%s", sample.schemaName, uniqueString, onColumn);
+        String groupInfoSQL = String.format("SELECT a.%s AS a_%s, a.group_size AS a_group_size, b.%s AS b_%s, b.group_size AS b_group_size FROM %s a FULL OUTER JOIN %s b",
+                sample.onColumn, sample.onColumn, sample.onColumn, sample.onColumn, originGroupTable, batchGroupTable);
+        Dataset<Row> groupInfoDF = getContext().getDbms().execute(groupInfoSQL).getResultSet();
+        long groupCount = groupInfoDF.count();
+
     }
 
     @Override
