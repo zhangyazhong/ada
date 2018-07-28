@@ -7,7 +7,9 @@ import java.util.Map;
 public class ExpConfig {
     public final static int DAY_START = 1;
     public final static int DAY_TOTAL = 2;
-    public final static int[] SAMPLE_RATIO = {10};
+    public final static int[] UNIFORM_SAMPLE_RATIO = {10};
+    public final static int[] STRATIFIED_SAMPLE_RATIO = {10};
+    public final static String[] STRATIFIED_SAMPLE_COLUMN = {"project_name"};
 
     public final static int HOUR_START = 24 * 1 - 1;
     public final static int HOUR_TOTAL = 24 * 2;

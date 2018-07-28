@@ -1,6 +1,7 @@
 package daslab.warehouse;
 
 import daslab.bean.AdaBatch;
+import daslab.bean.TableEntity;
 import daslab.context.AdaContext;
 import daslab.inspector.TableColumn;
 import daslab.inspector.TableColumnType;
@@ -113,6 +114,11 @@ public class DbmsSpark2 {
 
         AdaLogger.info(this, String.format("AdaBatch loaded into %s.%s with size %d", context.get("dbms.default.database"), context.get("dbms.batch.table"), size));
         return AdaBatch.build(context.get("dbms.default.database"), context.get("dbms.batch.table"), size);
+    }
+
+    public DbmsSpark2 drop(TableEntity tableEntity) {
+        String sql = String.format("DROP TABLE %s", tableEntity.toSQL());
+        return execute(sql);
     }
 
     public Dataset<Row> getResultSet() {

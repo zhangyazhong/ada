@@ -5,7 +5,6 @@ import com.google.common.collect.Maps;
 import daslab.bean.*;
 import daslab.context.AdaContext;
 import daslab.inspector.TableColumn;
-import daslab.inspector.TableColumnSample;
 import daslab.inspector.TableMeta;
 import daslab.utils.AdaLogger;
 import org.apache.spark.sql.Row;

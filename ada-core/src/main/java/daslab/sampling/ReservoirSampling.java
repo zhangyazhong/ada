@@ -165,46 +165,46 @@ public class ReservoirSampling extends SamplingStrategy {
         groupInfoDF.createOrReplaceTempView("group_joined_info");
 
         long sampleCardinality = sample.sampleSize;
-        long eachGroupSampleCardinality; //= Math.max(10, sampleCardinality / groupCount + 1);
         List<Long> groupInfoList = groupInfoDF.map((MapFunction<Row, Long>) row ->
                 (row.get(row.fieldIndex("a_group_size")) != null ? row.getLong(row.fieldIndex("a_group_size")) : 0)
                 + (row.get(row.fieldIndex("b_group_size")) != null ? row.getLong(row.fieldIndex("b_group_size")) : 0),
                 Encoders.bean(Long.class)).collectAsList();
         long eachGroupSampleCardinalityMin = 0, eachGroupSampleCardinalityMax = sampleCardinality;
-        while (true) {
-            long eachGroupSampleCardinalityMid = (eachGroupSampleCardinalityMin + eachGroupSampleCardinalityMax) >> 1;
+        long eachGroupSampleCardinality = (eachGroupSampleCardinalityMin + eachGroupSampleCardinalityMax) >> 1; //= Math.max(10, sampleCardinality / groupCount + 1);
+        while (eachGroupSampleCardinalityMin <= eachGroupSampleCardinalityMax) {
+            eachGroupSampleCardinality = (eachGroupSampleCardinalityMin + eachGroupSampleCardinalityMax) >> 1;
             long expectedSampleCardinality = 0;
             for (Long count : groupInfoList) {
-                expectedSampleCardinality += Math.min(count, eachGroupSampleCardinalityMid);
+                expectedSampleCardinality += Math.min(count, eachGroupSampleCardinality);
             }
-            if (expectedSampleCardinality < sampleCardinality) {
-                eachGroupSampleCardinalityMin = eachGroupSampleCardinalityMid;
-            } else if (expectedSampleCardinality > sampleCardinality * 1.1) {
-                eachGroupSampleCardinalityMax = eachGroupSampleCardinalityMid;
+            if (expectedSampleCardinality < sampleCardinality * 0.95) {
+                eachGroupSampleCardinalityMin = eachGroupSampleCardinality + 1;
+            } else if (expectedSampleCardinality > sampleCardinality * 1.05) {
+                eachGroupSampleCardinalityMax = eachGroupSampleCardinality - 1;
             } else {
-                eachGroupSampleCardinality = eachGroupSampleCardinalityMid;
                 break;
             }
         }
 
+        final long finalEachGroupSampleCardinality = Math.max(eachGroupSampleCardinality, 10);
         Dataset<Row> groupExchangeInfoDF = groupInfoDF.map((MapFunction<Row, StratifiedJoinedGroup>) row -> {
             String groupName = row.getString(row.fieldIndex("a_group_name"));
             long aGroupSize = row.get(row.fieldIndex("a_group_size")) != null ? row.getLong(row.fieldIndex("a_group_size")) : 0;
             long bGroupSize = row.get(row.fieldIndex("b_group_size")) != null ? row.getLong(row.fieldIndex("b_group_size")) : 0;
             long cGroupSize = row.get(row.fieldIndex("c_group_size")) != null ? row.getLong(row.fieldIndex("c_group_size")) : 0;
-            long aExchangeSize = Math.max(0, cGroupSize - eachGroupSampleCardinality);
-            long bExchangeSize = Math.max(0, eachGroupSampleCardinality - cGroupSize);
+            long aExchangeSize = Math.max(0, cGroupSize - finalEachGroupSampleCardinality);
+            long bExchangeSize = Math.max(0, finalEachGroupSampleCardinality - cGroupSize);
             Set<Long> exchangeSet = Sets.newHashSet();
-            long tableSize = Math.max(aGroupSize, eachGroupSampleCardinality);
+            long tableSize = Math.max(aGroupSize, finalEachGroupSampleCardinality);
             for (long i = bExchangeSize; i < adaBatch.getSize(); i++) {
                 long totalSize = tableSize + i;
                 long position = (long) Math.floor(randomGenerator.nextDouble() * totalSize);
-                if (position < eachGroupSampleCardinality) {
+                if (position < finalEachGroupSampleCardinality) {
                     exchangeSet.add(position);
                 }
             }
-            aExchangeSize = aExchangeSize + exchangeSet.size() * Math.min(1, cGroupSize / eachGroupSampleCardinality);
-            bExchangeSize = bExchangeSize + exchangeSet.size() * Math.min(1, cGroupSize / eachGroupSampleCardinality);
+            aExchangeSize = aExchangeSize + exchangeSet.size() * Math.min(1, cGroupSize / finalEachGroupSampleCardinality);
+            bExchangeSize = bExchangeSize + exchangeSet.size() * Math.min(1, cGroupSize / finalEachGroupSampleCardinality);
             double aExchangeRatio = Math.max(0, 1.0 * (cGroupSize - aExchangeSize) / cGroupSize);
             double bExchangeRatio = Math.min(1, 1.0 * bExchangeSize / bGroupSize);
             double verdictProb = 1.0 * (cGroupSize - aExchangeSize + bExchangeSize) / (aGroupSize + bGroupSize);
