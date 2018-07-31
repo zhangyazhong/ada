@@ -20,6 +20,7 @@ import static org.apache.spark.sql.functions.*;
  * @author zyz
  * @version 2018-05-16
  */
+@SuppressWarnings("Duplicates")
 public class ReservoirSampling extends SamplingStrategy {
     public ReservoirSampling(AdaContext context) {
         super(context);
@@ -116,10 +117,10 @@ public class ReservoirSampling extends SamplingStrategy {
                         .toDF();
             } else {
                 metaSizeDF = spark
-                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize)), VerdictMetaSize.class)
+                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(_sample.schemaName, _sample.tableName, _sample.sampleSize, _sample.tableSize)), VerdictMetaSize.class)
                         .toDF();
                 metaNameDF = spark
-                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, sample.samplingRatio, sample.onColumn)), VerdictMetaName.class)
+                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), _sample.originalTable, _sample.schemaName, _sample.tableName, _sample.sampleType, _sample.samplingRatio, _sample.onColumn)), VerdictMetaName.class)
                         .toDF();
             }
             metaSizeDFs.add(metaSizeDF);
@@ -152,7 +153,7 @@ public class ReservoirSampling extends SamplingStrategy {
         String originSampleTable = String.format("%s.%s", sample.schemaName, sample.tableName);
         String originBatchTable = String.format("%s.%s", adaBatch.getDbName(), adaBatch.getTableName());
         String groupInfoSQL = String.format(
-                "SELECT a.%s AS a_group_name, CASE WHEN (a.group_size IS NULL) THEN 0 ELSE a.group_size AS a_group_size, b.%s AS b_group_name, CASE WHEN (b.group_size IS NULL) THEN 0 ELSE b.group_size AS b_group_size, c.%s AS c_group_name, CASE WHEN (c.group_size IS NULL) THEN 0 ELSE c.group_size AS c_group_size " +
+                "SELECT a.%s AS a_group_name, (CASE WHEN (a.group_size IS NULL) THEN 0 ELSE a.group_size END) AS a_group_size, b.%s AS b_group_name, (CASE WHEN (b.group_size IS NULL) THEN 0 ELSE b.group_size END) AS b_group_size, c.%s AS c_group_name, (CASE WHEN (c.group_size IS NULL) THEN 0 ELSE c.group_size END) AS c_group_size " +
                         "FROM %s a " +
                         "FULL OUTER JOIN %s b ON a.%s=b.%s " +
                         "FULL OUTER JOIN (SELECT %s, COUNT(*) AS group_size FROM %s GROUP BY %s) c ON a.%s=c.%s",
@@ -262,10 +263,10 @@ public class ReservoirSampling extends SamplingStrategy {
                         .toDF();
             } else {
                 metaSizeDF = spark
-                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize)), VerdictMetaSize.class)
+                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(_sample.schemaName, _sample.tableName, _sample.sampleSize, _sample.tableSize)), VerdictMetaSize.class)
                         .toDF();
                 metaNameDF = spark
-                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, sample.samplingRatio, sample.onColumn)), VerdictMetaName.class)
+                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), _sample.originalTable, _sample.schemaName, _sample.tableName, _sample.sampleType, _sample.samplingRatio, _sample.onColumn)), VerdictMetaName.class)
                         .toDF();
             }
             metaSizeDFs.add(metaSizeDF);
@@ -290,7 +291,7 @@ public class ReservoirSampling extends SamplingStrategy {
                 .execute(String.format("USE %s", sample.schemaName))
                 .execute(sqlForUpdateGroupTable)
                 .execute(String.format("DROP TABLE %s", originGroupTable))
-                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", originGroupTable, sample.tableName));
+                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", originGroupTable, originGroupTable));
     }
 
     @Override

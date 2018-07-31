@@ -129,6 +129,10 @@ public class DbmsSpark2 {
         return df.collectAsList();
     }
 
+    public Long count(TableEntity tableEntity) {
+        return execute("SELECT COUNT(*) AS count FROM " + tableEntity.toSQL()).getResultAsLong(0, "count");
+    }
+
     public String getResultAsString(int rowNo, String col) {
         return df.collectAsList().get(rowNo).getString(df.schema().fieldIndex(col));
     }

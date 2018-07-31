@@ -8,6 +8,7 @@ import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
 import daslab.exp3.*;
 import daslab.exp4.*;
+import daslab.exp5.Exp5AdaTimeCost;
 import daslab.restore.RestoreModule;
 import daslab.restore.SampleCleaner;
 import daslab.restore.SystemRestore;
@@ -103,6 +104,10 @@ public class App {
                 case "exp4_ada_cost":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 4 for Ada Time Cost");
                     new Exp4AdaTimeCost().run();
+                    break;
+                case "exp5_ada_cost":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Ada Time Cost");
+                    new Exp5AdaTimeCost().run();
                     break;
             }
         }

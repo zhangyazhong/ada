@@ -86,7 +86,7 @@ public class SamplingController {
 
     public void buildGroupSizeTable(String originSchema, String originTable, String groupSchema, String groupTable, String onColumn) {
         context.getDbms()
-                .execute(String.format("USE %s", context.get(groupSchema)))
+                .execute(String.format("USE %s", groupSchema))
                 .execute(String.format("CREATE TABLE %s AS SELECT %s, COUNT(*) AS group_size FROM %s.%s GROUP BY %s", groupTable, onColumn, originSchema, originTable, onColumn));
     }
 }

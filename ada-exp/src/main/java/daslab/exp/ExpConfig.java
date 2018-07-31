@@ -11,8 +11,8 @@ public class ExpConfig {
     public final static int[] STRATIFIED_SAMPLE_RATIO = {10};
     public final static String[] STRATIFIED_SAMPLE_COLUMN = {"project_name"};
 
-    public final static int HOUR_START = 24 * 1 - 1;
-    public final static int HOUR_TOTAL = 24 * 2;
+    public final static int HOUR_START = 1;//24 * 1 - 1;
+    public final static int HOUR_TOTAL = 10;//24 * 2;
 
     public final static String SPARK_EXECUTOR_MEMORY = "16g";
     public final static String SPARK_DRIVER_MEMORY = "4g";

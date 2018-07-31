@@ -17,6 +17,7 @@ public class ExpResult {
 
     public ExpResult() {
         this.results = Maps.newLinkedHashMap();
+        this.header = Lists.newLinkedList();
     }
 
     public ExpResult(List<String> header) {

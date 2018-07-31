@@ -56,4 +56,12 @@ public class SampleStatus {
         });
         return columns;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder status = new StringBuilder("{");
+        expectedSizes.forEach((column, size) -> status.append("(").append(column).append(", ").append(size).append(")"));
+        status.append("}");
+        return status.toString();
+    }
 }

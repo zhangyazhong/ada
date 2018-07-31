@@ -39,6 +39,6 @@ public class Sample {
 
     @Override
     public String toString() {
-        return String.format("Sample - %s: %s.%s[%s] with %f", tableName, schemaName, originalTable, sampleType, samplingRatio);
+        return String.format("Sample - %s: %s.%s[%s] with %f on %s", tableName, schemaName, originalTable, sampleType, samplingRatio, onColumn);
     }
 }

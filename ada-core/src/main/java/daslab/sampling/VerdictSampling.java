@@ -32,25 +32,6 @@ public class VerdictSampling extends SamplingStrategy {
 
     @Override
     public void run(Sample sample, AdaBatch adaBatch) {
-        try {
-            verdictSpark2Context = new VerdictSpark2Context(getContext().getDbmsSpark2().getSparkSession().sparkContext());
-            AdaLogger.info(this, "About to drop all samples.");
-            /*
-            verdictSpark2Context.sql(String.format("DROP SAMPLES OF %s.%s",
-                    getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
-            for (Sample sample : samples) {
-                AdaLogger.info(this, "About to create sample with sampling ratio " + sample.samplingRatio + " of " +  getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
-                verdictSpark2Context.sql("CREATE " + (sample.samplingRatio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
-            }
-            */
-            verdictSpark2Context.sql(String.format("DROP %d%% SAMPLES OF %s.%s",
-                    Math.round(sample.samplingRatio * 100),
-                    getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
-            AdaLogger.info(this, "About to create sample with sampling ratio " + sample.samplingRatio + " of " +  getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
-            verdictSpark2Context.sql("CREATE " + Math.round(sample.samplingRatio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
-        } catch (VerdictException e) {
-            e.printStackTrace();
-        }
     }
 
     @Override
@@ -59,10 +40,11 @@ public class VerdictSampling extends SamplingStrategy {
 
     @Override
     public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
+        ratio = (1.0 * (int) round(ratio * 100)) / 100;
         verdictSpark2Context = getContext().getVerdict();
-        AdaLogger.info(this, "About to drop sample with ratio " + sample.samplingRatio);
-        deleteSampleTable(sample);
+        AdaLogger.info(this, "About to drop sample with ratio " + sample.samplingRatio + " of " + sample.sampleType);
         deleteSampleMeta(sample);
+        deleteSampleTable(sample);
         // REPORT: sampling.cost.create-sample (start)
         AdaTimer timer = AdaTimer.create();
         createSample(sample, ratio);
@@ -85,12 +67,12 @@ public class VerdictSampling extends SamplingStrategy {
         for (Sample _sample : samples) {
             Dataset<Row> metaSizeDF;
             Dataset<Row> metaNameDF;
-            if (Math.abs(_sample.samplingRatio - sample.samplingRatio) > 0.00001 && _sample.sampleType.equals(sample.sampleType) && _sample.onColumn.equals(sample.onColumn)) {
+            if (Math.abs(_sample.samplingRatio - sample.samplingRatio) > 0.00001 || !_sample.sampleType.equals(sample.sampleType) || !_sample.onColumn.equals(sample.onColumn)) {
                 metaSizeDF = spark
-                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, sample.sampleSize, sample.tableSize)), VerdictMetaSize.class)
+                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(_sample.schemaName, _sample.tableName, _sample.sampleSize, _sample.tableSize)), VerdictMetaSize.class)
                         .toDF();
                 metaNameDF = spark
-                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, sample.samplingRatio, sample.onColumn)), VerdictMetaName.class)
+                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), _sample.originalTable, _sample.schemaName, _sample.tableName, _sample.sampleType, _sample.samplingRatio, _sample.onColumn)), VerdictMetaName.class)
                         .toDF();
                 metaSizeDFs.add(metaSizeDF);
                 metaNameDFs.add(metaNameDF);
@@ -150,13 +132,12 @@ public class VerdictSampling extends SamplingStrategy {
                 createStratifiedSample(sample, ratio);
                 break;
         }
-
     }
 
     private void createUniformSample(Sample sample, double ratio) {
-        AdaLogger.info(this, String.format("About to create uniform sample with sampling ratio %f of %s.%s", round(ratio * 100) / 100.0, getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
+        AdaLogger.info(this, String.format("About to create uniform sample with sampling ratio %f of %s.%s", round(ratio * 100) / 100.0, getContext().get("dbms.default.database"), sample.originalTable));
         try {
-            verdictSpark2Context.sql("CREATE " + (int) round(ratio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + getContext().get("dbms.data.table"));
+            verdictSpark2Context.sql("CREATE " + (int) round(ratio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + sample.originalTable);
         } catch (VerdictException e) {
             e.printStackTrace();
         }
@@ -168,8 +149,15 @@ public class VerdictSampling extends SamplingStrategy {
         TableEntity groupTable = createGroupTable(originTable, sample.onColumn);
         TableEntity stratifiedSampleWithoutProb = createStratifiedSampleWithoutProb(originTable, groupTable, sample.onColumn, ratio);
         TableEntity stratifiedSampleWithProb = attachProbToStratifiedSample(originTable, stratifiedSampleWithoutProb, sample.onColumn, ratio);
-        dropGroupTable(groupTable);
+        dropGroupTable(sample, groupTable);
         dropStratifiedSampleWithoutProb(stratifiedSampleWithoutProb);
+        long sampleCardinality = getContext().getDbms().count(stratifiedSampleWithProb);
+        inserMetaInfo(sample,
+                getContext().getDbms().getSparkSession()
+                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(stratifiedSampleWithProb.getSchema(), stratifiedSampleWithProb.getTable(), sampleCardinality, getContext().getTableMeta().getCardinality())), VerdictMetaSize.class).toDF(),
+                getContext().getDbms().getSparkSession()
+                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, stratifiedSampleWithProb.getSchema(), stratifiedSampleWithProb.getTable(), sample.sampleType, ratio, sample.onColumn)), VerdictMetaName.class).toDF()
+        );
         AdaLogger.info(this, String.format("Created stratified sample stored in %s", stratifiedSampleWithProb.toSQL()));
     }
 
@@ -189,7 +177,7 @@ public class VerdictSampling extends SamplingStrategy {
     private TableEntity createStratifiedSampleWithoutProb(TableEntity originTable, TableEntity groupTable, String onColumn, double ratio) {
         List<Long> groupInfoList = getContext().getDbms().execute("SELECT * FROM " + groupTable.toSQL()).getResultSet()
                 .map((MapFunction<Row, Long>) row -> row.getLong(row.fieldIndex("verdict_group_size")),
-                Encoders.bean(Long.class)).collectAsList();
+                Encoders.LONG()).collectAsList();
         long totalCardinality = 0;
         for (Long count : groupInfoList) {
             totalCardinality += count;
@@ -215,7 +203,7 @@ public class VerdictSampling extends SamplingStrategy {
         String sql = String.format("CREATE TABLE %s AS " +
                 "SELECT s.*, `verdict_group_size` AS `verdict_group_size` " +
                 "FROM (SELECT *, Rand(Unix_timestamp()) AS `verdict_rand` FROM %s) AS s " +
-                "INNER JOIN %s AS t ON ( CASE WHEN ( s.%s IS NULL ) THEN 'VERDICT_NULL' ELSE s.%s end ) = ( CASE WHEN ( t.%s IS NULL ) THEN 'VERDICT_NULL' ELSE t.%s end ) " +
+                "INNER JOIN %s AS t ON ( CASE WHEN ( s.%s IS NULL ) THEN 'VERDICT_NULL' ELSE s.%s END ) = ( CASE WHEN ( t.%s IS NULL ) THEN 'VERDICT_NULL' ELSE t.%s END ) " +
                 "WHERE ( `verdict_rand` < ( 1.0 * %d / `verdict_group_size` ) ) " +
                     "OR ( `verdict_rand` < ( CASE " +
                         "WHEN `verdict_group_size` >= 100 THEN ( ( 0.203759 * 100 ) / `verdict_group_size` ) " +
@@ -228,7 +216,7 @@ public class VerdictSampling extends SamplingStrategy {
                         "WHEN `verdict_group_size` >= 13 THEN ( ( 0.939528 * 13 ) / `verdict_group_size` ) " +
                         "WHEN `verdict_group_size` >= 12 THEN ( ( 0.966718 * 12 ) / `verdict_group_size` ) " +
                         "WHEN `verdict_group_size` >= 11 THEN ( ( 0.989236 * 11 ) / `verdict_group_size` ) " +
-                    "ELSE 1.0 end ) ) ",
+                    "ELSE 1.0 END ) ) ",
                 stratifiedSampleTable.toSQL(), originTable.toSQL(), groupTable.toSQL(),
                 onColumn, onColumn, onColumn, onColumn,
                 eachGroupSampleCardinality);
@@ -246,7 +234,7 @@ public class VerdictSampling extends SamplingStrategy {
                     "( SELECT   %s AS %s, count(*) AS `verdict_group_size_in_sample` " +
                     "FROM %s " +
                     "GROUP BY %s ) AS t " +
-                "ON ( CASE WHEN ( s.%s IS NULL) THEN 'VERDICT_NULL' ELSE s.%s end ) = ( CASE WHEN ( t.%s IS NULL) THEN 'VERDICT_NULL' ELSE t.%s end)",
+                "ON ( CASE WHEN ( s.%s IS NULL) THEN 'VERDICT_NULL' ELSE s.%s END ) = ( CASE WHEN ( t.%s IS NULL) THEN 'VERDICT_NULL' ELSE t.%s END)",
                 stratifiedSampleWithProb.toSQL(), stratifiedSampleWithoutProb.toSQL(),
                 onColumn, onColumn, stratifiedSampleWithoutProb.toSQL(), onColumn,
                 onColumn, onColumn, onColumn, onColumn);
@@ -254,8 +242,12 @@ public class VerdictSampling extends SamplingStrategy {
         return stratifiedSampleWithProb;
     }
 
-    private void dropGroupTable(TableEntity groupTable) {
-        getContext().getDbms().drop(groupTable);
+    private void dropGroupTable(Sample sample, TableEntity groupTable) {
+        TableEntity oldGroupTable = new TableEntity(sample.schemaName, String.format("ada_%s_group_%s", sample.originalTable, sample.onColumn));
+        getContext().getDbms().drop(oldGroupTable);
+        getContext().getDbms()
+                .execute(String.format("USE %s", sample.schemaName))
+                .execute(String.format("ALTER TABLE %s RENAME TO %s", groupTable.toSQL(), oldGroupTable.getTable()));
     }
 
     private void dropStratifiedSampleWithoutProb(TableEntity stratifiedSampleWithoutProb) {

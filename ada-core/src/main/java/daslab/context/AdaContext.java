@@ -99,10 +99,12 @@ public class AdaContext {
         batchCount++;
         AdaBatch adaBatch = getDbmsSpark2().load(batchLocation);
 
+        // REPORT: sampling.cost.total (start)
         Long startTime = System.currentTimeMillis();
         refreshSample();
         tableMeta.refresh(adaBatch);
         Map<Sample, Sampling> strategies = sampling(adaBatch);
+        // REPORT: sampling.cost.total (stop)
         Long finishTime = System.currentTimeMillis();
         String samplingTime = String.format("%d:%02d.%03d", (finishTime - startTime) / 60000, ((finishTime - startTime) / 1000) % 60, (finishTime - startTime) % 1000);
         currentReport().put("sampling.cost.total", finishTime - startTime);
@@ -118,21 +120,24 @@ public class AdaContext {
 
     public Map<Sample, Sampling> sampling(AdaBatch adaBatch) {
         Map<Sample, SampleStatus> sampleStatusMap = samplingController.verify(tableMeta.getTableMetaMap(), tableMeta.getCardinality());
+        AdaLogger.info(this, sampleStatusMap.toString());
+
         Map<Sample, Sampling> strategies = Maps.newHashMap();
 
         // REPORT: sampling.cost.sampling (start)
         AdaTimer timer = AdaTimer.create();
         sampleStatusMap.forEach((sample, status) -> {
             if (status.whetherResample()) {
-                AdaLogger.info(this, String.format("Sample's[%.2f] columns need to be updated: %s.",
-                        sample.samplingRatio,
+                AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be updated: %s.",
+                        sample.sampleType, sample.samplingRatio,
                         StringUtils.join(status.resampleColumns().stream().map(TableColumn::toString).toArray(), ", ")));
-                AdaLogger.info(this, "Use " + getSamplingController().getResamplingStrategy().name() + " strategy to resample.");
+                AdaLogger.info(this, String.format("Use %s strategy to resample sample[%s][%.2f][%s].", getSamplingController().getResamplingStrategy().name(), sample.sampleType, sample.samplingRatio, sample.onColumn));
                 getSamplingController().resample(sample, adaBatch, status.getMaxExpectedRatio(1.1));
                 strategies.put(sample, Sampling.RESAMPLE);
             } else {
-                AdaLogger.info(this, String.format("Sample's[%.2f]: no column needs to be updated.", sample.samplingRatio));
-                AdaLogger.info(this, "Use " + getSamplingController().getSamplingStrategy().name() + " strategy to update sample.");
+                AdaLogger.info(this, String.format("Sample's[%s][%.2f]: no column needs to be updated.",
+                        sample.sampleType, sample.samplingRatio));
+                AdaLogger.info(this, String.format("Use %s strategy to update sample[%s][%.2f][%s].", getSamplingController().getSamplingStrategy().name(), sample.sampleType, sample.samplingRatio, sample.onColumn));
                 getSamplingController().update(sample, adaBatch);
                 strategies.put(sample, Sampling.UPDATE);
             }
@@ -177,7 +182,7 @@ public class AdaContext {
     }
 
     public void refreshSample() {
-        getSamplingController().getSamplingStrategy().getSamples(true).forEach(sample -> AdaLogger.info("Ada Current Sample - " + sample.toString()));
+        getSamplingController().getSamplingStrategy().getSamples(true).forEach(sample -> AdaLogger.info(this, "Ada Current Sample - " + sample.toString()));
     }
 
     public TableMeta getTableMeta() {
