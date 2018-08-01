@@ -247,7 +247,8 @@ public class VerdictSampling extends SamplingStrategy {
         getContext().getDbms().drop(oldGroupTable);
         getContext().getDbms()
                 .execute(String.format("USE %s", sample.schemaName))
-                .execute(String.format("ALTER TABLE %s RENAME TO %s", groupTable.toSQL(), oldGroupTable.getTable()));
+                .execute(String.format("CREATE TABLE %s AS (SELECT verdict_group_size AS group_size, %s FROM %s)", oldGroupTable.getTable(), sample.onColumn, groupTable.toSQL()))
+                .drop(groupTable);
     }
 
     private void dropStratifiedSampleWithoutProb(TableEntity stratifiedSampleWithoutProb) {

@@ -32,7 +32,7 @@ public class HdfsBathReceiver {
         call(command);
         file = new File(context.get("data.tmp.location"));
         if (file.exists() && file.isFile()) {
-            AdaLogger.info(this, "New batch arrived. HDFS location is: " + location + ". Size is " + (file.length() / 1024L / 1024L) + "MB");
+            AdaLogger.info(this, "New batch[" + context.increaseBatchCount() + "] arrived. HDFS location is: " + location + ". Size is " + (file.length() / 1024L / 1024L) + "MB");
             context.afterOneBatch(file.getAbsolutePath());
         } else {
             AdaLogger.info(this, "Transfer failed. HDFS location is: " + location);

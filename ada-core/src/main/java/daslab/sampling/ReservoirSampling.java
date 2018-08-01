@@ -11,7 +11,6 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.*;
 
-import javax.xml.crypto.Data;
 import java.util.*;
 
 import static org.apache.spark.sql.functions.*;
@@ -162,14 +161,13 @@ public class ReservoirSampling extends SamplingStrategy {
                 batchGroupTable, sample.onColumn, sample.onColumn,
                 sample.onColumn, originSampleTable, sample.onColumn, sample.onColumn, sample.onColumn);
         Dataset<Row> groupInfoDF = getContext().getDbms().execute(groupInfoSQL).getResultSet();
-        long groupCount = groupInfoDF.count();
         groupInfoDF.createOrReplaceTempView("group_joined_info");
 
         long sampleCardinality = sample.sampleSize;
         List<Long> groupInfoList = groupInfoDF.map((MapFunction<Row, Long>) row ->
                 (row.get(row.fieldIndex("a_group_size")) != null ? row.getLong(row.fieldIndex("a_group_size")) : 0)
                 + (row.get(row.fieldIndex("b_group_size")) != null ? row.getLong(row.fieldIndex("b_group_size")) : 0),
-                Encoders.bean(Long.class)).collectAsList();
+                Encoders.LONG()).collectAsList();
         long eachGroupSampleCardinalityMin = 0, eachGroupSampleCardinalityMax = sampleCardinality;
         long eachGroupSampleCardinality = (eachGroupSampleCardinalityMin + eachGroupSampleCardinalityMax) >> 1; //= Math.max(10, sampleCardinality / groupCount + 1);
         while (eachGroupSampleCardinalityMin <= eachGroupSampleCardinalityMax) {
@@ -189,7 +187,10 @@ public class ReservoirSampling extends SamplingStrategy {
 
         final long finalEachGroupSampleCardinality = Math.max(eachGroupSampleCardinality, 10);
         Dataset<Row> groupExchangeInfoDF = groupInfoDF.map((MapFunction<Row, StratifiedJoinedGroup>) row -> {
-            String groupName = row.getString(row.fieldIndex("a_group_name"));
+            String groupName = "null";
+            groupName = row.isNullAt(row.fieldIndex("a_group_name")) ? groupName : row.getString(row.fieldIndex("a_group_name"));
+            groupName = row.isNullAt(row.fieldIndex("b_group_name")) ? groupName : row.getString(row.fieldIndex("b_group_name"));
+            groupName = row.isNullAt(row.fieldIndex("c_group_name")) ? groupName : row.getString(row.fieldIndex("c_group_name"));
             long aGroupSize = row.get(row.fieldIndex("a_group_size")) != null ? row.getLong(row.fieldIndex("a_group_size")) : 0;
             long bGroupSize = row.get(row.fieldIndex("b_group_size")) != null ? row.getLong(row.fieldIndex("b_group_size")) : 0;
             long cGroupSize = row.get(row.fieldIndex("c_group_size")) != null ? row.getLong(row.fieldIndex("c_group_size")) : 0;
@@ -208,24 +209,27 @@ public class ReservoirSampling extends SamplingStrategy {
             bExchangeSize = bExchangeSize + exchangeSet.size() * Math.min(1, cGroupSize / finalEachGroupSampleCardinality);
             double aExchangeRatio = Math.max(0, 1.0 * (cGroupSize - aExchangeSize) / cGroupSize);
             double bExchangeRatio = Math.min(1, 1.0 * bExchangeSize / bGroupSize);
-            double verdictProb = 1.0 * (cGroupSize - aExchangeSize + bExchangeSize) / (aGroupSize + bGroupSize);
+            double verdictProb = Math.min(1.0, 1.0 * (cGroupSize - aExchangeSize + bExchangeSize) / (aGroupSize + bGroupSize));
             return new StratifiedJoinedGroup(groupName, aGroupSize, bGroupSize, aExchangeSize, bExchangeSize, aExchangeRatio, bExchangeRatio, verdictProb);
         }, Encoders.bean(StratifiedJoinedGroup.class)).toDF();
         groupExchangeInfoDF.createOrReplaceTempView("group_exchange_info");
 
-        String sqlForClean = String.format("SELECT u.*, Rand(Unix_timestamp()) AS ada_rand FROM %s AS u INNER JOIN %s AS v ON u.%s=v.%s WHERE ada_rand<v.a_exchange_ratio",
+        String sqlForClean = String.format("SELECT u.* FROM (SELECT *, Rand(Unix_timestamp()) AS ada_rand FROM %s) u INNER JOIN %s AS v ON u.%s=v.%s WHERE u.ada_rand<v.a_exchange_ratio",
                 originSampleTable, "group_exchange_info", sample.onColumn, "group_name");
         Dataset<Row> cleanedSample = getContext().getDbms()
                 .execute(sqlForClean)
                 .getResultSet()
-                .drop("ada_rand", "verdict_vprob");
-        String sqlForInsert = String.format("SELECT u.*, Rand(Unix_timestamp()) AS ada_rand FROM %s AS u INNER JOIN %s AS v ON u.%s=v.%s WHERE ada_rand<v.b_exchange_ratio",
+                .drop("ada_rand")
+                .drop("verdict_group_size")
+                .drop("verdict_rand")
+                .drop("verdict_vprob");
+        String sqlForInsert = String.format("SELECT u.* FROM (SELECT *, Rand(Unix_timestamp()) AS ada_rand FROM %s) u INNER JOIN %s AS v ON u.%s=v.%s WHERE u.ada_rand<v.b_exchange_ratio",
                 originBatchTable, "group_exchange_info", sample.onColumn, "group_name");
         Dataset<Row> insertedSample = getContext().getDbms()
                 .execute(sqlForInsert)
                 .getResultSet()
                 .drop("ada_rand")
-                .withColumn("verdict_vpart", when(col("page_count").$greater$eq(0), Math.floor(randomGenerator.nextDouble() * 100)));
+                .withColumn("verdict_vpart", lit(Math.floor(randomGenerator.nextDouble() * 100)));
         Dataset<Row> updatedSample = cleanedSample
                 .union(insertedSample);
         updatedSample.createOrReplaceTempView("updated_sample");
@@ -235,14 +239,25 @@ public class ReservoirSampling extends SamplingStrategy {
                 .execute(sqlForProb)
                 .getResultSet();
         getContext().getDbmsSpark2().execute(String.format("USE %s", sample.schemaName));
+        long updatedCount = updatedSampleWithProb.count();
         updatedSampleWithProb.write().saveAsTable(sample.tableName + "_tmp");
 
+        // update origin group table
+        String sqlForUpdateGroupTable = String.format("CREATE TABLE %s_tmp AS SELECT group_name AS %s, (a_group_size+b_group_size) AS group_size FROM %s",
+                originGroupTable, sample.onColumn, "group_exchange_info");
+        getContext().getDbmsSpark2()
+                .execute(String.format("USE %s", sample.schemaName))
+                .execute(sqlForUpdateGroupTable)
+                .execute(String.format("DROP TABLE %s", originGroupTable))
+                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", originGroupTable, originGroupTable));
+
+        // update origin sample table
         getContext().getDbmsSpark2()
                 .execute(String.format("USE %s", sample.schemaName))
                 .execute(String.format("DROP TABLE %s.%s", sample.schemaName, sample.tableName))
                 .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
 
-        long updatedCount = updatedSampleWithProb.count();
+        // update meta info
         List<Sample> samples = getSamples(true);
         List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();
         List<Dataset<Row>> metaNameDFs = Lists.newArrayList();
@@ -250,11 +265,11 @@ public class ReservoirSampling extends SamplingStrategy {
             Dataset<Row> metaSizeDF;
             Dataset<Row> metaNameDF;
             if (Math.abs(_sample.samplingRatio - sample.samplingRatio) < 0.00001 && _sample.sampleType.equals(sample.sampleType) && _sample.onColumn.equals(sample.onColumn)) {
-                double ratio = Math.round(sample.samplingRatio * 100) / 100;
+                double ratio = 1.0 * Math.round(100.0 * updatedCount / getContext().getTableMeta().getCardinality()) / 100;
                 VerdictMetaSize metaSize = new VerdictMetaSize(sample.schemaName, sample.tableName, updatedCount, getContext().getTableMeta().getCardinality());
                 VerdictMetaName metaName = new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, ratio, sample.onColumn);
-                AdaLogger.debug(this, "Updated meta size: " + metaSize.toString());
-                AdaLogger.debug(this, "Updated meta name: " + metaName.toString());
+                AdaLogger.info(this, "Updated meta size: " + metaSize.toString());
+                AdaLogger.info(this, "Updated meta name: " + metaName.toString());
                 metaSizeDF = spark
                         .createDataFrame(ImmutableList.of(metaSize), VerdictMetaSize.class)
                         .toDF();
@@ -284,14 +299,6 @@ public class ReservoirSampling extends SamplingStrategy {
                 .execute(String.format("DROP TABLE %s.%s", sample.schemaName, "verdict_meta_size"));
         metaNameDF.select("originalschemaname", "originaltablename", "sampleschemaaname", "sampletablename", "sampletype", "samplingratio", "columnnames").write().saveAsTable("verdict_meta_name");
         metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
-
-        // update origin group table
-        String sqlForUpdateGroupTable = String.format("CREATE TABLE %s_tmp AS SELECT a_group_name AS %s, (a_group_size+b_group_size) AS group_size FROM %s", originGroupTable, sample.onColumn, "group_joined_info");
-        getContext().getDbmsSpark2()
-                .execute(String.format("USE %s", sample.schemaName))
-                .execute(sqlForUpdateGroupTable)
-                .execute(String.format("DROP TABLE %s", originGroupTable))
-                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", originGroupTable, originGroupTable));
     }
 
     @Override

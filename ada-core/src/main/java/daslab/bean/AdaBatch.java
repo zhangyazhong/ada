@@ -1,10 +1,12 @@
 package daslab.bean;
 
+import java.io.Serializable;
+
 /**
  * @author zyz
  * @version 2018-05-14
  */
-public class AdaBatch {
+public class AdaBatch implements Serializable {
     private String dbName;
     private String tableName;
     private int size;

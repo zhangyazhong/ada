@@ -2,6 +2,8 @@ package daslab.exp5;
 
 import com.google.common.collect.ImmutableList;
 import daslab.bean.ExecutionReport;
+import daslab.bean.Sample;
+import daslab.bean.Sampling;
 import daslab.context.AdaContext;
 import daslab.exp.ExpConfig;
 import daslab.exp.ExpResult;
@@ -11,6 +13,7 @@ import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
 
 import java.util.List;
+import java.util.Map;
 
 public class Exp5AdaTimeCost extends ExpTemplate {
     private final static int REPEAT_TIME = 1;
@@ -33,7 +36,7 @@ public class Exp5AdaTimeCost extends ExpTemplate {
 
     @Override
     public void run() {
-        ExpResult expResult = new ExpResult(ImmutableList.of("time", "ada_cost"));
+        ExpResult expResult = new ExpResult(ImmutableList.of("time", "ada_cost", "strategy"));
         for (int k = 0; k < REPEAT_TIME; k++) {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
             AdaLogger.info(this, "Restored database.");
@@ -49,12 +52,18 @@ public class Exp5AdaTimeCost extends ExpTemplate {
                 ExecutionReport executionReport = context.receive(location);
 
                 expResult.push(time, String.valueOf(executionReport.getLong("sampling.cost.total")));
+                expResult.push(time, ((Map<Sample, Sampling>) executionReport.get("sampling.strategies"))
+                        .entrySet()
+                        .stream()
+                        .map(e -> e.getKey().sampleType + ":" + e.getValue().toString() + ";")
+                        .reduce((s1, s2) -> s1 + s2)
+                        .orElse(""));
 //                expResult.push(time, executionReport.getString("sampling.cost.pre-process"));
 //                expResult.push(time, executionReport.getString("sampling.cost.sampling"));
 //                expResult.push(time, executionReport.getString("sampling.cost.create-sample"));
+                expResult.save(RESULT_SAVE_PATH);
             }
         }
         expResult.save(RESULT_SAVE_PATH);
-
     }
 }

@@ -36,7 +36,6 @@ public class AdaContext {
     private SocketBatchReceiver socketReceiver;
     private LocalFileBatchReceiver fileReceiver;
     private HdfsBathReceiver hdfsReceiver;
-//    private DbmsHive2 dbmsHive2;
     private DbmsSpark2 dbmsSpark2;
     private TableMeta tableMeta;
     private SamplingController samplingController;
@@ -50,7 +49,6 @@ public class AdaContext {
         socketReceiver = SocketBatchReceiver.build(this);
         fileReceiver = LocalFileBatchReceiver.build(this);
         hdfsReceiver = HdfsBathReceiver.build(this);
-//        dbmsHive2 = DbmsHive2.getInstance(this);
         dbmsSpark2 = DbmsSpark2.getInstance(this);
         tableMeta = new TableMeta(this, dbmsSpark2.desc());
         batchCount = 0;
@@ -90,13 +88,13 @@ public class AdaContext {
     }
 
     public ExecutionReport receive(String hdfsLocation) {
+        printBlankLine(5);
         createReport();
         hdfsReceiver.receive(hdfsLocation);
         return currentReport();
     }
 
     public void afterOneBatch(String batchLocation) {
-        batchCount++;
         AdaBatch adaBatch = getDbmsSpark2().load(batchLocation);
 
         // REPORT: sampling.cost.total (start)
@@ -113,10 +111,6 @@ public class AdaContext {
         // REPORT: sampling.strategies
         writeIntoReport("sampling.strategies", strategies);
     }
-
-//    public DbmsHive2 getDbmsHive2() {
-//        return dbmsHive2;
-//    }
 
     public Map<Sample, Sampling> sampling(AdaBatch adaBatch) {
         Map<Sample, SampleStatus> sampleStatusMap = samplingController.verify(tableMeta.getTableMetaMap(), tableMeta.getCardinality());
@@ -168,6 +162,11 @@ public class AdaContext {
         return batchCount;
     }
 
+    public int increaseBatchCount() {
+        batchCount++;
+        return batchCount;
+    }
+
     private void createReport() {
         executionReports.add(new ExecutionReport());
     }
@@ -187,5 +186,12 @@ public class AdaContext {
 
     public TableMeta getTableMeta() {
         return tableMeta;
+    }
+
+    public void printBlankLine(int number) {
+        while (number > 0) {
+            number--;
+            AdaLogger.info(this, "");
+        }
     }
 }
