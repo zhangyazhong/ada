@@ -7,6 +7,9 @@ import daslab.context.AdaContext;
 import daslab.inspector.TableColumn;
 import daslab.inspector.TableMeta;
 import daslab.utils.AdaLogger;
+import org.apache.spark.sql.AnalysisException;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 import java.util.List;
 import java.util.Map;
@@ -88,5 +91,14 @@ public class SamplingController {
         context.getDbms()
                 .execute(String.format("USE %s", groupSchema))
                 .execute(String.format("CREATE TABLE %s AS SELECT %s, COUNT(*) AS group_size FROM %s.%s GROUP BY %s", groupTable, onColumn, originSchema, originTable, onColumn));
+    }
+
+    public void buildGroupSizeTable(String originSchema, String originTable, String groupView, String onColumn) {
+        Dataset<Row> groupDF = context.getDbms()
+                .execute(String.format("SELECT %s, COUNT(*) AS group_size FROM %s.%s GROUP BY %s", onColumn, originSchema, originTable, onColumn))
+                .getResultSet()
+                .cache();
+        groupDF.createOrReplaceTempView(groupView);
+        groupDF.count();
     }
 }

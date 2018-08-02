@@ -7,6 +7,7 @@ import com.google.common.collect.Sets;
 import daslab.bean.*;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
+import daslab.utils.AdaNamespace;
 import daslab.utils.AdaTimer;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.spark.api.java.function.MapFunction;
@@ -90,13 +91,19 @@ public class ReservoirSampling extends SamplingStrategy {
                 .drop("verdict_vprob")
                 .withColumn("verdict_vprob", lit(1.0 * updatedCount / (sample.tableSize + (long) adaBatch.getSize())));
 
-        getContext().getDbmsSpark2().execute(String.format("USE %s", sample.schemaName));
-        updatedSample.write().saveAsTable(sample.tableName + "_tmp");
+        String updatedSampleViewName = AdaNamespace.tempUniqueName("ada_uniform_tmp");
+        updatedSample.createOrReplaceTempView(updatedSampleViewName);
 
         getContext().getDbmsSpark2()
                 .execute(String.format("USE %s", sample.schemaName))
                 .execute(String.format("DROP TABLE %s.%s", sample.schemaName, sample.tableName))
-                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
+                .execute(String.format("CREATE TABLE %s AS (SELECT * FROM %s)", sample.tableName, updatedSampleViewName));
+//        updatedSample.write().saveAsTable(sample.tableName + "_tmp");
+
+//        getContext().getDbmsSpark2()
+//                .execute(String.format("USE %s", sample.schemaName))
+//                .execute(String.format("DROP TABLE %s.%s", sample.schemaName, sample.tableName))
+//                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
 
         List<Sample> samples = getSamples(true);
         List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();
@@ -147,13 +154,15 @@ public class ReservoirSampling extends SamplingStrategy {
         // build batch group table
         // REPORT: sampling.cost.build-batch-group (start)
         AdaTimer timer = AdaTimer.create();
-        getContext().getSamplingController().buildGroupSizeTable(adaBatch.getDbName(), adaBatch.getTableName(), sample.schemaName,"ada_" + uniqueString + "_group_" + sample.onColumn, sample.onColumn);
+        getContext().getSamplingController()
+                .buildGroupSizeTable(adaBatch.getDbName(), adaBatch.getTableName(), "ada_" + uniqueString + "_group_" + sample.onColumn, sample.onColumn);
         // REPORT: sampling.cost.build-batch-group (stop)
         getContext().writeIntoReport("sampling.cost.build-batch-group", timer.stop());
 
         String onColumn = sample.onColumn;
         String originGroupTable = String.format("%s.ada_%s_group_%s", sample.schemaName, sample.originalTable, onColumn);
-        String batchGroupTable = String.format("%s.ada_%s_group_%s", sample.schemaName, uniqueString, onColumn);
+//        String batchGroupTable = String.format("%s.ada_%s_group_%s", sample.schemaName, uniqueString, onColumn);
+        String batchGroupTable = String.format("ada_%s_group_%s", uniqueString, onColumn);
         String originSampleTable = String.format("%s.%s", sample.schemaName, sample.tableName);
         String originBatchTable = String.format("%s.%s", adaBatch.getDbName(), adaBatch.getTableName());
         // REPORT: sampling.cost.3-join (start)
@@ -267,8 +276,8 @@ public class ReservoirSampling extends SamplingStrategy {
 
         // REPORT: sampling.cost.attach-prob (start)
         timer = AdaTimer.create();
-        String sqlForProb = String.format("CREATE TABLE %s_tmp SELECT m.*, n.verdict_vprob AS verdict_vprob FROM %s m INNER JOIN %s n ON m.%s=n.group_name",
-                "updated_sample", "group_exchange_info", sample.tableName, sample.onColumn);
+        String sqlForProb = String.format("CREATE TABLE %s_tmp AS (SELECT m.*, n.verdict_vprob AS verdict_vprob FROM %s m INNER JOIN %s n ON m.%s=n.group_name)",
+                sample.tableName, "updated_sample", "group_exchange_info", sample.onColumn);
         getContext().getDbms()
                 .execute(String.format("USE %s", sample.schemaName))
                 .execute(sqlForProb);
