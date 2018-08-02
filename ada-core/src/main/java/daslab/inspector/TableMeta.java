@@ -118,8 +118,6 @@ public class TableMeta {
     }
 
     public TableMeta refresh(AdaBatch adaBatch) {
-        // REPORT: sampling.cost.pre-process (start)
-        AdaTimer timer = AdaTimer.create();
         double confidence = Double.parseDouble(context.get("query.confidence_internal_"));
         String sql = String.format("SELECT %s FROM %s.%s", metaClause,
                 adaBatch.getDbName(), adaBatch.getTableName());
@@ -146,8 +144,6 @@ public class TableMeta {
         }
         cardinality += newCount;
         tableMetaMap = batchMetaMap;
-        // REPORT: sampling.cost.pre-process (stop)
-        context.writeIntoReport("sampling.cost.pre-process", timer.stop());
 
         AdaLogger.info(this, String.format("Table[%s] cardinality: %d", tableSchema.getTableName(), cardinality));
         context.set(tableSchema.getTableName() + "_cardinality", String.valueOf(cardinality));

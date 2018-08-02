@@ -45,12 +45,8 @@ public class VerdictSampling extends SamplingStrategy {
         AdaLogger.info(this, "About to drop sample with ratio " + sample.samplingRatio + " of " + sample.sampleType);
         deleteSampleMeta(sample);
         deleteSampleTable(sample);
-        // REPORT: sampling.cost.create-sample (start)
-        AdaTimer timer = AdaTimer.create();
         createSample(sample, ratio);
         refreshMetaSize();
-        // REPORT: sampling.cost.create-sample (stop)
-        getContext().writeIntoReport("sampling.cost.create-sample", timer.stop());
     }
 
     private void deleteSampleTable(Sample sample) {

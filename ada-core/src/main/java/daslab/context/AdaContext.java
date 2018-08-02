@@ -18,8 +18,6 @@ import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
@@ -99,9 +97,16 @@ public class AdaContext {
 
         // REPORT: sampling.cost.total (start)
         Long startTime = System.currentTimeMillis();
-//        refreshSample();
+        // REPORT: sampling.cost.pre-process (start)
+        AdaTimer timer = AdaTimer.create();
         tableMeta.refresh(adaBatch);
+        // REPORT: sampling.cost.pre-process (stop)
+        writeIntoReport("sampling.cost.pre-process", timer.stop());
+        // REPORT: sampling.cost.sampling (start)
+        timer = AdaTimer.create();
         Map<Sample, Sampling> strategies = sampling(adaBatch);
+        // REPORT: sampling.cost.sampling (stop)
+        writeIntoReport("sampling.cost.sampling", String.valueOf(timer.stop()));
         // REPORT: sampling.cost.total (stop)
         Long finishTime = System.currentTimeMillis();
         String samplingTime = String.format("%d:%02d.%03d", (finishTime - startTime) / 60000, ((finishTime - startTime) / 1000) % 60, (finishTime - startTime) % 1000);
@@ -117,10 +122,10 @@ public class AdaContext {
         AdaLogger.info(this, sampleStatusMap.toString());
 
         Map<Sample, Sampling> strategies = Maps.newHashMap();
-
-        // REPORT: sampling.cost.sampling (start)
-        AdaTimer timer = AdaTimer.create();
         sampleStatusMap.forEach((sample, status) -> {
+            if (!sample.sampleType.equals("stratified")) {
+                return;
+            }
             if (status.whetherResample()) {
                 AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be updated: %s.",
                         sample.sampleType, sample.samplingRatio,
@@ -136,8 +141,6 @@ public class AdaContext {
                 strategies.put(sample, Sampling.UPDATE);
             }
         });
-        // REPORT: sampling.cost.sampling (stop)
-        writeIntoReport("sampling.cost.sampling", String.valueOf(timer.stop()));
 
         return strategies;
     }
