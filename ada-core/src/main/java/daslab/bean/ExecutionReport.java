@@ -26,7 +26,7 @@ public class ExecutionReport implements Serializable {
     }
 
     public Long getLong(String key) {
-        return (Long) report.get(key);
+        return report.containsKey(key) ? (Long) report.get(key) : -1L;
     }
 
     public Map<String, Object> search(String key) {

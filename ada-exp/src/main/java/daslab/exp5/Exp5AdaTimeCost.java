@@ -1,6 +1,7 @@
 package daslab.exp5;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import daslab.bean.ExecutionReport;
 import daslab.bean.Sample;
 import daslab.bean.Sampling;
@@ -12,8 +13,7 @@ import daslab.restore.RestoreModule;
 import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Exp5AdaTimeCost extends ExpTemplate {
     private final static int REPEAT_TIME = 1;
@@ -36,7 +36,9 @@ public class Exp5AdaTimeCost extends ExpTemplate {
 
     @Override
     public void run() {
-        ExpResult expResult = new ExpResult(ImmutableList.of("time", "ada_cost", "strategy"));
+//        ExpResult expResult = new ExpResult(ImmutableList.of("time", "ada_cost", "strategy"));
+        ExpResult expResult = new ExpResult();
+        expResult.addHeader("time");
         for (int k = 0; k < REPEAT_TIME; k++) {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
             AdaLogger.info(this, "Restored database.");
@@ -51,8 +53,12 @@ public class Exp5AdaTimeCost extends ExpTemplate {
                 AdaLogger.info(this, "Send a new batch at " + location);
                 ExecutionReport executionReport = context.receive(location);
 
-                expResult.push(time, String.valueOf(executionReport.getLong("sampling.cost.total")));
-                expResult.push(time, ((Map<Sample, Sampling>) executionReport.get("sampling.strategies"))
+                for (Map.Entry<String, Object> entry : executionReport.search("sampling.cost").entrySet()) {
+                    expResult.push(time, entry.getKey(), String.valueOf(entry.getValue()));
+                }
+
+//                expResult.push(time, String.valueOf(executionReport.getLong("sampling.cost.total")));
+                expResult.push(time, "strategy", ((Map<Sample, Sampling>) executionReport.get("sampling.strategies"))
                         .entrySet()
                         .stream()
                         .map(e -> e.getKey().sampleType + ":" + e.getValue().toString() + ";")

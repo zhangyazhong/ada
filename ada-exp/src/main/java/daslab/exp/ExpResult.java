@@ -34,6 +34,10 @@ public class ExpResult {
         header.addAll(Arrays.asList(names));
     }
 
+    public void addHeader(String... names) {
+        header.addAll(Arrays.asList(names));
+    }
+
     public List<String> getHeader() {
         return header;
     }
@@ -54,14 +58,20 @@ public class ExpResult {
     public void push(String key, String result) {
         addResult(key, result);
     }
+    public void push(String key, String column, String result) {
+        if (findColumnPosition(column) < 0) {
+            addHeader(column);
+        }
+        int position = findColumnPosition(column);
+        this.results.computeIfAbsent(key, k -> Lists.newLinkedList());
+        for (int i = results.get(key).size() - 1; i < position; i++) {
+            this.results.get(key).add("");
+        }
+        results.get(key).set(position, result);
+    }
 
     public String getCell(String time, String column) {
-        for (int i = 1; i < header.size(); i++) {
-            if (header.get(i).equals(column)) {
-                return results.get(time).get(i - 1);
-            }
-        }
-        return null;
+        return findColumnPosition(column) > 0 ? results.get(time).get(findColumnPosition(column)) : null;
     }
 
     public List<String> getRowKeys() {
@@ -82,12 +92,28 @@ public class ExpResult {
             String header = StringUtils.join(this.getHeader().toArray(), ",");
             fileWriter.write(header + "\r\n");
             final StringBuilder content = new StringBuilder();
-            this.getRowKeys().forEach(key -> content.append(key).append(",").append(StringUtils.join(this.getColumns(key).toArray(), ",")).append("\r\n"));
+            this.getRowKeys().forEach(key -> {
+                content.append(key).append(",").append(StringUtils.join(this.getColumns(key).toArray(), ","));
+                for (int i = this.getColumns(key).size(); i < this.header.size() - 1; i++) {
+                    content.append(",");
+                }
+                content.append("\r\n");
+            });
             fileWriter.write(content.toString());
             fileWriter.flush();
             fileWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private int findColumnPosition(String column) {
+        int position = -1;
+        for (int i = 1; i < header.size(); i++) {
+            if (header.get(i).equals(column)) {
+                position = i - 1;
+            }
+        }
+        return position;
     }
 }

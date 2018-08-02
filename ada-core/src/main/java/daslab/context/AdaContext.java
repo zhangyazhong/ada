@@ -99,7 +99,7 @@ public class AdaContext {
 
         // REPORT: sampling.cost.total (start)
         Long startTime = System.currentTimeMillis();
-        refreshSample();
+//        refreshSample();
         tableMeta.refresh(adaBatch);
         Map<Sample, Sampling> strategies = sampling(adaBatch);
         // REPORT: sampling.cost.total (stop)

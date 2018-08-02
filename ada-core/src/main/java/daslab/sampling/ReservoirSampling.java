@@ -7,6 +7,7 @@ import com.google.common.collect.Sets;
 import daslab.bean.*;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
+import daslab.utils.AdaTimer;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.*;
@@ -151,6 +152,8 @@ public class ReservoirSampling extends SamplingStrategy {
         String batchGroupTable = String.format("%s.ada_%s_group_%s", sample.schemaName, uniqueString, onColumn);
         String originSampleTable = String.format("%s.%s", sample.schemaName, sample.tableName);
         String originBatchTable = String.format("%s.%s", adaBatch.getDbName(), adaBatch.getTableName());
+        // REPORT: sampling.cost.3-join (start)
+        AdaTimer timer = AdaTimer.create();
         String groupInfoSQL = String.format(
                 "SELECT a.%s AS a_group_name, (CASE WHEN (a.group_size IS NULL) THEN 0 ELSE a.group_size END) AS a_group_size, b.%s AS b_group_name, (CASE WHEN (b.group_size IS NULL) THEN 0 ELSE b.group_size END) AS b_group_size, c.%s AS c_group_name, (CASE WHEN (c.group_size IS NULL) THEN 0 ELSE c.group_size END) AS c_group_size " +
                         "FROM %s a " +
@@ -160,9 +163,13 @@ public class ReservoirSampling extends SamplingStrategy {
                 originGroupTable,
                 batchGroupTable, sample.onColumn, sample.onColumn,
                 sample.onColumn, originSampleTable, sample.onColumn, sample.onColumn, sample.onColumn);
-        Dataset<Row> groupInfoDF = getContext().getDbms().execute(groupInfoSQL).getResultSet();
+        Dataset<Row> groupInfoDF = getContext().getDbms().execute(groupInfoSQL).getResultSet().cache();
         groupInfoDF.createOrReplaceTempView("group_joined_info");
+        // REPORT: sampling.cost.3-join (stop)
+        getContext().writeIntoReport("sampling.cost.3-join", timer.stop());
 
+        // REPORT: sampling.cost.find-sample-size (start)
+        timer = AdaTimer.create();
         long sampleCardinality = sample.sampleSize;
         List<Long> groupInfoList = groupInfoDF.map((MapFunction<Row, Long>) row ->
                 (row.get(row.fieldIndex("a_group_size")) != null ? row.getLong(row.fieldIndex("a_group_size")) : 0)
@@ -184,7 +191,11 @@ public class ReservoirSampling extends SamplingStrategy {
                 break;
             }
         }
+        // REPORT: sampling.cost.find-sample-size (stop)
+        getContext().writeIntoReport("sampling.cost.find-sample-size", timer.stop());
 
+        // REPORT: sampling.cost.create-group (start)
+        timer = AdaTimer.create();
         final long finalEachGroupSampleCardinality = Math.max(eachGroupSampleCardinality, 10);
         Dataset<Row> groupExchangeInfoDF = groupInfoDF.map((MapFunction<Row, StratifiedJoinedGroup>) row -> {
             String groupName = "null";
@@ -213,7 +224,12 @@ public class ReservoirSampling extends SamplingStrategy {
             return new StratifiedJoinedGroup(groupName, aGroupSize, bGroupSize, aExchangeSize, bExchangeSize, aExchangeRatio, bExchangeRatio, verdictProb);
         }, Encoders.bean(StratifiedJoinedGroup.class)).toDF();
         groupExchangeInfoDF.createOrReplaceTempView("group_exchange_info");
+        groupExchangeInfoDF.count();
+        // REPORT: sampling.cost.create-group (stop)
+        getContext().writeIntoReport("sampling.cost.create-group", timer.stop());
 
+        // REPORT: sampling.cost.clean (start)
+        timer = AdaTimer.create();
         String sqlForClean = String.format("SELECT u.* FROM (SELECT *, Rand(Unix_timestamp()) AS ada_rand FROM %s) u INNER JOIN %s AS v ON u.%s=v.%s WHERE u.ada_rand<v.a_exchange_ratio",
                 originSampleTable, "group_exchange_info", sample.onColumn, "group_name");
         Dataset<Row> cleanedSample = getContext().getDbms()
@@ -223,6 +239,12 @@ public class ReservoirSampling extends SamplingStrategy {
                 .drop("verdict_group_size")
                 .drop("verdict_rand")
                 .drop("verdict_vprob");
+        cleanedSample.count();
+        // REPORT: sampling.cost.clean (stop)
+        getContext().writeIntoReport("sampling.cost.clean", timer.stop());
+
+        // REPORT: sampling.cost.insert (start)
+        timer = AdaTimer.create();
         String sqlForInsert = String.format("SELECT u.* FROM (SELECT *, Rand(Unix_timestamp()) AS ada_rand FROM %s) u INNER JOIN %s AS v ON u.%s=v.%s WHERE u.ada_rand<v.b_exchange_ratio",
                 originBatchTable, "group_exchange_info", sample.onColumn, "group_name");
         Dataset<Row> insertedSample = getContext().getDbms()
@@ -233,6 +255,12 @@ public class ReservoirSampling extends SamplingStrategy {
         Dataset<Row> updatedSample = cleanedSample
                 .union(insertedSample);
         updatedSample.createOrReplaceTempView("updated_sample");
+        updatedSample.count();
+        // REPORT: sampling.cost.insert (stop)
+        getContext().writeIntoReport("sampling.cost.insert", timer.stop());
+
+        // REPORT: sampling.cost.attach-prob (start)
+        timer = AdaTimer.create();
         String sqlForProb = String.format("SELECT m.*, n.verdict_vprob AS verdict_vprob FROM %s m INNER JOIN %s n ON m.%s=n.group_name",
                 "updated_sample", "group_exchange_info", sample.onColumn);
         Dataset<Row> updatedSampleWithProb = getContext().getDbms()
@@ -241,6 +269,8 @@ public class ReservoirSampling extends SamplingStrategy {
         getContext().getDbmsSpark2().execute(String.format("USE %s", sample.schemaName));
         long updatedCount = updatedSampleWithProb.count();
         updatedSampleWithProb.write().saveAsTable(sample.tableName + "_tmp");
+        // REPORT: sampling.cost.attach-prob (stop)
+        getContext().writeIntoReport("sampling.cost.attach-prob", timer.stop());
 
         // update origin group table
         String sqlForUpdateGroupTable = String.format("CREATE TABLE %s_tmp AS SELECT group_name AS %s, (a_group_size+b_group_size) AS group_size FROM %s",
