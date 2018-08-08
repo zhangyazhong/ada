@@ -1,7 +1,6 @@
 package daslab.exp5;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import daslab.bean.ExecutionReport;
 import daslab.bean.Sample;
 import daslab.bean.Sampling;
@@ -20,10 +19,10 @@ public class Exp5AdaTimeCost extends ExpTemplate {
     private final static String RESULT_SAVE_PATH = "/tmp/ada/exp/exp5/ada_cost.csv";
 
     private final static List<String> QUERIES = ImmutableList.of(
-            String.format("SELECT AVG(page_count) FROM %s.%s", ExpConfig.get("table.schema"), ExpConfig.get("table.name")),
-            String.format("SELECT AVG(page_count) FROM %s.%s WHERE page_size>80000",  ExpConfig.get("table.schema"), ExpConfig.get("table.name")),
-            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='aa'", ExpConfig.get("table.schema"), ExpConfig.get("table.name")),
-            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='kk'",  ExpConfig.get("table.schema"), ExpConfig.get("table.name"))
+            String.format("SELECT AVG(page_count) FROM %s.%s", ExpConfig.get("data.table.schema"), ExpConfig.get("table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE page_size>80000",  ExpConfig.get("data.table.schema"), ExpConfig.get("table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='aa'", ExpConfig.get("data.table.schema"), ExpConfig.get("table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='kk'",  ExpConfig.get("data.table.schema"), ExpConfig.get("table.name"))
     );
 
     public Exp5AdaTimeCost() {
@@ -36,7 +35,6 @@ public class Exp5AdaTimeCost extends ExpTemplate {
 
     @Override
     public void run() {
-//        ExpResult expResult = new ExpResult(ImmutableList.of("time", "ada_cost", "strategy"));
         ExpResult expResult = new ExpResult();
         expResult.addHeader("time");
         for (int k = 0; k < REPEAT_TIME; k++) {
@@ -49,7 +47,7 @@ public class Exp5AdaTimeCost extends ExpTemplate {
                 int day = i / 24 + 1;
                 int hour = i % 24;
                 String time = String.format("%02d%02d", day, hour);
-                String location = String.format("/home/hadoop/wiki/n_pagecounts-201601%02d-%02d0000", day, hour);
+                String location = String.format(get("source.hdfs.location.pattern"), day, hour);
                 AdaLogger.info(this, "Send a new batch at " + location);
                 ExecutionReport executionReport = context.receive(location);
 

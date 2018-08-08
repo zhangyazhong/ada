@@ -107,6 +107,10 @@ public class ExpResult {
         }
     }
 
+    public void save(ExpPersistent expPersistent) {
+        save(expPersistent.outputPath());
+    }
+
     private int findColumnPosition(String column) {
         int position = -1;
         for (int i = 1; i < header.size(); i++) {

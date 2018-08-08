@@ -28,6 +28,7 @@ public class HdfsBathReceiver {
         if (file.exists()) {
             file.delete();
         }
+        file.getParentFile().mkdirs();
         String command = String.format("hadoop fs -get %s %s", location, context.get("data.tmp.location"));
         call(command);
         file = new File(context.get("data.tmp.location"));

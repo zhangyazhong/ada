@@ -18,10 +18,10 @@ public class Exp4Verdict extends ExpTemplate {
     private final static int SAMPLE_COUNT = 10;
 
     private final static List<String> QUERIES = ImmutableList.of(
-            "SELECT AVG(page_count) FROM pagecounts",
-            "SELECT AVG(page_count) FROM pagecounts WHERE page_size>80000",
-            "SELECT AVG(page_count) FROM pagecounts WHERE project_name='aa'",
-            "SELECT AVG(page_count) FROM pagecounts WHERE project_name='kk'"
+            String.format("SELECT AVG(page_count) FROM %s.%s", ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE page_size>80000",  ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='aa'", ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='kk'",  ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name"))
     );
 
     public Exp4Verdict() {
@@ -44,7 +44,7 @@ public class Exp4Verdict extends ExpTemplate {
             append(day, hour);
             for (int j = 0; j < SAMPLE_COUNT; j++) {
                 try {
-                    String sampling = String.format("CREATE 10%% UNIFORM SAMPLE OF %s.%s", ExpConfig.get("table.schema"), ExpConfig.get("table.name"));
+                    String sampling = String.format("CREATE 10%% UNIFORM SAMPLE OF %s.%s", ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name"));
                     getVerdict().execute(sampling);
                     for (String QUERY : QUERIES) {
                         Row row = getVerdict().sql(QUERY).first();
@@ -52,7 +52,7 @@ public class Exp4Verdict extends ExpTemplate {
                         double err = row.getDouble(1);
                         expResult.addResult(time, String.format("%.8f/%.8f", avg, err));
                     }
-                    sampling = String.format("DROP SAMPLES OF %s.%s", ExpConfig.get("table.schema"), ExpConfig.get("table.name"));
+                    sampling = String.format("DROP SAMPLES OF %s.%s", ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name"));
                     getVerdict().execute(sampling);
                 } catch (VerdictException e) {
                     e.printStackTrace();

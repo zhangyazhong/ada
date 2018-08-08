@@ -21,9 +21,9 @@ public abstract class ExpTemplate implements ExpRunnable {
                     .builder()
                     .appName(name)
                     .enableHiveSupport()
-                    .config("spark.sql.warehouse.dir", ExpConfig.get("spark.sql.warehouse.dir"))
-                    .config("spark.executor.memory", ExpConfig.SPARK_EXECUTOR_MEMORY)
-                    .config("spark.driver.memory", ExpConfig.SPARK_DRIVER_MEMORY)
+                    .config("spark.sql.warehouse.dir", get("spark.sql.warehouse.dir"))
+                    .config("spark.executor.memory", get("spark.executor.memory"))
+                    .config("spark.driver.memory", get("spark.driver.memory"))
                     .getOrCreate();
             sparkSession.sparkContext().setLogLevel("ERROR");
         } else {
@@ -31,16 +31,20 @@ public abstract class ExpTemplate implements ExpRunnable {
         }
         try {
             verdictSpark2Context = new VerdictSpark2Context(sparkSession.sparkContext());
-            verdictSpark2Context.sql("USE " + ExpConfig.get("table.schema"));
+            verdictSpark2Context.sql("USE " + get("data.table.schema"));
         } catch (VerdictException e) {
             e.printStackTrace();
         }
     }
 
+    public String get(String key) {
+        return ExpConfig.get(key);
+    }
+
     public void resetVerdict() {
         try {
             verdictSpark2Context = new VerdictSpark2Context(sparkSession.sparkContext());
-            verdictSpark2Context.sql("USE " + ExpConfig.get("table.schema"));
+            verdictSpark2Context.sql("USE " + get("data.table.schema"));
         } catch (VerdictException e) {
             e.printStackTrace();
         }
@@ -64,18 +68,18 @@ public abstract class ExpTemplate implements ExpRunnable {
     public abstract void run();
 
     public void append(String schema, String table, String path) {
-        String command = "hadoop fs -cp " + path + " " + ExpConfig.get("table.location");
+        String command = "hadoop fs -cp " + path + " " + get("data.table.hdfs.location");
         AdaLogger.debug(this, "Loading " + path + " into table");
         AdaSystem.call(command);
     }
 
     public void append(String schema, String table, int day, int hour) {
-        String path = String.format("/home/hadoop/wiki/n_pagecounts-201601%02d-%02d0000", day, hour);
+        String path = String.format(get("source.hdfs.location"), day, hour);
         append(schema, table, path);
     }
 
     public void append(int day, int hour) {
-        append(ExpConfig.get("table.schema"), ExpConfig.get("table.name"), day, hour);
+        append(get("data.table.schema"), get("data.table.name"), day, hour);
     }
 
     public void save(ExpResult result, String path) {

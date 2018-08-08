@@ -48,6 +48,6 @@ public class Exp4Accurate extends ExpTemplate {
             expResult.addResult(time, results);
         }
         expResult.setHeader("time", "q0", "q1", "q2", "q3");
-        save(expResult, "/tmp/ada/exp/exp4/exp4_accurate");
+        expResult.save("/tmp/ada/exp/exp4/exp4_accurate");
     }
 }

@@ -1,35 +1,44 @@
 package daslab.exp;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import daslab.utils.ConfigHandler;
+import org.apache.commons.lang.StringUtils;
 
+import java.io.File;
+import java.io.InputStream;
 import java.util.Map;
+import java.util.Properties;
 
 public class ExpConfig {
-    public final static int DAY_START = 1;
-    public final static int DAY_TOTAL = 2;
+    public final static String[] CONFIGS = {"env.properties", "/tmp/ada/config/ada_exp.properties"};
+
     public final static int[] UNIFORM_SAMPLE_RATIO = {10};
     public final static int[] STRATIFIED_SAMPLE_RATIO = {10};
     public final static String[] STRATIFIED_SAMPLE_COLUMN = {"project_name"};
 
-    public final static int HOUR_START = 24 * 1 - 1;
-    public final static int HOUR_TOTAL = 24 * 2;
+    public static int HOUR_START = 24 * 1 - 1;
+    public static int HOUR_TOTAL = 24 * 2;
 
-    public final static String SPARK_EXECUTOR_MEMORY = "16g";
-    public final static String SPARK_DRIVER_MEMORY = "4g";
-
-    public final static String WAREHOUSE = "hdfs://master:9000/home/hadoop/spark/";
-    public final static Map<String, Object> ENV = new ImmutableMap.Builder<String, Object>()
-            .put("spark.sql.warehouse.dir", "hdfs://master:9000/home/hadoop/spark/")
-            .put("table.location", "/home/hadoop/spark/wiki_ada_pagecounts")
-            .put("table.schema", "wiki_ada")
-            .put("table.name", "pagecounts")
-            .build();
+    public final static Map<String, String> ENV = Maps.newHashMap();
 
     public static String get(String key) {
-        return ENV.get(key).toString();
+        return ENV.get(key);
     }
 
-    public static String getString(String key) {
-        return ENV.get(key).toString();
+    static {
+        for (String config : CONFIGS) {
+            File file = new File(config);
+            if (!file.exists()) {
+                continue;
+            }
+            InputStream inputStream = ExpConfig.class.getClassLoader().getResourceAsStream(config);
+            Properties properties = ConfigHandler.load(inputStream);
+            for (String prop : properties.stringPropertyNames()) {
+                String value = properties.getProperty(prop).trim();
+                ENV.put(prop, value);
+            }
+        }
+        HOUR_START = StringUtils.isNumeric(get("exp.hour.start")) ? Integer.parseInt(get("exp.hour.start")) : HOUR_START;
+        HOUR_TOTAL = StringUtils.isNumeric(get("exp.hour.total")) ? Integer.parseInt(get("exp.hour.total")) : HOUR_TOTAL;
     }
 }

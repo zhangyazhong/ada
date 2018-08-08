@@ -18,10 +18,10 @@ public class Exp4VerdictTimeCost extends ExpTemplate {
     private final static int SAMPLE_COUNT = 1;
 
     private final static List<String> QUERIES = ImmutableList.of(
-            String.format("SELECT AVG(page_count) FROM %s.%s", ExpConfig.get("table.schema"), ExpConfig.get("table.name")),
-            String.format("SELECT AVG(page_count) FROM %s.%s WHERE page_size>80000",  ExpConfig.get("table.schema"), ExpConfig.get("table.name")),
-            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='aa'", ExpConfig.get("table.schema"), ExpConfig.get("table.name")),
-            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='kk'",  ExpConfig.get("table.schema"), ExpConfig.get("table.name"))
+            String.format("SELECT AVG(page_count) FROM %s.%s", ExpConfig.get("data.table.schema"), ExpConfig.get("table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE page_size>80000",  ExpConfig.get("data.table.schema"), ExpConfig.get("table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='aa'", ExpConfig.get("data.table.schema"), ExpConfig.get("table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='kk'",  ExpConfig.get("data.table.schema"), ExpConfig.get("table.name"))
     );
 
     public Exp4VerdictTimeCost() {
@@ -38,14 +38,14 @@ public class Exp4VerdictTimeCost extends ExpTemplate {
         AdaLogger.info(this, "Restored database.");
         ExpResult expResult = new ExpResult(ImmutableList.of("time", "verdict(ms)", "q0", "q1", "q2", "q3"));
         try {
-            getVerdict().execute(String.format("DROP SAMPLES OF %s.%s", ExpConfig.get("table.schema"), ExpConfig.get("table.name")));
+            getVerdict().execute(String.format("DROP SAMPLES OF %s.%s", ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name")));
             for (int i = ExpConfig.HOUR_START; i < ExpConfig.HOUR_TOTAL; i++) {
                 int day = i / 24 + 1;
                 int hour = i % 24;
                 String time = String.format("%02d%02d", day, hour);
                 append(day, hour);
                 for (int j = 0; j < SAMPLE_COUNT; j++) {
-                    String sampling = String.format("CREATE 10%% UNIFORM SAMPLE OF %s.%s", ExpConfig.get("table.schema"), ExpConfig.get("table.name"));
+                    String sampling = String.format("CREATE 10%% UNIFORM SAMPLE OF %s.%s", ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name"));
                     long start = System.currentTimeMillis();
                     getVerdict().execute(sampling);
                     long finish = System.currentTimeMillis();
@@ -62,7 +62,7 @@ public class Exp4VerdictTimeCost extends ExpTemplate {
                             e.printStackTrace();
                         }
                     }
-                    sampling = String.format("DROP SAMPLES OF %s.%s", ExpConfig.get("table.schema"), ExpConfig.get("table.name"));
+                    sampling = String.format("DROP SAMPLES OF %s.%s", ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name"));
                     getVerdict().execute(sampling);
                 }
                 AdaLogger.info(this, String.format("Verdict Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ", ")));

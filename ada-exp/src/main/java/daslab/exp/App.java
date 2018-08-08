@@ -15,8 +15,8 @@ import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
 
 /**
- * Hello world!
- *
+ * The entrance of ada-exp module.
+ * Map variety of commands to different execution goals.
  */
 public class App {
     public App(String[] args) {
