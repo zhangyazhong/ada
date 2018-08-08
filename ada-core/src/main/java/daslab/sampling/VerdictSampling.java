@@ -6,7 +6,6 @@ import daslab.bean.*;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
 import daslab.utils.AdaNamespace;
-import daslab.utils.AdaTimer;
 import edu.umich.verdict.VerdictSpark2Context;
 import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.spark.api.java.function.MapFunction;
@@ -76,8 +75,8 @@ public class VerdictSampling extends SamplingStrategy {
         }
         getContext().getDbmsSpark2()
                 .execute(String.format("USE %s", sample.schemaName))
-                .execute(String.format("DROP TABLE %s.%s", sample.schemaName, "verdict_meta_name"))
-                .execute(String.format("DROP TABLE %s.%s", sample.schemaName, "verdict_meta_size"));
+                .execute(String.format("DROP TABLE IF EXISTS  %s.%s", sample.schemaName, "verdict_meta_name"))
+                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sample.schemaName, "verdict_meta_size"));
         if (metaNameDFs.size() > 0) {
             Dataset<Row> metaSizeDF = metaSizeDFs.get(0);
             Dataset<Row> metaNameDF = metaNameDFs.get(0);
@@ -110,7 +109,7 @@ public class VerdictSampling extends SamplingStrategy {
         if (metaSizeDFs.size() > 0) {
             getContext().getDbmsSpark2()
                     .execute(String.format("USE %s", getContext().get("dbms.sample.database")))
-                    .execute(String.format("DROP TABLE %s.%s", getContext().get("dbms.sample.database"), "verdict_meta_size"));
+                    .execute(String.format("DROP TABLE IF EXISTS %s.%s", getContext().get("dbms.sample.database"), "verdict_meta_size"));
             Dataset<Row> metaSizeDF = metaSizeDFs.get(0);
             for (int i = 1; i < metaSizeDFs.size(); i++) {
                 metaSizeDF = metaSizeDF.union(metaSizeDFs.get(i));
@@ -148,7 +147,7 @@ public class VerdictSampling extends SamplingStrategy {
         dropGroupTable(sample, groupTable);
         dropStratifiedSampleWithoutProb(stratifiedSampleWithoutProb);
         long sampleCardinality = getContext().getDbms().count(stratifiedSampleWithProb);
-        inserMetaInfo(sample,
+        insertMetaInfo(sample,
                 getContext().getDbms().getSparkSession()
                         .createDataFrame(ImmutableList.of(new VerdictMetaSize(stratifiedSampleWithProb.getSchema(), stratifiedSampleWithProb.getTable(), sampleCardinality, getContext().getTableMeta().getCardinality())), VerdictMetaSize.class).toDF(),
                 getContext().getDbms().getSparkSession()

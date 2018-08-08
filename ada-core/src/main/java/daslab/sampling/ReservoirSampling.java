@@ -135,8 +135,8 @@ public class ReservoirSampling extends SamplingStrategy {
         }
         getContext().getDbmsSpark2()
                 .execute(String.format("USE %s", sampleSchema))
-                .execute(String.format("DROP TABLE %s.%s", sampleSchema, "verdict_meta_name"))
-                .execute(String.format("DROP TABLE %s.%s", sampleSchema, "verdict_meta_size"));
+                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sampleSchema, "verdict_meta_name"))
+                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sampleSchema, "verdict_meta_size"));
         metaNameDF.select("originalschemaname", "originaltablename", "sampleschemaaname", "sampletablename", "sampletype", "samplingratio", "columnnames").write().saveAsTable("verdict_meta_name");
         metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
     }
@@ -284,13 +284,13 @@ public class ReservoirSampling extends SamplingStrategy {
         getContext().getDbmsSpark2()
                 .execute(String.format("USE %s", sample.schemaName))
                 .execute(sqlForUpdateGroupTable)
-                .execute(String.format("DROP TABLE %s", originGroupTable))
+                .execute(String.format("DROP TABLE IF EXISTS %s", originGroupTable))
                 .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", originGroupTable, originGroupTable));
 
         // update origin sample table
         getContext().getDbmsSpark2()
                 .execute(String.format("USE %s", sample.schemaName))
-                .execute(String.format("DROP TABLE %s.%s", sample.schemaName, sample.tableName))
+                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sample.schemaName, sample.tableName))
                 .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
 
         // update meta info
@@ -333,8 +333,8 @@ public class ReservoirSampling extends SamplingStrategy {
         }
         getContext().getDbmsSpark2()
                 .execute(String.format("USE %s", sample.schemaName))
-                .execute(String.format("DROP TABLE %s.%s", sample.schemaName, "verdict_meta_name"))
-                .execute(String.format("DROP TABLE %s.%s", sample.schemaName, "verdict_meta_size"));
+                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sample.schemaName, "verdict_meta_name"))
+                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sample.schemaName, "verdict_meta_size"));
         metaNameDF.select("originalschemaname", "originaltablename", "sampleschemaaname", "sampletablename", "sampletype", "samplingratio", "columnnames").write().saveAsTable("verdict_meta_name");
         metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
         // REPORT: sampling.cost.update-meta (stop)

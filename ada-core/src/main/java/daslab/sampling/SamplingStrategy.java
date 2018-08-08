@@ -35,7 +35,18 @@ public abstract class SamplingStrategy {
         if (!refresh) {
             return samples;
         }
+        samples = Lists.newArrayList();
         String sampleDb = context.get("dbms.sample.database");
+        List<Row> rows = context.getDbmsSpark2().execute(String.format("SHOW TABLES FROM %s", sampleDb)).getResultList();
+        boolean metaNameExists = false;
+        boolean metaSizeExists = false;
+        for (Row row : rows) {
+            metaNameExists = row.getString(row.fieldIndex("tableName")).equals("verdict_meta_name") || metaNameExists;
+            metaSizeExists = row.getString(row.fieldIndex("tableName")).equals("verdict_meta_size") || metaSizeExists;
+        }
+        if (!metaNameExists || !metaSizeExists) {
+            return samples;
+        }
         String sql = String.format(
                 "SELECT s.`originaltablename` AS `original_table`, "
                         + "s.`sampletype` AS `sample_type`, "
@@ -49,8 +60,7 @@ public abstract class SamplingStrategy {
                         + "INNER JOIN %s.verdict_meta_size AS t "
                         + "ON s.`sampleschemaaname` = t.`schemaname` AND s.`sampletablename` = t.`tablename` "
                         + "ORDER BY `original_table`, `sample_type`, `sampling_ratio`, `on_columns`", sampleDb, sampleDb);
-        List<Row> rows = context.getDbmsSpark2().execute(sql).getResultList();
-        samples = Lists.newArrayList();
+        rows = context.getDbmsSpark2().execute(sql).getResultList();
         for (Row row: rows) {
             if (row.getString(0).equals(context.get("dbms.data.table"))) {
 //                    && row.getString(1).equals("uniform")) {
@@ -123,7 +133,7 @@ public abstract class SamplingStrategy {
         return sampleStatusMap;
     }
 
-    public void inserMetaInfo(Sample sample, Dataset<Row> metaSizeRow, Dataset<Row> metaNameRow) {
+    public void insertMetaInfo(Sample sample, Dataset<Row> metaSizeRow, Dataset<Row> metaNameRow) {
         SparkSession spark = getContext().getDbms().getSparkSession();
         List<Sample> samples = getSamples(true);
         List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();
@@ -148,8 +158,8 @@ public abstract class SamplingStrategy {
         }
         getContext().getDbmsSpark2()
                 .execute(String.format("USE %s", sample.schemaName))
-                .execute(String.format("DROP TABLE %s.%s", sample.schemaName, "verdict_meta_name"))
-                .execute(String.format("DROP TABLE %s.%s", sample.schemaName, "verdict_meta_size"));
+                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sample.schemaName, "verdict_meta_name"))
+                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sample.schemaName, "verdict_meta_size"));
         metaNameDF.select("originalschemaname", "originaltablename", "sampleschemaaname", "sampletablename", "sampletype", "samplingratio", "columnnames").write().saveAsTable("verdict_meta_name");
         metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
     }

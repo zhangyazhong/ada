@@ -23,13 +23,13 @@ public class Exp5VerdictResult extends ExpTemplate {
 
     private final static List<String> QUERIES = ImmutableList.of(
             // huge number group
-            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='uk'", ExpConfig.get("data.table.schema"), ExpConfig.get("table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='uk'", ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name")),
             // very small group
-            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='www'", ExpConfig.get("data.table.schema"), ExpConfig.get("table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='www'", ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name")),
             // common group
-            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='aa'", ExpConfig.get("data.table.schema"), ExpConfig.get("table.name")),
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='aa'", ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name")),
             // high variety group
-            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='kk'",  ExpConfig.get("data.table.schema"), ExpConfig.get("table.name"))
+            String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='kk'",  ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name"))
     );
 
     public Exp5VerdictResult() {
