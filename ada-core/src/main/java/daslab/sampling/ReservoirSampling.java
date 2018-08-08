@@ -98,12 +98,6 @@ public class ReservoirSampling extends SamplingStrategy {
                 .execute(String.format("USE %s", sample.schemaName))
                 .execute(String.format("DROP TABLE %s.%s", sample.schemaName, sample.tableName))
                 .execute(String.format("CREATE TABLE %s AS (SELECT * FROM %s)", sample.tableName, updatedSampleViewName));
-//        updatedSample.write().saveAsTable(sample.tableName + "_tmp");
-
-//        getContext().getDbmsSpark2()
-//                .execute(String.format("USE %s", sample.schemaName))
-//                .execute(String.format("DROP TABLE %s.%s", sample.schemaName, sample.tableName))
-//                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
 
         List<Sample> samples = getSamples(true);
         List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();

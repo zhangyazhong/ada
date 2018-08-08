@@ -40,6 +40,7 @@ public class AdaContext {
     private int batchCount;
     private VerdictSpark2Context verdictSpark2Context;
     private List<ExecutionReport> executionReports;
+    private boolean forceResample;
 
     public AdaContext() {
         configs = Maps.newHashMap();
@@ -50,6 +51,7 @@ public class AdaContext {
         dbmsSpark2 = DbmsSpark2.getInstance(this);
         tableMeta = new TableMeta(this, dbmsSpark2.desc());
         batchCount = 0;
+        forceResample = false;
         samplingController = new SamplingController(this);
         executionReports = Lists.newLinkedList();
         try {
@@ -76,9 +78,14 @@ public class AdaContext {
         return configs.get(key);
     }
 
-    public void start() {
+    public AdaContext start() {
         tableMeta.init();
-//        socketReceiver.start();
+        return this;
+    }
+
+    public AdaContext start(boolean forceResample) {
+        this.forceResample = forceResample;
+        return start();
     }
 
     public void receive(File file) {
@@ -126,7 +133,7 @@ public class AdaContext {
             if (!sample.sampleType.equals("stratified")) {
                 return;
             }
-            if (status.whetherResample()) {
+            if (status.whetherResample() || forceResample) {
                 AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be updated: %s.",
                         sample.sampleType, sample.samplingRatio,
                         StringUtils.join(status.resampleColumns().stream().map(TableColumn::toString).toArray(), ", ")));

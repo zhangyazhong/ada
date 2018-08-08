@@ -5,11 +5,13 @@ import daslab.utils.AdaSystem;
 import edu.umich.verdict.VerdictSpark2Context;
 import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.commons.lang.StringUtils;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.List;
 
 public abstract class ExpTemplate implements ExpRunnable {
     private static SparkSession sparkSession;
@@ -96,6 +98,16 @@ public abstract class ExpTemplate implements ExpRunnable {
             fileWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void runQuery(ExpResult expResult, List<String> queries, String time, int repeatNo) throws VerdictException {
+        for (int i = 0; i < queries.size(); i++) {
+            String query = queries.get(i);
+            Row row = getVerdict().sql(query).first();
+            double avg = row.getDouble(0);
+            double err = row.getDouble(1);
+            expResult.push(time, "q" + i + "_" + repeatNo, String.format("%.8f/%.8f", avg, err));
         }
     }
 }

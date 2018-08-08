@@ -60,3 +60,7 @@ java -jar ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp4_comparison
 
 # run exp5 ada time cost
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://ubuntu1:7077 --class daslab.exp.App ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp5_ada_cost
+# run exp5 ada result performance
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://ubuntu1:7077 --class daslab.exp.App ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp5_ada_result
+# run exp5 verdict result performance
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://ubuntu1:7077 --class daslab.exp.App ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp5_verdict_result

@@ -8,7 +8,9 @@ import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
 import daslab.exp3.*;
 import daslab.exp4.*;
+import daslab.exp5.Exp5AdaResult;
 import daslab.exp5.Exp5AdaTimeCost;
+import daslab.exp5.Exp5VerdictResult;
 import daslab.restore.RestoreModule;
 import daslab.restore.SampleCleaner;
 import daslab.restore.SystemRestore;
@@ -108,6 +110,14 @@ public class App {
                 case "exp5_ada_cost":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Ada Time Cost");
                     new Exp5AdaTimeCost().run();
+                    break;
+                case "exp5_ada_result":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Ada Result Performance");
+                    new Exp5AdaResult().run();
+                    break;
+                case "exp5_verdict_result":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Verdict Result Performance");
+                    new Exp5VerdictResult().run();
                     break;
             }
         }

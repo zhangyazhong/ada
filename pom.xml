@@ -36,6 +36,7 @@
                 <server.user>hadoop</server.user>
                 <server.host>10.141.212.124</server.host>
                 <server.upload.path>/home/hadoop/ada</server.upload.path>
+                <spark.master>master</spark.master>
             </properties>
         </profile>
         <profile>
@@ -46,6 +47,7 @@
                 <server.user>scidb</server.user>
                 <server.host>10.141.211.91</server.host>
                 <server.upload.path>/home/scidb/zyz</server.upload.path>
+                <spark.master>ubuntu1</spark.master>
             </properties>
         </profile>
     </profiles>

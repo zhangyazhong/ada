@@ -36,11 +36,20 @@ public class DatabaseRestore extends ExpTemplate implements RestoreModule {
         try {
             execute(String.format("DROP DATABASE IF EXISTS %s CASCADE", get("sample.table.schema")));
             execute(String.format("CREATE DATABASE %s", get("sample.table.schema")));
-            for (int ratio : ExpConfig.UNIFORM_SAMPLE_RATIO) {
-                getVerdict().sql(String.format("CREATE %d%% UNIFORM SAMPLE OF %s.%s", ratio, get("data.table.schema"), get("data.table.name")));
-            }
-            for (int i = 0; i < ExpConfig.STRATIFIED_SAMPLE_RATIO.length; i++) {
-                getVerdict().sql(String.format("CREATE %d%% STRATIFIED SAMPLE OF %s.%s ON %s", ExpConfig.STRATIFIED_SAMPLE_RATIO[i], get("data.table.schema"), get("data.table.name"), ExpConfig.STRATIFIED_SAMPLE_COLUMN[i]));
+            int sampleRatio = Integer.parseInt(get("sample.init.ratio"));
+            String[] sampleTypes = get("sample.init.type").split(",");
+            String[] columns = get("sample.init.stratified.column").split(",");
+            for (String sampleType : sampleTypes) {
+                switch (sampleType.toLowerCase().trim()) {
+                    case "uniform":
+                        getVerdict().sql(String.format("CREATE %d%% UNIFORM SAMPLE OF %s.%s", sampleRatio, get("data.table.schema"), get("data.table.name")));
+                        break;
+                    case "stratified":
+                        for (String column : columns) {
+                            getVerdict().sql(String.format("CREATE %d%% STRATIFIED SAMPLE OF %s.%s ON %s", sampleRatio, get("data.table.schema"), get("data.table.name"), column));
+                        }
+                        break;
+                }
             }
         } catch (VerdictException e) {
             e.printStackTrace();

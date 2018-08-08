@@ -25,6 +25,11 @@ public class ExpResult {
         setHeader(header);
     }
 
+    public ExpResult(String... names) {
+        this();
+        addHeader(names);
+    }
+
     public void setHeader(List<String> header) {
         this.header = header;
     }
