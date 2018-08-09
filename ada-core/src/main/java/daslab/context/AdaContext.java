@@ -18,6 +18,8 @@ import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +30,7 @@ import java.util.Properties;
  * @version 2018-05-11
  */
 public class AdaContext {
-    private final String CONFIG_FILE = "core.properties";
+    private final String[] CONFIGS = {"classpath: core.properties", "/tmp/ada/config/ada_core.properties"};
 
     private Map<String, String> configs;
     private SocketBatchReceiver socketReceiver;
@@ -44,7 +46,7 @@ public class AdaContext {
 
     public AdaContext() {
         configs = Maps.newHashMap();
-        updateConfigsFromPropertyFile(CONFIG_FILE);
+        updateConfigsFromPropertyFile(CONFIGS);
         socketReceiver = SocketBatchReceiver.build(this);
         fileReceiver = LocalFileBatchReceiver.build(this);
         hdfsReceiver = HdfsBathReceiver.build(this);
@@ -61,12 +63,27 @@ public class AdaContext {
         }
     }
 
-    private void updateConfigsFromPropertyFile(String configFile) {
-        InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(configFile);
-        Properties properties = ConfigHandler.load(inputStream);
-        for (String prop : properties.stringPropertyNames()) {
-            String value = properties.getProperty(prop);
-            set(prop, value);
+    private void updateConfigsFromPropertyFile(String... CONFIGS) {
+        for (String config : CONFIGS) {
+            try {
+                InputStream inputStream;
+                if (config.startsWith("classpath")) {
+                    inputStream = this.getClass().getClassLoader().getResourceAsStream(StringUtils.substringAfter(config, "classpath:").trim());
+                } else {
+                    File file = new File(config);
+                    if (!file.exists()) {
+                        continue;
+                    }
+                    inputStream = new FileInputStream(config);
+                }
+                Properties properties = ConfigHandler.load(inputStream);
+                for (String prop : properties.stringPropertyNames()) {
+                    String value = properties.getProperty(prop).trim();
+                    set(prop, value);
+                }
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
         }
     }
 

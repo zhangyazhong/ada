@@ -25,7 +25,7 @@ import static daslab.exp.ExpConfig.HOUR_TOTAL;
 @SuppressWarnings("Duplicates")
 public class Exp5VerdictTimeCost extends ExpTemplate {
     private final static int REPEAT_TIME = 1;
-    private final static String RESULT_SAVE_PATH = "/tmp/ada/exp/exp5/verdict_cost.csv";
+    private final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp5/verdict_cost_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     public Exp5VerdictTimeCost() {
         this("Ada Exp5 - Ada Time Cost on Stratified Sampling");

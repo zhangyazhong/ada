@@ -45,7 +45,6 @@ public class ExpConfig {
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
-
         }
         HOUR_START = StringUtils.isNumeric(get("exp.hour.start")) ? Integer.parseInt(get("exp.hour.start")) : HOUR_START;
         HOUR_TOTAL = StringUtils.isNumeric(get("exp.hour.total")) ? Integer.parseInt(get("exp.hour.total")) : HOUR_TOTAL;
