@@ -28,7 +28,7 @@ public class Exp5VerdictTimeCost extends ExpTemplate {
     private final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp5/verdict_cost_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     public Exp5VerdictTimeCost() {
-        this("Ada Exp5 - Ada Time Cost on Stratified Sampling");
+        this("Ada Exp5 - Verdict Time Cost on Stratified Sampling");
     }
 
     public Exp5VerdictTimeCost(String name) {
