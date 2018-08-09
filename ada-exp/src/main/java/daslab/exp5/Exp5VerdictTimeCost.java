@@ -10,22 +10,28 @@ import daslab.restore.RestoreModule;
 import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Map;
 
 import static daslab.exp.ExpConfig.HOUR_INTERVAL;
 import static daslab.exp.ExpConfig.HOUR_START;
 import static daslab.exp.ExpConfig.HOUR_TOTAL;
 
-@SuppressWarnings("Duplicates")
-public class Exp5AdaTimeCost extends ExpTemplate {
-    private final static int REPEAT_TIME = 1;
-    private final static String RESULT_SAVE_PATH = "/tmp/ada/exp/exp5/ada_cost.csv";
 
-    public Exp5AdaTimeCost() {
+/**
+ * @author zyz
+ * @version 2018-08-09
+ */
+@SuppressWarnings("Duplicates")
+public class Exp5VerdictTimeCost extends ExpTemplate {
+    private final static int REPEAT_TIME = 1;
+    private final static String RESULT_SAVE_PATH = "/tmp/ada/exp/exp5/verdict_cost.csv";
+
+    public Exp5VerdictTimeCost() {
         this("Ada Exp5 - Ada Time Cost on Stratified Sampling");
     }
 
-    public Exp5AdaTimeCost(String name) {
+    public Exp5VerdictTimeCost(String name) {
         super(name);
     }
 
@@ -38,7 +44,7 @@ public class Exp5AdaTimeCost extends ExpTemplate {
             AdaLogger.info(this, "Restored database.");
             resetVerdict();
             AdaContext context = new AdaContext();
-            context.start();
+            context.start(true);
             for (int i = HOUR_START; i < HOUR_TOTAL; i++) {
                 String[] locations = new String[HOUR_INTERVAL];
                 String time = String.format("%02d%02d~%02d%02d",

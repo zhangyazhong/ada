@@ -1,19 +1,13 @@
 package daslab.sampling;
 
-import daslab.bean.AdaBatch;
-import daslab.bean.PageCountSample;
-import daslab.bean.Sample;
+import com.google.common.collect.ImmutableList;
+import daslab.bean.*;
 import daslab.context.AdaContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
-
-import java.util.List;
 import java.util.Random;
 
-import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.lit;
-import static org.apache.spark.sql.functions.when;
 
 /**
  * @author zyz
@@ -26,50 +20,66 @@ public class IncrementalSampling extends SamplingStrategy {
 
     @Override
     public void run(Sample sample, AdaBatch adaBatch) {
-        Random randomGenerator = new Random();
-        List<Sample> samples = getSamples(true);
-        Dataset<Row> batchDF = getContext().getDbmsSpark2()
-                .execute(String.format("SELECT * FROM %s.%s", adaBatch.getDbName(), adaBatch.getTableName()))
-                .getResultSet()
-                .withColumn("verdict_rand", when(col("page_count").$greater$eq(0), randomGenerator.nextDouble()))
-                .withColumn("verdict_vpart", when(col("page_count").$greater$eq(0),  Math.floor(randomGenerator.nextDouble() * 100)))
-                .filter(col("verdict_rand").$less$eq(sample.samplingRatio));
-        Dataset<Row> sampleDF = getContext().getDbmsSpark2()
-                .execute(String.format("SELECT * FROM %s.%s", sample.schemaName, sample.tableName))
-                .getResultSet();
-        long cardinality = getContext().getDbmsSpark2()
-                .execute(String.format("SELECT COUNT(*) AS count FROM %s.%s", getContext().get("dbms.default.database"), getContext().get("dbms.data.table")))
-                .getResultAsLong(0, "count");
-        long totalSize = sampleDF.count() + batchDF.count();
-        double totalRatio = 1.0 * totalSize / cardinality;
-        sampleDF = batchDF
-                .withColumn("verdict_vprob", lit(totalRatio))
-                .union(getContext().getDbmsSpark2().getSparkSession().createDataFrame(sampleDF.javaRDD().map(row -> RowFactory.create(
-                        row.get(row.fieldIndex("date_time")),
-                        row.get(row.fieldIndex("project_name")),
-                        row.get(row.fieldIndex("page_name")),
-                        row.get(row.fieldIndex("page_count")),
-                        row.get(row.fieldIndex("page_size")),
-                        row.get(row.fieldIndex("verdict_rand")),
-                        row.get(row.fieldIndex("verdict_vpart")),
-                        totalRatio)), PageCountSample.class));
-        getContext().getDbmsSpark2()
-                .execute(String.format("USE %s", sample.schemaName))
-                .execute(String.format("TRUNCATE TABLE %s.%s", sample.schemaName, sample.tableName));
-        sampleDF.write().insertInto(sample.tableName);
     }
 
     @Override
     public void update(Sample sample, AdaBatch adaBatch) {
+        switch (sample.sampleType) {
+            case "uniform":
+                updateUniformSample(sample, adaBatch);
+                break;
+            case "stratified":
+                updateStratifiedSample(sample, adaBatch);
+                break;
+        }
         run(sample, adaBatch);
     }
 
     @Override
     public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
+        run(sample, adaBatch);
+    }
+
+    private void updateUniformSample(Sample sample, AdaBatch adaBatch) {
+        Random randomGenerator = new Random();
+        long cardinality = getContext().getTableMeta().getCardinality();
+        Dataset<Row> batchSampleDF = getContext().getDbmsSpark2()
+                .execute(String.format("SELECT * FROM %s.%s", adaBatch.getDbName(), adaBatch.getTableName()))
+                .getResultSet()
+                .sample(false, sample.samplingRatio)
+                .withColumn("verdict_rand", lit(randomGenerator.nextDouble() * sample.sampleSize / cardinality))
+                .withColumn("verdict_vpart", lit(Math.floor(randomGenerator.nextDouble() * 100)));
+        Dataset<Row> originSampleDF = getContext().getDbmsSpark2()
+                .execute(String.format("SELECT * FROM %s.%s", sample.schemaName, sample.tableName))
+                .getResultSet();
+        long totalSize = originSampleDF.count() + batchSampleDF.count();
+        Dataset<Row> updatedSample = batchSampleDF.union(originSampleDF);
+
+        updateMetaInfo(sample,
+                getContext().getDbms().getSparkSession()
+                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, totalSize, cardinality)), VerdictMetaSize.class).toDF(),
+                getContext().getDbms().getSparkSession()
+                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, sample.samplingRatio, sample.onColumn)), VerdictMetaName.class).toDF()
+        );
+        updatedSample.write().saveAsTable(sample.tableName + "_tmp");
+
+        getContext().getDbmsSpark2()
+                .execute(String.format("USE %s", sample.schemaName))
+                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sample.schemaName, sample.tableName))
+                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
+    }
+
+    private void updateStratifiedSample(Sample sample, AdaBatch adaBatch) {
+
     }
 
     @Override
     public String name() {
         return "incremental";
+    }
+
+    @Override
+    public String nameInPaper() {
+        return "AS";
     }
 }

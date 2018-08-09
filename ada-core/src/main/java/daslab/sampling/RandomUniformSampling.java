@@ -31,4 +31,9 @@ public class RandomUniformSampling extends SamplingStrategy {
     public String name() {
         return "random uniform";
     }
+
+    @Override
+    public String nameInPaper() {
+        return "";
+    }
 }

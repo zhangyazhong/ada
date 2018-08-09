@@ -40,6 +40,28 @@ public class HdfsBathReceiver {
         }
     }
 
+    public void receive(String[] locations) {
+        File file = new File(context.get("data.tmp.location"));
+        file.getParentFile().mkdirs();
+        File[] files = new File[locations.length];
+        String[] batchLocations = new String[locations.length];
+        for (int i = 0; i < locations.length; i++) {
+            batchLocations[i] = context.get("data.tmp.location") + i;
+            files[i] = new File(batchLocations[i]);
+            if (files[i].exists()) {
+                files[i].delete();
+            }
+            String command = String.format("hadoop fs -get %s %s", locations[i], files[i].getAbsolutePath());
+            call(command);
+            if (files[i].exists() && files[i].isFile()) {
+                AdaLogger.info(this, "New batch[" + context.increaseBatchCount() + "] arrived. HDFS location is: " + locations[i] + ". Size is " + (files[i].length() / 1024L / 1024L) + "MB");
+            } else {
+                AdaLogger.info(this, "Transfer failed. HDFS location is: " + locations[i]);
+            }
+        }
+        context.afterOneBatch(batchLocations);
+    }
+
     private void call(String cmd) {
         try {
             Process process = Runtime.getRuntime().exec(cmd);

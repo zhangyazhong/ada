@@ -12,6 +12,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
+import javax.validation.constraints.NotNull;
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -92,7 +93,16 @@ public class DbmsSpark2 {
         return load(new File(file));
     }
 
-    public AdaBatch load(File file) {
+    public AdaBatch load(String[] locations) {
+        File[] files = new File[locations.length];
+        for (int i = 0; i < locations.length; i++) {
+            files[i] = new File(locations[i]);
+        }
+        return load(files);
+    }
+
+    @NotNull
+    private AdaBatch load(@NotNull File file) {
         execute("USE " + context.get("dbms.default.database"));
 
         String query = String.format("LOAD DATA LOCAL INPATH \"%s\" INTO TABLE %s",
@@ -112,6 +122,29 @@ public class DbmsSpark2 {
         query = String.format("SELECT count(*) AS size FROM %s", context.get("dbms.batch.table"));
         int size = (int) context.getDbmsSpark2().execute(query).getResultAsLong(0, "size");
 
+        AdaLogger.info(this, String.format("AdaBatch loaded into %s.%s with size %d", context.get("dbms.default.database"), context.get("dbms.batch.table"), size));
+        return AdaBatch.build(context.get("dbms.default.database"), context.get("dbms.batch.table"), size);
+    }
+
+    @NotNull
+    private AdaBatch load(@NotNull File[] files) {
+        execute("USE " + context.get("dbms.default.database"));
+        for (File file : files) {
+            String query = String.format("LOAD DATA LOCAL INPATH \"%s\" INTO TABLE %s",
+                    file.getAbsolutePath(), context.get("dbms.data.table"));
+            execute(query);
+        }
+        AdaLogger.info(this, "Loaded batch into data table");
+
+        execute(String.format("TRUNCATE TABLE %s", context.get("dbms.batch.table")));
+        for (File file : files) {
+            String query = String.format("LOAD DATA LOCAL INPATH \"%s\" INTO TABLE %s",
+                    file.getAbsolutePath(), context.get("dbms.batch.table"));
+            execute(query);
+        }
+        AdaLogger.info(this, "Loaded batch into batch table");
+
+        int size = (int) context.getDbmsSpark2().execute(String.format("SELECT count(*) AS size FROM %s", context.get("dbms.batch.table"))).getResultAsLong(0, "size");
         AdaLogger.info(this, String.format("AdaBatch loaded into %s.%s with size %d", context.get("dbms.default.database"), context.get("dbms.batch.table"), size));
         return AdaBatch.build(context.get("dbms.default.database"), context.get("dbms.batch.table"), size);
     }

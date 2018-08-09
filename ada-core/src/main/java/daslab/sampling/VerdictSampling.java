@@ -254,4 +254,9 @@ public class VerdictSampling extends SamplingStrategy {
     public String name() {
         return "verdict sampling";
     }
+
+    @Override
+    public String nameInPaper() {
+        return "FR";
+    }
 }

@@ -51,10 +51,12 @@ public class DatabaseRestore extends ExpTemplate implements RestoreModule {
                         break;
                 }
             }
+            if (!get("sample.running.type").contains("uniform")) {
+                getVerdict().sql(String.format("DROP %s%% UNIFORM SAMPLES OF %s.%s", get("sample.init.ratio"), get("data.table.schema"), get("data.table.name")));
+            }
         } catch (VerdictException e) {
             e.printStackTrace();
         }
-
         AdaLogger.info(this, "Restored sample to initial status.");
     }
 

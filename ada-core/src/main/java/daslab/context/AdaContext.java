@@ -99,8 +99,15 @@ public class AdaContext {
         return currentReport();
     }
 
-    public void afterOneBatch(String batchLocation) {
-        AdaBatch adaBatch = getDbmsSpark2().load(batchLocation);
+    public ExecutionReport receive(String[] hdfsLocations) {
+        printBlankLine(5);
+        createReport();
+        hdfsReceiver.receive(hdfsLocations);
+        return currentReport();
+    }
+
+    public void afterOneBatch(String... batchLocations) {
+        AdaBatch adaBatch = batchLocations.length > 1 ? getDbmsSpark2().load(batchLocations) :getDbmsSpark2().load(batchLocations[0]);
 
         // REPORT: sampling.cost.total (start)
         Long startTime = System.currentTimeMillis();

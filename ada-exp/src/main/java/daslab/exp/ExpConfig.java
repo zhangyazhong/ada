@@ -16,6 +16,7 @@ public class ExpConfig {
 
     public static int HOUR_START = 24 * 1 - 1;
     public static int HOUR_TOTAL = 24 * 2;
+    public static int HOUR_INTERVAL = 1;
 
     public final static Map<String, String> ENV = Maps.newHashMap();
 
@@ -48,5 +49,10 @@ public class ExpConfig {
         }
         HOUR_START = StringUtils.isNumeric(get("exp.hour.start")) ? Integer.parseInt(get("exp.hour.start")) : HOUR_START;
         HOUR_TOTAL = StringUtils.isNumeric(get("exp.hour.total")) ? Integer.parseInt(get("exp.hour.total")) : HOUR_TOTAL;
+        HOUR_INTERVAL = StringUtils.isNumeric(get("exp.hour.interval")) ? Integer.parseInt(get("exp.hour.interval")) : HOUR_INTERVAL;
+    }
+
+    public static String tableInSQL() {
+        return String.format("%s.%s", get("data.table.schema"), get("data.table.name"));
     }
 }

@@ -345,4 +345,9 @@ public class ReservoirSampling extends SamplingStrategy {
     public String name() {
         return "reservoir";
     }
+
+    @Override
+    public String nameInPaper() {
+        return "RRS";
+    }
 }

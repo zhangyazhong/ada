@@ -164,6 +164,41 @@ public abstract class SamplingStrategy {
         metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
     }
 
+    public void updateMetaInfo(Sample sample, Dataset<Row> metaSizeRow, Dataset<Row> metaNameRow) {
+        SparkSession spark = getContext().getDbms().getSparkSession();
+        List<Sample> samples = getSamples(true);
+        List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();
+        List<Dataset<Row>> metaNameDFs = Lists.newArrayList();
+        for (Sample _sample : samples) {
+            Dataset<Row> metaSizeDF;
+            Dataset<Row> metaNameDF;
+            if (Math.abs(_sample.samplingRatio - sample.samplingRatio) < 0.00001 && _sample.sampleType.equals(sample.sampleType) && _sample.onColumn.equals(sample.onColumn)) {
+                continue;
+            } else {
+                metaSizeDF = spark
+                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(_sample.schemaName, _sample.tableName, _sample.sampleSize, _sample.tableSize)), VerdictMetaSize.class)
+                        .toDF();
+                metaNameDF = spark
+                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), _sample.originalTable, _sample.schemaName, _sample.tableName, _sample.sampleType, _sample.samplingRatio, _sample.onColumn)), VerdictMetaName.class)
+                        .toDF();
+            }
+            metaSizeDFs.add(metaSizeDF);
+            metaNameDFs.add(metaNameDF);
+        }
+        Dataset<Row> metaSizeDF = metaSizeRow;
+        Dataset<Row> metaNameDF = metaNameRow;
+        for (int i = 0; i < metaNameDFs.size(); i++) {
+            metaSizeDF = metaSizeDF.union(metaSizeDFs.get(i));
+            metaNameDF = metaNameDF.union(metaNameDFs.get(i));
+        }
+        getContext().getDbmsSpark2()
+                .execute(String.format("USE %s", sample.schemaName))
+                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sample.schemaName, "verdict_meta_name"))
+                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sample.schemaName, "verdict_meta_size"));
+        metaNameDF.select("originalschemaname", "originaltablename", "sampleschemaaname", "sampletablename", "sampletype", "samplingratio", "columnnames").write().saveAsTable("verdict_meta_name");
+        metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
+    }
+
     public abstract void run(Sample sample, AdaBatch adaBatch);
 
     public abstract void update(Sample sample, AdaBatch adaBatch);
@@ -171,4 +206,6 @@ public abstract class SamplingStrategy {
     public abstract void resample(Sample sample, AdaBatch adaBatch, double ratio);
 
     public abstract String name();
+
+    public abstract String nameInPaper();
 }
