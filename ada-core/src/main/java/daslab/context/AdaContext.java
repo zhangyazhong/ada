@@ -154,20 +154,19 @@ public class AdaContext {
 
         Map<Sample, Sampling> strategies = Maps.newHashMap();
         sampleStatusMap.forEach((sample, status) -> {
-            if (!sample.sampleType.equals("stratified")) {
-                return;
-            }
             if (status.whetherResample() || forceResample) {
                 AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be updated: %s.",
                         sample.sampleType, sample.samplingRatio,
                         StringUtils.join(status.resampleColumns().stream().map(TableColumn::toString).toArray(), ", ")));
-                AdaLogger.info(this, String.format("Use %s strategy to resample sample[%s][%.2f][%s].", getSamplingController().getResamplingStrategy().name(), sample.sampleType, sample.samplingRatio, sample.onColumn));
+                AdaLogger.info(this, String.format("Use %s strategy to resample sample[%s][%.2f][%s].",
+                        getSamplingController().getResamplingStrategy().name(), sample.sampleType, sample.samplingRatio, sample.onColumn));
                 getSamplingController().resample(sample, adaBatch, status.getMaxExpectedRatio(1.1));
                 strategies.put(sample, Sampling.RESAMPLE);
             } else {
                 AdaLogger.info(this, String.format("Sample's[%s][%.2f]: no column needs to be updated.",
                         sample.sampleType, sample.samplingRatio));
-                AdaLogger.info(this, String.format("Use %s strategy to update sample[%s][%.2f][%s].", getSamplingController().getSamplingStrategy().name(), sample.sampleType, sample.samplingRatio, sample.onColumn));
+                AdaLogger.info(this, String.format("Use %s strategy to update sample[%s][%.2f][%s].",
+                        getSamplingController().getSamplingStrategy().name(), sample.sampleType, sample.samplingRatio, sample.onColumn));
                 getSamplingController().update(sample, adaBatch);
                 strategies.put(sample, Sampling.UPDATE);
             }
