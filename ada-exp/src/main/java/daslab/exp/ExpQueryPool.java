@@ -12,7 +12,7 @@ import java.util.List;
  * @version 2018-08-09
  */
 public class ExpQueryPool {
-    static class QueryString implements Comparable<QueryString> {
+    public static class QueryString implements Comparable<QueryString> {
         private String query;
         private String aggregationType;
 

@@ -51,7 +51,7 @@ public class ReservoirSampling extends SamplingStrategy {
     private void updateUniform(Sample sample, AdaBatch adaBatch) {
         Random randomGenerator = new Random();
         SparkSession spark = getContext().getDbmsSpark2().getSparkSession();
-        Map<Long, Integer> chosen = Maps.newHashMap();
+        Map<Long, Integer> chosen = Maps.newHashMapWithExpectedSize(adaBatch.getSize());
         String sampleSchema = sample.schemaName;
         long tableSize = sample.tableSize;
         long sampleSize = sample.sampleSize;
@@ -96,8 +96,9 @@ public class ReservoirSampling extends SamplingStrategy {
 
         getContext().getDbmsSpark2()
                 .execute(String.format("USE %s", sample.schemaName))
+                .execute(String.format("CREATE TABLE %s_tmp AS (SELECT * FROM %s)", sample.tableName, updatedSampleViewName))
                 .execute(String.format("DROP TABLE %s.%s", sample.schemaName, sample.tableName))
-                .execute(String.format("CREATE TABLE %s AS (SELECT * FROM %s)", sample.tableName, updatedSampleViewName));
+                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
 
         List<Sample> samples = getSamples(true);
         List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();

@@ -3,6 +3,7 @@ package daslab.exp5;
 import com.google.common.collect.ImmutableList;
 import daslab.context.AdaContext;
 import daslab.exp.ExpConfig;
+import daslab.exp.ExpQueryPool;
 import daslab.exp.ExpResult;
 import daslab.exp.ExpTemplate;
 import daslab.restore.RestoreModule;
@@ -12,6 +13,7 @@ import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author zyz
@@ -21,7 +23,7 @@ public class Exp5AdaResult extends ExpTemplate {
     private final static int REPEAT_TIME = 10;
     private final static String RESULT_SAVE_PATH = "/tmp/ada/exp/exp5/ada_result.csv";
 
-    private final static List<String> QUERIES = ImmutableList.of(
+    private static List<String> QUERIES = ImmutableList.of(
             // huge number group
             String.format("SELECT AVG(page_count) FROM %s.%s WHERE project_name='uk'", ExpConfig.get("data.table.schema"), ExpConfig.get("data.table.name")),
             // very small group
@@ -42,16 +44,12 @@ public class Exp5AdaResult extends ExpTemplate {
 
     @Override
     public void run() {
+        QUERIES = ExpQueryPool.QUERIES().stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
         ExpResult expResult = new ExpResult("time");
         for (int k = 0; k < REPEAT_TIME; k++) {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
             AdaLogger.info(this, "Restored database.");
             resetVerdict();
-            try {
-                getVerdict().sql(String.format("DROP %s%% UNIFORM SAMPLES OF %s.%s", get("sample.init.ratio"), get("data.table.schema"), get("data.table.name")));
-            } catch (VerdictException e) {
-                e.printStackTrace();
-            }
             AdaContext context = new AdaContext().start();
             for (int i = ExpConfig.HOUR_START; i < ExpConfig.HOUR_TOTAL; i++) {
                 int day = i / 24 + 1;
