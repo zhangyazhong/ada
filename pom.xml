@@ -64,6 +64,7 @@
         <hive.version>2.3.3</hive.version>
         <verdict.version>0.4.7</verdict.version>
         <common-lang3.version>3.7</common-lang3.version>
+        <org.json.version>20090211</org.json.version>
     </properties>
 
     <dependencyManagement>
@@ -122,6 +123,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${common-lang3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.json</groupId>
+                <artifactId>json</artifactId>
+                <version>20090211</version>
             </dependency>
 
             <dependency>

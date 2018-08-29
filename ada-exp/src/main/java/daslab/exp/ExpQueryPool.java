@@ -17,7 +17,7 @@ public class ExpQueryPool {
         private String query;
         private String aggregationType;
 
-        QueryString(String query) {
+        public QueryString(String query) {
             this.query = query;
             this.aggregationType = StringUtils.substringBefore(StringUtils.substringBetween(query, "SELECT", "FROM"), "(").trim();
         }
@@ -165,8 +165,8 @@ public class ExpQueryPool {
     private static List<QueryString> generateGroupByCase() {
         List<QueryString> QUERIES = Lists.newLinkedList();
         List<String> QUERY_FORMATs = ImmutableList.of(
-                "SELECT %s(page_count) FROM %s GROUP BY project_name",
-                "SELECT %s(page_size) FROM %s GROUP BY project_name"
+                "SELECT project_name,%s(page_count) FROM %s GROUP BY project_name",
+                "SELECT project_name,%s(page_size) FROM %s GROUP BY project_name"
         );
         AGGREGATION_FUNCTIONS.forEach(aggregation
                 -> QUERY_FORMATs.forEach((QUERY_FORMAT)
@@ -176,7 +176,7 @@ public class ExpQueryPool {
 
     private static List<QueryString> generateGroupByWithPageCountCase() {
         List<QueryString> QUERIES = Lists.newLinkedList();
-        String QUERY_FORMAT = "SELECT %s(page_count) FROM %s WHERE page_count>1 GROUP BY project_name";
+        String QUERY_FORMAT = "SELECT project_name, %s(page_count) FROM %s WHERE page_count>1 GROUP BY project_name";
         AGGREGATION_FUNCTIONS.forEach(aggregation
                 -> QUERIES.add(new QueryString(String.format(QUERY_FORMAT, aggregation, ExpConfig.tableInSQL()))));
         return QUERIES;

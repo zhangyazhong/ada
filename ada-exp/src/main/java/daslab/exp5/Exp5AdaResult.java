@@ -70,7 +70,7 @@ public class Exp5AdaResult extends ExpTemplate {
                 } catch (VerdictException e) {
                     e.printStackTrace();
                 }
-                AdaLogger.info(this, String.format("Ada Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), "| ")));
+                AdaLogger.info(this, String.format("Ada Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ExpResult.SEPARATOR)));
                 expResult.save(RESULT_SAVE_PATH);
             }
             expResult.save(RESULT_SAVE_PATH);

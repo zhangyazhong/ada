@@ -5,7 +5,6 @@ import daslab.utils.AdaSystem;
 import edu.umich.verdict.VerdictSpark2Context;
 import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.commons.lang.StringUtils;
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -117,7 +116,7 @@ public abstract class ExpTemplate implements ExpRunnable {
                 }
                 return jsonObject;
             }).collect(Collectors.toList()));
-            expResult.push(time, "q" + i + "_" + repeatNo, jsonArray.toString());
+            expResult.push(time, "q" + i + "_" + repeatNo, new ExpQueryPool.QueryString(query).getAggregationType() + "/" + jsonArray.toString());
         }
     }
 }

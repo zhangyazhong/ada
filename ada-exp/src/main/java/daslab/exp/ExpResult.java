@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ExpResult {
-    private final static String SEPARATOR = "|";
+    public final static String SEPARATOR = "|";
 
     private List<String> header;
     private Map<String, List<String>> results;
