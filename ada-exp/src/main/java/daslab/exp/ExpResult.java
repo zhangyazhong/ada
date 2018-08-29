@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 
 public class ExpResult {
+    private final static String SEPARATOR = "|";
+
     private List<String> header;
     private Map<String, List<String>> results;
 
@@ -94,13 +96,13 @@ public class ExpResult {
         file.getParentFile().mkdirs();
         try {
             FileWriter fileWriter = new FileWriter(file);
-            String header = StringUtils.join(this.getHeader().toArray(), ",");
+            String header = StringUtils.join(this.getHeader().toArray(), SEPARATOR);
             fileWriter.write(header + "\r\n");
             final StringBuilder content = new StringBuilder();
             this.getRowKeys().forEach(key -> {
-                content.append(key).append(",").append(StringUtils.join(this.getColumns(key).toArray(), ","));
+                content.append(key).append(SEPARATOR).append(StringUtils.join(this.getColumns(key).toArray(), SEPARATOR));
                 for (int i = this.getColumns(key).size(); i < this.header.size() - 1; i++) {
-                    content.append(",");
+                    content.append(SEPARATOR);
                 }
                 content.append("\r\n");
             });

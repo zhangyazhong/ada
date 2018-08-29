@@ -15,13 +15,17 @@ import org.apache.commons.lang.StringUtils;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static daslab.exp.ExpConfig.HOUR_INTERVAL;
+import static daslab.exp.ExpConfig.HOUR_START;
+import static daslab.exp.ExpConfig.HOUR_TOTAL;
+
 /**
  * @author zyz
  * @version 2018-08-08
  */
 public class Exp5AdaResult extends ExpTemplate {
     private final static int REPEAT_TIME = 10;
-    private final static String RESULT_SAVE_PATH = "/tmp/ada/exp/exp5/ada_result.csv";
+    private final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp5/ada_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     private static List<String> QUERIES = ImmutableList.of(
             // huge number group
@@ -44,14 +48,17 @@ public class Exp5AdaResult extends ExpTemplate {
 
     @Override
     public void run() {
-        QUERIES = ExpQueryPool.QUERIES().stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
+        QUERIES = ExpQueryPool.QUERIES_EXCEPT(
+                new ExpQueryPool.WhereClause("page_count"),
+                new ExpQueryPool.WhereClause("page_size")
+        ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
         ExpResult expResult = new ExpResult("time");
         for (int k = 0; k < REPEAT_TIME; k++) {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
             AdaLogger.info(this, "Restored database.");
             resetVerdict();
             AdaContext context = new AdaContext().start();
-            for (int i = ExpConfig.HOUR_START; i < ExpConfig.HOUR_TOTAL; i++) {
+            for (int i = HOUR_START; i < HOUR_TOTAL; i++) {
                 int day = i / 24 + 1;
                 int hour = i % 24;
                 String time = String.format("%02d%02d", day, hour);
@@ -63,7 +70,8 @@ public class Exp5AdaResult extends ExpTemplate {
                 } catch (VerdictException e) {
                     e.printStackTrace();
                 }
-                AdaLogger.info(this, String.format("Ada Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ", ")));
+                AdaLogger.info(this, String.format("Ada Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), "| ")));
+                expResult.save(RESULT_SAVE_PATH);
             }
             expResult.save(RESULT_SAVE_PATH);
         }

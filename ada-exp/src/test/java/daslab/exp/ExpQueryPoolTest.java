@@ -14,4 +14,12 @@ public class ExpQueryPoolTest {
     public void QUERIES() {
         ExpQueryPool.QUERIES().forEach(System.out::println);
     }
+
+    @Test
+    public void QUERIES_EXCEPT() {
+        ExpQueryPool.QUERIES_EXCEPT(
+                new ExpQueryPool.WhereClause("page_count"),
+                new ExpQueryPool.WhereClause("page_size")
+        ).forEach(System.out::println);
+    }
 }

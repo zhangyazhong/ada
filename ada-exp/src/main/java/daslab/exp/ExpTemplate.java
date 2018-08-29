@@ -7,11 +7,15 @@ import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public abstract class ExpTemplate implements ExpRunnable {
     private static SparkSession sparkSession;
@@ -104,10 +108,16 @@ public abstract class ExpTemplate implements ExpRunnable {
     public void runQuery(ExpResult expResult, List<String> queries, String time, int repeatNo) throws VerdictException {
         for (int i = 0; i < queries.size(); i++) {
             String query = queries.get(i);
-            Row row = getVerdict().sql(query).first();
-            double avg = row.getDouble(0);
-            double err = row.getDouble(1);
-            expResult.push(time, "q" + i + "_" + repeatNo, String.format("%.8f/%.8f", avg, err));
+            JSONArray jsonArray = new JSONArray(getVerdict().sql(query).toJSON().collectAsList().stream().map(jsonString -> {
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject = new JSONObject(jsonString);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return jsonObject;
+            }).collect(Collectors.toList()));
+            expResult.push(time, "q" + i + "_" + repeatNo, jsonArray.toString());
         }
     }
 }

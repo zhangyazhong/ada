@@ -6,6 +6,7 @@ import org.apache.commons.lang.StringUtils;
 
 import javax.validation.constraints.NotNull;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author zyz
@@ -25,6 +26,20 @@ public class ExpQueryPool {
             return aggregationType;
         }
 
+        public List<String> getWhereColumn() {
+            List<String> columns = Lists.newLinkedList();
+            String[] whereClauses = StringUtils.substringAfter(query, "WHERE").length() > 0 ?
+                    StringUtils.substringAfter(query, "WHERE").split("AND") : new String[0];
+            for (String whereClause : whereClauses) {
+                columns.add(whereClause.split("[<>=]")[0].trim());
+            }
+            return columns;
+        }
+
+        public boolean containsWhereColumn(WhereClause whereClause) {
+            return getWhereColumn().stream().anyMatch(whereColumn -> whereColumn.equals(whereClause.getColumn()));
+        }
+
         @Override
         public int compareTo(@NotNull QueryString another) {
             if (!aggregationType.equals(another.aggregationType)) {
@@ -36,6 +51,18 @@ public class ExpQueryPool {
         @Override
         public String toString() {
             return query;
+        }
+    }
+
+    public static class WhereClause {
+        private String column;
+
+        public WhereClause(String column) {
+            this.column = column;
+        }
+
+        public String getColumn() {
+            return this.column;
         }
     }
 
@@ -51,7 +78,7 @@ public class ExpQueryPool {
         QUERIES.addAll(generateNoCase());
         QUERIES.addAll(generatePageSizeCase());
         QUERIES.addAll(generatePageCountCase());
-        QUERIES.addAll(generatePageNameCase());
+        QUERIES.addAll(generateProjectNameCase());
         QUERIES.addAll(generatePageSizeWithPageCountCase());
         QUERIES.addAll(generateGroupByCase());
         QUERIES.addAll(generateGroupByWithPageCountCase());
@@ -60,6 +87,13 @@ public class ExpQueryPool {
 
     public static List<QueryString> QUERIES() {
         return QUERIES;
+    }
+
+    public static List<QueryString> QUERIES_EXCEPT(WhereClause... exceptWheres) {
+        List<WhereClause> _exceptWheres = Lists.newArrayList(exceptWheres);
+        return QUERIES().stream()
+                .filter(queryString -> _exceptWheres.stream().noneMatch(queryString::containsWhereColumn))
+                .collect(Collectors.toList());
     }
 
     private static List<QueryString> generateNoCase() {
@@ -101,9 +135,9 @@ public class ExpQueryPool {
         return QUERIES;
     }
 
-    private static List<QueryString> generatePageNameCase() {
+    private static List<QueryString> generateProjectNameCase() {
         List<QueryString> QUERIES = Lists.newLinkedList();
-        String QUERY_FORMAT = "SELECT %s(%s) FROM %s WHERE page_name='%s'";
+        String QUERY_FORMAT = "SELECT %s(%s) FROM %s WHERE project_name='%s'";
         AGGREGATION_FUNCTIONS.forEach(aggregation
                 -> SELECTS.forEach(select
                 -> PROJECT_NAMES.forEach(projectName
@@ -142,7 +176,7 @@ public class ExpQueryPool {
 
     private static List<QueryString> generateGroupByWithPageCountCase() {
         List<QueryString> QUERIES = Lists.newLinkedList();
-        String QUERY_FORMAT = "SELECT %s(page_count) FROM %s WHERE project_count>1 GROUP BY project_name";
+        String QUERY_FORMAT = "SELECT %s(page_count) FROM %s WHERE page_count>1 GROUP BY project_name";
         AGGREGATION_FUNCTIONS.forEach(aggregation
                 -> QUERIES.add(new QueryString(String.format(QUERY_FORMAT, aggregation, ExpConfig.tableInSQL()))));
         return QUERIES;
