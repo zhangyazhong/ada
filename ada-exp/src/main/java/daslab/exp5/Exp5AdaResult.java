@@ -24,7 +24,7 @@ import static daslab.exp.ExpConfig.HOUR_TOTAL;
  * @version 2018-08-08
  */
 public class Exp5AdaResult extends ExpTemplate {
-    private final static int REPEAT_TIME = 10;
+    private final static int REPEAT_TIME = 5;
     private final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp5/ada_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     private static List<String> QUERIES = ImmutableList.of(
@@ -49,9 +49,13 @@ public class Exp5AdaResult extends ExpTemplate {
     @Override
     public void run() {
         QUERIES = ExpQueryPool.QUERIES_EXCEPT(
-                new ExpQueryPool.WhereClause("page_count"),
-                new ExpQueryPool.WhereClause("page_size")
-        ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
+                ImmutableList.of(
+                        new ExpQueryPool.WhereClause("page_count"),
+                        new ExpQueryPool.WhereClause("page_size")
+                ), ImmutableList.of(
+                    new ExpQueryPool.GroupByClause("project_name")
+                ))
+                .stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
         ExpResult expResult = new ExpResult("time");
         for (int k = 0; k < REPEAT_TIME; k++) {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);

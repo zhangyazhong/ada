@@ -1,5 +1,6 @@
 package daslab.exp;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -21,5 +22,16 @@ public class ExpQueryPoolTest {
                 new ExpQueryPool.WhereClause("page_count"),
                 new ExpQueryPool.WhereClause("page_size")
         ).forEach(System.out::println);
+    }
+
+    @Test
+    public void QUERIES_EXCEPT2() {
+        ExpQueryPool.QUERIES_EXCEPT(
+                ImmutableList.of(
+                        new ExpQueryPool.WhereClause("page_count"),
+                        new ExpQueryPool.WhereClause("page_size")
+                ), ImmutableList.of(
+                        new ExpQueryPool.GroupByClause("project_name")
+                )).forEach(System.out::println);
     }
 }

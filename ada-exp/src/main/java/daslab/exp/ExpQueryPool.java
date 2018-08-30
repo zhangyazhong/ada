@@ -36,8 +36,22 @@ public class ExpQueryPool {
             return columns;
         }
 
+        public List<String> getGroupByColumn() {
+            List<String> columns = Lists.newLinkedList();
+            String[] groupByClauses = StringUtils.substringAfter(query, "GROUP BY").length() > 0 ?
+                    StringUtils.substringAfter(query, "GROUP BY").split(",") : new String[0];
+            for (String groupByClause : groupByClauses) {
+                columns.add(groupByClause.trim());
+            }
+            return columns;
+        }
+
         public boolean containsWhereColumn(WhereClause whereClause) {
             return getWhereColumn().stream().anyMatch(whereColumn -> whereColumn.equals(whereClause.getColumn()));
+        }
+
+        public boolean containsGroupByColumn(GroupByClause groupByClause) {
+            return getGroupByColumn().stream().anyMatch(groupByColumn -> groupByColumn.equals(groupByClause.getColumn()));
         }
 
         @Override
@@ -58,6 +72,18 @@ public class ExpQueryPool {
         private String column;
 
         public WhereClause(String column) {
+            this.column = column;
+        }
+
+        public String getColumn() {
+            return this.column;
+        }
+    }
+
+    public static class GroupByClause {
+        private String column;
+
+        public GroupByClause(String column) {
             this.column = column;
         }
 
@@ -93,6 +119,13 @@ public class ExpQueryPool {
         List<WhereClause> _exceptWheres = Lists.newArrayList(exceptWheres);
         return QUERIES().stream()
                 .filter(queryString -> _exceptWheres.stream().noneMatch(queryString::containsWhereColumn))
+                .collect(Collectors.toList());
+    }
+
+    public static List<QueryString> QUERIES_EXCEPT(List<WhereClause> exceptWheres, List<GroupByClause> exceptGroupBys) {
+        return QUERIES().stream()
+                .filter(queryString -> exceptWheres.stream().noneMatch(queryString::containsWhereColumn))
+                .filter(queryString -> exceptGroupBys.stream().noneMatch(queryString::containsGroupByColumn))
                 .collect(Collectors.toList());
     }
 
