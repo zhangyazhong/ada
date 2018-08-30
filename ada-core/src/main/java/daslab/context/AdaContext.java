@@ -124,7 +124,7 @@ public class AdaContext {
     }
 
     public void afterOneBatch(String... batchLocations) {
-        AdaBatch adaBatch = batchLocations.length > 1 ? getDbmsSpark2().load(batchLocations) :getDbmsSpark2().load(batchLocations[0]);
+        AdaBatch adaBatch = batchLocations.length > 1 ? getDbmsSpark2().load(batchLocations) : getDbmsSpark2().load(batchLocations[0]);
 
         // REPORT: sampling.cost.total (start)
         Long startTime = System.currentTimeMillis();

@@ -17,11 +17,12 @@ public class DatabaseRestore extends ExpTemplate implements RestoreModule {
 
     public void restore() {
         AdaSystem.call("hadoop fs -rm -r " + get("data.table.hdfs.location"));
+        AdaSystem.call("hadoop fs -rm -r " + get("batch.table.hdfs.location"));
         execute(String.format("DROP DATABASE IF EXISTS %s CASCADE", get("data.table.schema")));
         execute(String.format("CREATE DATABASE %s", get("data.table.schema")));
         execute(String.format("USE %s", get("data.table.schema")));
         execute(String.format("CREATE EXTERNAL TABLE %s(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION '%s/'", get("data.table.name"), get("data.table.hdfs.location")));
-        execute(String.format("CREATE TABLE %s(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ','", get("batch.table.name")));
+        execute(String.format("CREATE EXTERNAL TABLE %s(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION '%s/'", get("batch.table.name"), get("batch.table.hdfs.location")));
         for (int i = 0; i < ExpConfig.HOUR_START; i++) {
             int day = i / 24 + 1;
             int hour = i % 24;

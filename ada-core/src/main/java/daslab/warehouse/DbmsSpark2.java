@@ -7,6 +7,7 @@ import daslab.inspector.TableColumn;
 import daslab.inspector.TableColumnType;
 import daslab.inspector.TableSchema;
 import daslab.utils.AdaLogger;
+import daslab.utils.AdaSystem;
 import org.apache.commons.lang.StringUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -89,16 +90,28 @@ public class DbmsSpark2 {
         return tableSchema;
     }
 
-    public AdaBatch load(String file) {
-        return load(new File(file));
+    public AdaBatch load(@NotNull String file) {
+        return load(new String[]{file});
     }
 
-    public AdaBatch load(String[] locations) {
-        File[] files = new File[locations.length];
-        for (int i = 0; i < locations.length; i++) {
-            files[i] = new File(locations[i]);
+    public AdaBatch load(@NotNull String[] locations) {
+        for (String location : locations) {
+            String command = "hadoop fs -cp " + location + " " + context.get("dbms.data.table.hdfs.location");
+            AdaSystem.call(command);
         }
-        return load(files);
+        AdaLogger.info(this, "Loaded batch into data table");
+
+        execute("USE " + context.get("dbms.default.database"));
+        execute(String.format("TRUNCATE TABLE %s", context.get("dbms.batch.table")));
+        for (String location : locations) {
+            String command = "hadoop fs -cp " + location + " " + context.get("dbms.batch.table.hdfs.location");
+            AdaSystem.call(command);
+        }
+        AdaLogger.info(this, "Loaded batch into batch table");
+
+        int size = (int) context.getDbmsSpark2().execute(String.format("SELECT count(*) AS size FROM %s", context.get("dbms.batch.table"))).getResultAsLong(0, "size");
+        AdaLogger.info(this, String.format("AdaBatch loaded into %s.%s with size %d", context.get("dbms.default.database"), context.get("dbms.batch.table"), size));
+        return AdaBatch.build(context.get("dbms.default.database"), context.get("dbms.batch.table"), size);
     }
 
     @NotNull

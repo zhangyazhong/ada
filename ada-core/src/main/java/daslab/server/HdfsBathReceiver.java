@@ -24,6 +24,7 @@ public class HdfsBathReceiver {
     }
 
     public void receive(String location) {
+        /*
         File file = new File(context.get("data.tmp.location"));
         if (file.exists()) {
             file.delete();
@@ -38,9 +39,12 @@ public class HdfsBathReceiver {
         } else {
             AdaLogger.info(this, "Transfer failed. HDFS location is: " + location);
         }
+        */
+        context.afterOneBatch(location);
     }
 
     public void receive(String[] locations) {
+        /*
         File file = new File(context.get("data.tmp.location"));
         file.getParentFile().mkdirs();
         File[] files = new File[locations.length];
@@ -59,7 +63,8 @@ public class HdfsBathReceiver {
                 AdaLogger.info(this, "Transfer failed. HDFS location is: " + locations[i]);
             }
         }
-        context.afterOneBatch(batchLocations);
+        */
+        context.afterOneBatch(locations);
     }
 
     private void call(String cmd) {
