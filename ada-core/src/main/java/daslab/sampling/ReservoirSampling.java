@@ -51,7 +51,8 @@ public class ReservoirSampling extends SamplingStrategy {
     private void updateUniform(Sample sample, AdaBatch adaBatch) {
         Random randomGenerator = new Random();
         SparkSession spark = getContext().getDbmsSpark2().getSparkSession();
-        Map<Long, Integer> chosen = Maps.newHashMapWithExpectedSize(adaBatch.getSize());
+        Set<Long> exchangeSet = Sets.newHashSet();
+
         String sampleSchema = sample.schemaName;
         long tableSize = sample.tableSize;
         long sampleSize = sample.sampleSize;
@@ -59,17 +60,16 @@ public class ReservoirSampling extends SamplingStrategy {
             long totalSize = tableSize + (long) i;
             long position = (long) Math.floor(randomGenerator.nextDouble() * totalSize);
             if (position < sampleSize) {
-                chosen.put(position, i);
+                exchangeSet.add(position);
             }
         }
-        AdaLogger.info(this, "Chosen key set size: " + chosen.keySet().size());
-        AdaLogger.info(this, "Chosen value set size: " + chosen.values().size());
+        AdaLogger.info(this, "Exchange set size: " + exchangeSet.size());
 
         sample.setRows(getContext().getDbmsSpark2()
                 .execute(String.format("SELECT * FROM %s.%s", sample.schemaName, sample.tableName))
                 .getResultSet());
         Dataset<Row> originSample = sample.getRows();
-        Dataset<Row> cleanedSample = originSample.sample(false, 1.0 * (sampleSize - chosen.keySet().size()) / sampleSize);
+        Dataset<Row> cleanedSample = originSample.sample(false, 1.0 * (sampleSize - exchangeSet.size()) / sampleSize);
         long cleanedCount = cleanedSample.count();
 
         AdaLogger.info(this, "Sample cleaned row count: " + cleanedCount);
@@ -80,7 +80,7 @@ public class ReservoirSampling extends SamplingStrategy {
                 .withColumn("verdict_rand", when(col("page_count").$greater$eq(0), randomGenerator.nextDouble() * sampleSize / tableSize))
                 .withColumn("verdict_vpart", when(col("page_count").$greater$eq(0),  Math.floor(randomGenerator.nextDouble() * 100)))
                 .withColumn("verdict_vprob", lit(sample.samplingRatio));
-        insertedSample = insertedSample.sample(false, 1.0 * chosen.keySet().size() / adaBatch.getSize());
+        insertedSample = insertedSample.sample(false, 1.0 * exchangeSet.size() / adaBatch.getSize());
         long insertedCount = insertedSample.count();
 
         AdaLogger.info(this, "Sample inserted row count: " + insertedCount);
@@ -140,6 +140,7 @@ public class ReservoirSampling extends SamplingStrategy {
                 .execute(String.format("DROP TABLE IF EXISTS %s.%s", sampleSchema, "verdict_meta_size"));
         metaNameDF.select("originalschemaname", "originaltablename", "sampleschemaaname", "sampletablename", "sampletype", "samplingratio", "columnnames").write().saveAsTable("verdict_meta_name");
         metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
+        exchangeSet.clear();
     }
 
     private void updateStratified(Sample sample, AdaBatch adaBatch) {

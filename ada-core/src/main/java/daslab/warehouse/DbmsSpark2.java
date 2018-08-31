@@ -101,8 +101,10 @@ public class DbmsSpark2 {
         }
         AdaLogger.info(this, "Loaded batch into data table");
 
-        execute("USE " + context.get("dbms.default.database"));
-        execute(String.format("TRUNCATE TABLE %s", context.get("dbms.batch.table")));
+        AdaSystem.call("hadoop fs -rm " + context.get("dbms.batch.table.hdfs.location") + "/*");
+        execute(String.format("USE %s", context.get("dbms.default.database")));
+        execute(String.format("DROP TABLE IF EXISTS %s", context.get("dbms.batch.table")));
+        execute(String.format("CREATE EXTERNAL TABLE %s(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION '%s/'", context.get("dbms.batch.table"), context.get("dbms.batch.table.hdfs.location")));
         for (String location : locations) {
             String command = "hadoop fs -cp " + location + " " + context.get("dbms.batch.table.hdfs.location");
             AdaSystem.call(command);
