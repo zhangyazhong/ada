@@ -39,7 +39,7 @@ public class VerdictSampling extends SamplingStrategy {
 
     @Override
     public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
-        ratio = (1.0 * (int) round(ratio * 100)) / 100;
+        ratio = Math.max(1.0 * (int) round(ratio * 100) / 100, 0.01);
         verdictSpark2Context = getContext().getVerdict();
         AdaLogger.info(this, "About to drop sample with ratio " + sample.samplingRatio + " of " + sample.sampleType);
         deleteSampleMeta(sample);
