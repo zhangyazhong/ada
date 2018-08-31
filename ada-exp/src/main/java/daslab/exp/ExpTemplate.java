@@ -104,7 +104,7 @@ public abstract class ExpTemplate implements ExpRunnable {
         }
     }
 
-    public void runQuery(ExpResult expResult, List<String> queries, String time, int repeatNo) throws VerdictException {
+    public void runQueryByVerdict(ExpResult expResult, List<String> queries, String time, int repeatNo) throws VerdictException {
         for (int i = 0; i < queries.size(); i++) {
             String query = queries.get(i);
             JSONArray jsonArray = new JSONArray(getVerdict().sql(query).toJSON().collectAsList().stream().map(jsonString -> {
@@ -117,6 +117,22 @@ public abstract class ExpTemplate implements ExpRunnable {
                 return jsonObject;
             }).collect(Collectors.toList()));
             expResult.push(time, "q" + i + "_" + repeatNo, new ExpQueryPool.QueryString(query).getAggregationType() + "/" + jsonArray.toString());
+        }
+    }
+
+    public void runQueryBySpark(ExpResult expResult, List<String> queries, String time) {
+        for (int i = 0; i < queries.size(); i++) {
+            String query = queries.get(i);
+            JSONArray jsonArray = new JSONArray(getSpark().sql(query).toJSON().collectAsList().stream().map(jsonString -> {
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject = new JSONObject(jsonString);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return jsonObject;
+            }).collect(Collectors.toList()));
+            expResult.push(time, "q" + i, new ExpQueryPool.QueryString(query).getAggregationType() + "/" + jsonArray.toString());
         }
     }
 }

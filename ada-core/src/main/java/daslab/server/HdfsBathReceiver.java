@@ -40,6 +40,7 @@ public class HdfsBathReceiver {
             AdaLogger.info(this, "Transfer failed. HDFS location is: " + location);
         }
         */
+        context.increaseBatchCount();
         context.afterOneBatch(location);
     }
 
@@ -64,6 +65,7 @@ public class HdfsBathReceiver {
             }
         }
         */
+        context.increaseBatchCount();
         context.afterOneBatch(locations);
     }
 

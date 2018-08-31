@@ -8,10 +8,7 @@ import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
 import daslab.exp3.*;
 import daslab.exp4.*;
-import daslab.exp5.Exp5AdaResult;
-import daslab.exp5.Exp5AdaTimeCost;
-import daslab.exp5.Exp5VerdictResult;
-import daslab.exp5.Exp5VerdictTimeCost;
+import daslab.exp5.*;
 import daslab.restore.RestoreModule;
 import daslab.restore.SampleCleaner;
 import daslab.restore.SystemRestore;
@@ -123,6 +120,14 @@ public class App {
                 case "exp5_verdict_result":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Verdict Result Performance");
                     new Exp5VerdictResult().run();
+                    break;
+                case "exp5_accurate_result":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Accurate Result Performance");
+                    new Exp5AccurateResult().run();
+                    break;
+                case "exp5_result_compare":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Result Comparison");
+                    new Exp5AccurateResult().run();
                     break;
             }
         }

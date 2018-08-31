@@ -4,12 +4,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import javax.validation.constraints.NotNull;
+import java.io.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 public class ExpResult {
     public final static String SEPARATOR = "|";
@@ -78,7 +78,7 @@ public class ExpResult {
     }
 
     public String getCell(String time, String column) {
-        return findColumnPosition(column) > 0 ? results.get(time).get(findColumnPosition(column)) : null;
+        return findColumnPosition(column) > 0 && results.get(time) != null ? results.get(time).get(findColumnPosition(column)) : null;
     }
 
     public List<String> getRowKeys() {
@@ -116,6 +116,27 @@ public class ExpResult {
 
     public void save(ExpPersistent expPersistent) {
         save(expPersistent.outputPath());
+    }
+
+    public static ExpResult load(String path) {
+        try {
+            Scanner scanner = new Scanner(new File(path));
+            ExpResult expResult = new ExpResult(scanner.nextLine().split("\\|"));
+            while (scanner.hasNextLine()) {
+                String row = scanner.nextLine();
+                if (row.length() < 1) {
+                    break;
+                }
+                String[] cells = row.split("\\|");
+                for (int i = 1; i < cells.length; i++) {
+                    expResult.push(cells[0], cells[i]);
+                }
+            }
+            return expResult;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private int findColumnPosition(String column) {

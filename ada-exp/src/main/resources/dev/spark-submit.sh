@@ -66,3 +66,7 @@ java -jar ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp4_comparison
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp5_ada_result
 # run exp5 verdict result performance
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp5_verdict_result
+# run exp5 accurate result performance
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp5_accurate_result
+# run exp5 result comparison
+java -jar ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp5_compare_result
