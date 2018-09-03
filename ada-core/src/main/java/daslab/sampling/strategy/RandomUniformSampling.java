@@ -1,8 +1,9 @@
-package daslab.sampling;
+package daslab.sampling.strategy;
 
 import daslab.bean.AdaBatch;
 import daslab.bean.Sample;
 import daslab.context.AdaContext;
+import daslab.sampling.SamplingStrategy;
 
 /**
  * @author zyz

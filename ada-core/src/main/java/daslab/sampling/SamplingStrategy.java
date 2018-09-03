@@ -133,6 +133,41 @@ public abstract class SamplingStrategy {
         return sampleStatusMap;
     }
 
+    public void deleteMetaInfo(Sample sample) {
+        SparkSession spark = getContext().getDbmsSpark2().getSparkSession();
+        List<Sample> samples = getSamples(true);
+        List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();
+        List<Dataset<Row>> metaNameDFs = Lists.newArrayList();
+        for (Sample _sample : samples) {
+            Dataset<Row> metaSizeDF;
+            Dataset<Row> metaNameDF;
+            if (Math.abs(_sample.samplingRatio - sample.samplingRatio) > 0.00001 || !_sample.sampleType.equals(sample.sampleType) || !_sample.onColumn.equals(sample.onColumn)) {
+                metaSizeDF = spark
+                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(_sample.schemaName, _sample.tableName, _sample.sampleSize, _sample.tableSize)), VerdictMetaSize.class)
+                        .toDF();
+                metaNameDF = spark
+                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), _sample.originalTable, _sample.schemaName, _sample.tableName, _sample.sampleType, _sample.samplingRatio, _sample.onColumn)), VerdictMetaName.class)
+                        .toDF();
+                metaSizeDFs.add(metaSizeDF);
+                metaNameDFs.add(metaNameDF);
+            }
+        }
+        getContext().getDbmsSpark2()
+                .execute(String.format("USE %s", sample.schemaName))
+                .execute(String.format("DROP TABLE IF EXISTS  %s.%s", sample.schemaName, "verdict_meta_name"))
+                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sample.schemaName, "verdict_meta_size"));
+        if (metaNameDFs.size() > 0) {
+            Dataset<Row> metaSizeDF = metaSizeDFs.get(0);
+            Dataset<Row> metaNameDF = metaNameDFs.get(0);
+            for (int i = 1; i < metaNameDFs.size(); i++) {
+                metaSizeDF = metaSizeDF.union(metaSizeDFs.get(i));
+                metaNameDF = metaNameDF.union(metaNameDFs.get(i));
+            }
+            metaNameDF.select("originalschemaname", "originaltablename", "sampleschemaaname", "sampletablename", "sampletype", "samplingratio", "columnnames").write().saveAsTable("verdict_meta_name");
+            metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
+        }
+    }
+
     public void insertMetaInfo(Sample sample, Dataset<Row> metaSizeRow, Dataset<Row> metaNameRow) {
         SparkSession spark = getContext().getDbms().getSparkSession();
         List<Sample> samples = getSamples(true);

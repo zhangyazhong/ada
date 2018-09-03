@@ -6,8 +6,11 @@ import daslab.bean.SampleStatus;
 import daslab.context.AdaContext;
 import daslab.inspector.TableColumn;
 import daslab.inspector.TableMeta;
+import daslab.sampling.strategy.AdaptiveSampling;
+import daslab.sampling.strategy.IncrementalSampling;
+import daslab.sampling.strategy.ReservoirSampling;
+import daslab.sampling.strategy.VerdictSampling;
 import daslab.utils.AdaLogger;
-import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
@@ -32,6 +35,8 @@ public class SamplingController {
             case "incremental":
                 this.samplingStrategy = new IncrementalSampling(context);
                 break;
+            case "complementary":
+                this.samplingStrategy = new AdaptiveSampling(context);
             case "reservoir":
             default:
                 this.samplingStrategy = new ReservoirSampling(context);
@@ -39,8 +44,10 @@ public class SamplingController {
         }
         switch (context.get("resampling.strategy")) {
             case "incremental":
-                this.samplingStrategy = new IncrementalSampling(context);
+                this.resamplingStrategy = new IncrementalSampling(context);
                 break;
+            case "complementary":
+                this.resamplingStrategy = new AdaptiveSampling(context);
             case "verdict":
             default:
                 this.resamplingStrategy = new VerdictSampling(context);

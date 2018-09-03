@@ -1,9 +1,10 @@
-package daslab.sampling;
+package daslab.sampling.strategy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import daslab.bean.*;
 import daslab.context.AdaContext;
+import daslab.sampling.SamplingStrategy;
 import daslab.utils.AdaLogger;
 import daslab.utils.AdaNamespace;
 import edu.umich.verdict.VerdictSpark2Context;
@@ -42,7 +43,7 @@ public class VerdictSampling extends SamplingStrategy {
         ratio = Math.max(1.0 * (int) round(ratio * 100) / 100, 0.01);
         verdictSpark2Context = getContext().getVerdict();
         AdaLogger.info(this, "About to drop sample with ratio " + sample.samplingRatio + " of " + sample.sampleType);
-        deleteSampleMeta(sample);
+        deleteMetaInfo(sample);
         deleteSampleTable(sample);
         createSample(sample, ratio);
         refreshMetaSize();
@@ -52,41 +53,6 @@ public class VerdictSampling extends SamplingStrategy {
         String sampleSchema = sample.schemaName;
         String sampleTable = sample.tableName;
         getContext().getDbmsSpark2().execute(String.format("DROP TABLE IF EXISTS %s.%s", sampleSchema, sampleTable));
-    }
-
-    private void deleteSampleMeta(Sample sample) {
-        SparkSession spark = getContext().getDbmsSpark2().getSparkSession();
-        List<Sample> samples = getSamples(true);
-        List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();
-        List<Dataset<Row>> metaNameDFs = Lists.newArrayList();
-        for (Sample _sample : samples) {
-            Dataset<Row> metaSizeDF;
-            Dataset<Row> metaNameDF;
-            if (Math.abs(_sample.samplingRatio - sample.samplingRatio) > 0.00001 || !_sample.sampleType.equals(sample.sampleType) || !_sample.onColumn.equals(sample.onColumn)) {
-                metaSizeDF = spark
-                        .createDataFrame(ImmutableList.of(new VerdictMetaSize(_sample.schemaName, _sample.tableName, _sample.sampleSize, _sample.tableSize)), VerdictMetaSize.class)
-                        .toDF();
-                metaNameDF = spark
-                        .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), _sample.originalTable, _sample.schemaName, _sample.tableName, _sample.sampleType, _sample.samplingRatio, _sample.onColumn)), VerdictMetaName.class)
-                        .toDF();
-                metaSizeDFs.add(metaSizeDF);
-                metaNameDFs.add(metaNameDF);
-            }
-        }
-        getContext().getDbmsSpark2()
-                .execute(String.format("USE %s", sample.schemaName))
-                .execute(String.format("DROP TABLE IF EXISTS  %s.%s", sample.schemaName, "verdict_meta_name"))
-                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sample.schemaName, "verdict_meta_size"));
-        if (metaNameDFs.size() > 0) {
-            Dataset<Row> metaSizeDF = metaSizeDFs.get(0);
-            Dataset<Row> metaNameDF = metaNameDFs.get(0);
-            for (int i = 1; i < metaNameDFs.size(); i++) {
-                metaSizeDF = metaSizeDF.union(metaSizeDFs.get(i));
-                metaNameDF = metaNameDF.union(metaNameDFs.get(i));
-            }
-            metaNameDF.select("originalschemaname", "originaltablename", "sampleschemaaname", "sampletablename", "sampletype", "samplingratio", "columnnames").write().saveAsTable("verdict_meta_name");
-            metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
-        }
     }
 
     private void refreshMetaSize() {

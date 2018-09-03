@@ -127,7 +127,7 @@ public class App {
                     break;
                 case "exp5_result_compare":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Result Comparison");
-                    new Exp5AccurateResult().run();
+                    new Exp5ResultComparison().run();
                     break;
             }
         }

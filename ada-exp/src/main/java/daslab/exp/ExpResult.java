@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 
-import javax.validation.constraints.NotNull;
 import java.io.*;
 import java.util.Arrays;
 import java.util.List;
@@ -13,6 +12,8 @@ import java.util.Scanner;
 
 public class ExpResult {
     public final static String SEPARATOR = "|";
+    private final static String SEPARATOR_REGEX = "\\|";
+    private final static String NEW_LINE = "\r\n";
 
     private List<String> header;
     private Map<String, List<String>> results;
@@ -97,14 +98,14 @@ public class ExpResult {
         try {
             FileWriter fileWriter = new FileWriter(file);
             String header = StringUtils.join(this.getHeader().toArray(), SEPARATOR);
-            fileWriter.write(header + "\r\n");
+            fileWriter.write(header + NEW_LINE);
             final StringBuilder content = new StringBuilder();
             this.getRowKeys().forEach(key -> {
                 content.append(key).append(SEPARATOR).append(StringUtils.join(this.getColumns(key).toArray(), SEPARATOR));
                 for (int i = this.getColumns(key).size(); i < this.header.size() - 1; i++) {
                     content.append(SEPARATOR);
                 }
-                content.append("\r\n");
+                content.append(NEW_LINE);
             });
             fileWriter.write(content.toString());
             fileWriter.flush();
@@ -121,13 +122,13 @@ public class ExpResult {
     public static ExpResult load(String path) {
         try {
             Scanner scanner = new Scanner(new File(path));
-            ExpResult expResult = new ExpResult(scanner.nextLine().split("\\|"));
+            ExpResult expResult = new ExpResult(scanner.nextLine().split(SEPARATOR_REGEX));
             while (scanner.hasNextLine()) {
                 String row = scanner.nextLine();
                 if (row.length() < 1) {
                     break;
                 }
-                String[] cells = row.split("\\|");
+                String[] cells = row.split(SEPARATOR_REGEX);
                 for (int i = 1; i < cells.length; i++) {
                     expResult.push(cells[0], cells[i]);
                 }

@@ -55,7 +55,7 @@ public class Exp5AccurateResult extends ExpTemplate {
             AdaLogger.info(this, "Send a new batch at " + location);
             context.receive(location);
             runQueryBySpark(expResult, QUERIES, time);
-            AdaLogger.info(this, String.format("Ada Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ExpResult.SEPARATOR)));
+            AdaLogger.info(this, String.format("Accurate Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ExpResult.SEPARATOR)));
             expResult.save(RESULT_SAVE_PATH);
         }
         expResult.save(RESULT_SAVE_PATH);

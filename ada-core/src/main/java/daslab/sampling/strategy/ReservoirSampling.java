@@ -1,4 +1,4 @@
-package daslab.sampling;
+package daslab.sampling.strategy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import daslab.bean.*;
 import daslab.context.AdaContext;
+import daslab.sampling.SamplingStrategy;
 import daslab.utils.AdaLogger;
 import daslab.utils.AdaNamespace;
 import daslab.utils.AdaTimer;
@@ -157,7 +158,6 @@ public class ReservoirSampling extends SamplingStrategy {
 
         String onColumn = sample.onColumn;
         String originGroupTable = String.format("%s.ada_%s_group_%s", sample.schemaName, sample.originalTable, onColumn);
-//        String batchGroupTable = String.format("%s.ada_%s_group_%s", sample.schemaName, uniqueString, onColumn);
         String batchGroupTable = String.format("ada_%s_group_%s", uniqueString, onColumn);
         String originSampleTable = String.format("%s.%s", sample.schemaName, sample.tableName);
         String originBatchTable = String.format("%s.%s", adaBatch.getDbName(), adaBatch.getTableName());
