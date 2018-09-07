@@ -2,7 +2,6 @@ package daslab.sampling.strategy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import daslab.bean.*;
 import daslab.context.AdaContext;
@@ -57,6 +56,8 @@ public class ReservoirSampling extends SamplingStrategy {
         String sampleSchema = sample.schemaName;
         long tableSize = sample.tableSize;
         long sampleSize = sample.sampleSize;
+        // REPORT: sampling.cost.exchange-set (start)
+        AdaTimer timer = AdaTimer.create();
         for (int i = 0; i < adaBatch.getSize(); i++) {
             long totalSize = tableSize + (long) i;
             long position = (long) Math.floor(randomGenerator.nextDouble() * totalSize);
@@ -65,42 +66,73 @@ public class ReservoirSampling extends SamplingStrategy {
             }
         }
         AdaLogger.info(this, "Exchange set size: " + exchangeSet.size());
+        // REPORT: sampling.cost.exchange-set (stop)
+        getContext().writeIntoReport("sampling.cost.exchange-set", timer.stop());
 
-        sample.setRows(getContext().getDbmsSpark2()
-                .execute(String.format("SELECT * FROM %s.%s", sample.schemaName, sample.tableName))
-                .getResultSet());
-        Dataset<Row> originSample = sample.getRows();
-        Dataset<Row> cleanedSample = originSample.sample(false, 1.0 * (sampleSize - exchangeSet.size()) / sampleSize);
-        long cleanedCount = cleanedSample.count();
+        double vpart = Math.floor(randomGenerator.nextDouble() * 100);
+        double rand = randomGenerator.nextDouble() * sampleSize / tableSize;
 
-        AdaLogger.info(this, "Sample cleaned row count: " + cleanedCount);
-
-        Dataset<Row> insertedSample = getContext().getDbmsSpark2()
-                .execute(String.format("SELECT * FROM %s.%s", adaBatch.getDbName(), adaBatch.getTableName()))
+        // REPORT: sampling.cost.clean (start)
+        timer = AdaTimer.create();
+        String sqlForClean = String.format("SELECT * FROM %s.%s WHERE Rand(Unix_timestamp())<%f",
+                sample.schemaName, sample.tableName, 1.0 * (sampleSize - exchangeSet.size()) / sampleSize);
+        Dataset<Row> cleanedSample = getContext().getDbmsSpark2()
+                .execute(sqlForClean)
                 .getResultSet()
-                .withColumn("verdict_rand", when(col("page_count").$greater$eq(0), randomGenerator.nextDouble() * sampleSize / tableSize))
-                .withColumn("verdict_vpart", when(col("page_count").$greater$eq(0),  Math.floor(randomGenerator.nextDouble() * 100)))
-                .withColumn("verdict_vprob", lit(sample.samplingRatio));
-        insertedSample = insertedSample.sample(false, 1.0 * exchangeSet.size() / adaBatch.getSize());
+                .drop("verdict_vprob")
+                .cache();
+        long cleanedCount = cleanedSample.count();
+        AdaLogger.info(this, "Sample cleaned row count: " + cleanedCount);
+        // REPORT: sampling.cost.clean (stop)
+        getContext().writeIntoReport("sampling.cost.clean", timer.stop());
+
+        // REPORT: sampling.cost.insert (start)
+        timer = AdaTimer.create();
+        Dataset<Row> insertedSample = getContext().getDbmsSpark2()
+                .execute(String.format("SELECT * FROM %s.%s WHERE Rand(Unix_timestamp())<%f", adaBatch.getDbName(), adaBatch.getTableName(), 1.0 * exchangeSet.size() / adaBatch.getSize()))
+                .getResultSet()
+                .withColumn("verdict_rand", lit(rand))
+                .withColumn("verdict_vpart", lit(vpart))
+                .cache();
         long insertedCount = insertedSample.count();
-
         AdaLogger.info(this, "Sample inserted row count: " + insertedCount);
+        // REPORT: sampling.cost.insert (stop)
+        getContext().writeIntoReport("sampling.cost.insert", timer.stop());
 
+        // REPORT: sampling.cost.update-sample (start)
+        timer = AdaTimer.create();
         long updatedCount = cleanedCount + insertedCount;
+        double vprob = 1.0 * updatedCount / (sample.tableSize + (long) adaBatch.getSize());
         Dataset<Row> updatedSample = cleanedSample
                 .union(insertedSample)
-                .drop("verdict_vprob")
-                .withColumn("verdict_vprob", lit(1.0 * updatedCount / (sample.tableSize + (long) adaBatch.getSize())));
+                .withColumn("verdict_vprob", lit(vprob))
+                .cache();
+        updatedCount = updatedSample.count();
+        // REPORT: sampling.cost.update-sample (stop)
+        getContext().writeIntoReport("sampling.cost.update-sample", timer.stop());
 
+        // REPORT: sampling.cost.save-sample (start)
+        timer = AdaTimer.create();
+        /*
         String updatedSampleViewName = AdaNamespace.tempUniqueName("ada_uniform_tmp");
         updatedSample.createOrReplaceTempView(updatedSampleViewName);
-
         getContext().getDbmsSpark2()
                 .execute(String.format("USE %s", sample.schemaName))
                 .execute(String.format("CREATE TABLE %s_tmp AS (SELECT * FROM %s)", sample.tableName, updatedSampleViewName))
                 .execute(String.format("DROP TABLE %s.%s", sample.schemaName, sample.tableName))
                 .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
+        */
+        getContext().getDbmsSpark2()
+                .execute(String.format("USE %s", sample.schemaName));
+        updatedSample.write().saveAsTable(sample.tableName + "_tmp");
+        getContext().getDbmsSpark2()
+                .execute(String.format("DROP TABLE %s.%s", sample.schemaName, sample.tableName))
+                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
+        // REPORT: sampling.cost.save-sample (stop)
+        getContext().writeIntoReport("sampling.cost.save-sample", timer.stop());
 
+        // REPORT: sampling.cost.update-meta (start)
+        timer = AdaTimer.create();
         List<Sample> samples = getSamples(true);
         List<Dataset<Row>> metaSizeDFs = Lists.newArrayList();
         List<Dataset<Row>> metaNameDFs = Lists.newArrayList();
@@ -141,6 +173,8 @@ public class ReservoirSampling extends SamplingStrategy {
                 .execute(String.format("DROP TABLE IF EXISTS %s.%s", sampleSchema, "verdict_meta_size"));
         metaNameDF.select("originalschemaname", "originaltablename", "sampleschemaaname", "sampletablename", "sampletype", "samplingratio", "columnnames").write().saveAsTable("verdict_meta_name");
         metaSizeDF.select("schemaname", "tablename", "samplesize", "originaltablesize").write().saveAsTable("verdict_meta_size");
+        // REPORT: sampling.cost.update-meta (stop)
+        getContext().writeIntoReport("sampling.cost.update-meta", timer.stop());
         exchangeSet.clear();
     }
 

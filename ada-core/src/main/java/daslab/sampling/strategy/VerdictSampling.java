@@ -7,6 +7,7 @@ import daslab.context.AdaContext;
 import daslab.sampling.SamplingStrategy;
 import daslab.utils.AdaLogger;
 import daslab.utils.AdaNamespace;
+import daslab.utils.AdaTimer;
 import edu.umich.verdict.VerdictSpark2Context;
 import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.spark.api.java.function.MapFunction;
@@ -42,10 +43,19 @@ public class VerdictSampling extends SamplingStrategy {
     public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
         ratio = Math.max(1.0 * (int) round(ratio * 100) / 100, 0.01);
         verdictSpark2Context = getContext().getVerdict();
+        // REPORT: sampling.cost.delete-sample(start)
+        AdaTimer timer = AdaTimer.create();
         AdaLogger.info(this, "About to drop sample with ratio " + sample.samplingRatio + " of " + sample.sampleType);
         deleteMetaInfo(sample);
         deleteSampleTable(sample);
+        // REPORT: sampling.cost.delete-sample(stop)
+        getContext().writeIntoReport("sampling.cost.delete-sample", timer.stop());
+
+        // REPORT: sampling.cost.resample(start)
+        timer = AdaTimer.create();
         createSample(sample, ratio);
+        // REPORT: sampling.cost.resample(stop)
+        getContext().writeIntoReport("sampling.cost.resample", timer.stop());
         refreshMetaSize();
     }
 
