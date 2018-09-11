@@ -7,7 +7,6 @@ import daslab.bean.*;
 import daslab.context.AdaContext;
 import daslab.sampling.SamplingStrategy;
 import daslab.utils.AdaLogger;
-import daslab.utils.AdaNamespace;
 import daslab.utils.AdaTimer;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.spark.api.java.function.MapFunction;
@@ -78,9 +77,7 @@ public class ReservoirSampling extends SamplingStrategy {
                 sample.schemaName, sample.tableName, 1.0 * (sampleSize - exchangeSet.size()) / sampleSize);
         Dataset<Row> cleanedSample = getContext().getDbmsSpark2()
                 .execute(sqlForClean)
-                .getResultSet()
-                .drop("verdict_vprob")
-                .cache();
+                .getResultSet();
         long cleanedCount = cleanedSample.count();
         AdaLogger.info(this, "Sample cleaned row count: " + cleanedCount);
         // REPORT: sampling.cost.clean (stop)
@@ -92,8 +89,7 @@ public class ReservoirSampling extends SamplingStrategy {
                 .execute(String.format("SELECT * FROM %s.%s WHERE Rand(Unix_timestamp())<%f", adaBatch.getDbName(), adaBatch.getTableName(), 1.0 * exchangeSet.size() / adaBatch.getSize()))
                 .getResultSet()
                 .withColumn("verdict_rand", lit(rand))
-                .withColumn("verdict_vpart", lit(vpart))
-                .cache();
+                .withColumn("verdict_vpart", lit(vpart));
         long insertedCount = insertedSample.count();
         AdaLogger.info(this, "Sample inserted row count: " + insertedCount);
         // REPORT: sampling.cost.insert (stop)
@@ -104,9 +100,8 @@ public class ReservoirSampling extends SamplingStrategy {
         long updatedCount = cleanedCount + insertedCount;
         double vprob = 1.0 * updatedCount / (sample.tableSize + (long) adaBatch.getSize());
         Dataset<Row> updatedSample = cleanedSample
-                .union(insertedSample)
-                .withColumn("verdict_vprob", lit(vprob))
-                .cache();
+//                .drop("verdict_vprob")
+                .union(insertedSample.withColumn("verdict_vprob", lit(vprob)));
         updatedCount = updatedSample.count();
         // REPORT: sampling.cost.update-sample (stop)
         getContext().writeIntoReport("sampling.cost.update-sample", timer.stop());

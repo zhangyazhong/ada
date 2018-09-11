@@ -37,6 +37,7 @@ public abstract class SamplingStrategy {
         }
         samples = Lists.newArrayList();
         String sampleDb = context.get("dbms.sample.database");
+        /*
         List<Row> rows = context.getDbmsSpark2().execute(String.format("SHOW TABLES FROM %s", sampleDb)).getResultList();
         boolean metaNameExists = false;
         boolean metaSizeExists = false;
@@ -47,6 +48,7 @@ public abstract class SamplingStrategy {
         if (!metaNameExists || !metaSizeExists) {
             return samples;
         }
+        */
         String sql = String.format(
                 "SELECT s.`originaltablename` AS `original_table`, "
                         + "s.`sampletype` AS `sample_type`, "
@@ -60,7 +62,7 @@ public abstract class SamplingStrategy {
                         + "INNER JOIN %s.verdict_meta_size AS t "
                         + "ON s.`sampleschemaaname` = t.`schemaname` AND s.`sampletablename` = t.`tablename` "
                         + "ORDER BY `original_table`, `sample_type`, `sampling_ratio`, `on_columns`", sampleDb, sampleDb);
-        rows = context.getDbmsSpark2().execute(sql).getResultList();
+        List<Row> rows = context.getDbmsSpark2().execute(sql).getResultList();
         for (Row row: rows) {
             if (row.getString(0).equals(context.get("dbms.data.table"))) {
 //                    && row.getString(1).equals("uniform")) {
