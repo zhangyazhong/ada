@@ -54,6 +54,9 @@ public class Exp5AdaTimeCost extends ExpTemplate {
                 for (Map.Entry<String, Object> entry : executionReport.search("sampling.cost").entrySet()) {
                     expResult.push(time, entry.getKey(), String.valueOf(entry.getValue()));
                 }
+                for (Map.Entry<String, Object> entry : executionReport.search("sample").entrySet()) {
+                    expResult.push(time, entry.getKey(), String.valueOf(entry.getValue()));
+                }
                 expResult.push(time, "strategy", ((Map<Sample, Sampling>) executionReport.get("sampling.strategies"))
                         .entrySet()
                         .stream()

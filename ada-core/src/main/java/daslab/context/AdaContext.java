@@ -167,6 +167,10 @@ public class AdaContext {
 
         Map<Sample, Sampling> strategies = Maps.newHashMap();
         sampleStatusMap.forEach((sample, status) -> {
+            // REPORT: sampling.origin.{sample.brief}
+            writeIntoReport("sample.origin." + sample.brief(), sample.sampleSize);
+            // REPORT: sampling.expected.{sample.brief}
+            writeIntoReport("sample.expected." + sample.brief(), status.whetherResample() ? (long) (status.getMaxExpectedSize() * 1.1) : status.getMaxExpectedSize());
             if (status.whetherResample() || forceResample) {
                 AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be updated: %s.",
                         sample.sampleType, sample.samplingRatio,

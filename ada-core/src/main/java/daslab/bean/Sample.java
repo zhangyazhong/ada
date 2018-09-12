@@ -41,4 +41,8 @@ public class Sample {
     public String toString() {
         return String.format("Sample - %s: %s.%s[%s] with %f on %s", tableName, schemaName, originalTable, sampleType, samplingRatio, onColumn);
     }
+
+    public String brief() {
+        return String.format("%s_%s", tableName, sampleType);
+    }
 }
