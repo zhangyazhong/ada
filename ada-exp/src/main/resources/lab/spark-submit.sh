@@ -66,3 +66,8 @@ java -jar ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp4_comparison
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://ubuntu1:7077 --class daslab.exp.App --driver-memory 64g ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp5_accurate_result
 # run exp5 result comparison
 java -jar ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp5_compare_result
+
+
+
+# run exp6 database variance
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://ubuntu1:7077 --class daslab.exp.App --driver-memory 64g ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp6_variance

@@ -140,6 +140,7 @@ public class TableMeta {
                 double errorBound = tableMetaMap.get(column).getE();
                 batchMetaMap.put(column, MetaInfo.calc(column, totalVar, totalCount, totalSum, errorBound, confidence));
                 AdaLogger.debug(this, "Batch[" + context.getBatchCount() + "] table meta[" + column.getColumnName() + "]: " + batchMetaMap.get(column).toString());
+                context.writeIntoReport("table.variance." + column.getColumnName(), totalVar);
             }
         }
         cardinality += newCount;

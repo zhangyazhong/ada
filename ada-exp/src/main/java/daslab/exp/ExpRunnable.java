@@ -6,4 +6,7 @@ package daslab.exp;
  */
 public interface ExpRunnable {
     void run();
+    default ExpRunnable args(String[] args) {
+        return this;
+    }
 }

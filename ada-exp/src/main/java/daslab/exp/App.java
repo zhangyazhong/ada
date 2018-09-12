@@ -9,6 +9,7 @@ import daslab.exp2.Exp2Sender;
 import daslab.exp3.*;
 import daslab.exp4.*;
 import daslab.exp5.*;
+import daslab.exp6.Exp6Variance;
 import daslab.restore.RestoreModule;
 import daslab.restore.SampleCleaner;
 import daslab.restore.SystemRestore;
@@ -128,6 +129,10 @@ public class App {
                 case "exp5_result_compare":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Result Comparison");
                     new Exp5ResultComparison().run();
+                    break;
+                case "exp6_variance":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 6 for Database Variance");
+                    new Exp6Variance().run();
                     break;
             }
         }

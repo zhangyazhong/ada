@@ -42,7 +42,9 @@ public class AdaContext {
     private int batchCount;
     private VerdictSpark2Context verdictSpark2Context;
     private List<ExecutionReport> executionReports;
+    private Map<Sample, Sampling> strategies;
     private boolean forceResample;
+    private boolean skipSampling;
 
     public AdaContext() {
         configs = Maps.newHashMap();
@@ -54,8 +56,10 @@ public class AdaContext {
         tableMeta = new TableMeta(this, dbmsSpark2.desc());
         batchCount = 0;
         forceResample = false;
+        skipSampling = false;
         samplingController = new SamplingController(this);
         executionReports = Lists.newLinkedList();
+        strategies = Maps.newHashMap();
         try {
             verdictSpark2Context = new VerdictSpark2Context(getDbms().getSparkSession().sparkContext());
         } catch (VerdictException e) {
@@ -105,6 +109,11 @@ public class AdaContext {
         return start();
     }
 
+    public AdaContext skipSampling(boolean skipSampling) {
+        this.skipSampling = skipSampling;
+        return this;
+    }
+
     public void receive(File file) {
         fileReceiver.receive(file);
     }
@@ -133,19 +142,23 @@ public class AdaContext {
         tableMeta.refresh(adaBatch);
         // REPORT: sampling.cost.pre-process (stop)
         writeIntoReport("sampling.cost.pre-process", timer.stop());
-        // REPORT: sampling.cost.sampling (start)
-        timer = AdaTimer.create();
-        Map<Sample, Sampling> strategies = sampling(adaBatch);
-        // REPORT: sampling.cost.sampling (stop)
-        writeIntoReport("sampling.cost.sampling", String.valueOf(timer.stop()));
+
+        if (!skipSampling) {
+            // REPORT: sampling.cost.sampling (start)
+            timer = AdaTimer.create();
+            strategies = sampling(adaBatch);
+            // REPORT: sampling.strategies
+            writeIntoReport("sampling.strategies", strategies);
+            // REPORT: sampling.cost.sampling (stop)
+            writeIntoReport("sampling.cost.sampling", String.valueOf(timer.stop()));
+        }
+
         // REPORT: sampling.cost.total (stop)
         Long finishTime = System.currentTimeMillis();
-        String samplingTime = String.format("%d:%02d.%03d", (finishTime - startTime) / 60000, ((finishTime - startTime) / 1000) % 60, (finishTime - startTime) % 1000);
+        String samplingTime = AdaTimer.format(finishTime - startTime);
         currentReport().put("sampling.cost.total", finishTime - startTime);
 
         AdaLogger.info(this, String.format("AdaBatch(%d) [%s] sampling time cost: %s ", adaBatch.getSize(), strategies.toString(), samplingTime));
-        // REPORT: sampling.strategies
-        writeIntoReport("sampling.strategies", strategies);
     }
 
     public Map<Sample, Sampling> sampling(AdaBatch adaBatch) {
