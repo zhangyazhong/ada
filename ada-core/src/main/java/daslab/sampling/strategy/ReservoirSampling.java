@@ -13,6 +13,7 @@ import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.*;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.spark.sql.functions.*;
 
@@ -216,26 +217,31 @@ public class ReservoirSampling extends SamplingStrategy {
                 Encoders.LONG()).collectAsList();
         long eachGroupSampleCardinalityMin = 0, eachGroupSampleCardinalityMax = sampleCardinality;
         long eachGroupSampleCardinality = (eachGroupSampleCardinalityMin + eachGroupSampleCardinalityMax) >> 1; //= Math.max(10, sampleCardinality / groupCount + 1);
+        long expectedSampleCardinality = 0;
         while (eachGroupSampleCardinalityMin <= eachGroupSampleCardinalityMax) {
             eachGroupSampleCardinality = (eachGroupSampleCardinalityMin + eachGroupSampleCardinalityMax) >> 1;
-            long expectedSampleCardinality = 0;
+            expectedSampleCardinality = 0;
             for (Long count : groupInfoList) {
                 expectedSampleCardinality += Math.min(count, eachGroupSampleCardinality);
             }
-            if (expectedSampleCardinality < sampleCardinality * 0.95) {
+            if (expectedSampleCardinality < sampleCardinality * 0.98) {
                 eachGroupSampleCardinalityMin = eachGroupSampleCardinality + 1;
-            } else if (expectedSampleCardinality > sampleCardinality * 1.05) {
+            } else if (expectedSampleCardinality > sampleCardinality * 1.01) {
                 eachGroupSampleCardinalityMax = eachGroupSampleCardinality - 1;
             } else {
                 break;
             }
         }
+        // REPORT: sample.expected.{sample.brief}
+        getContext().writeIntoReport("sample.expected." + sample.brief(), expectedSampleCardinality);
         // REPORT: sampling.cost.find-sample-size (stop)
         getContext().writeIntoReport("sampling.cost.find-sample-size", timer.stop());
 
         // REPORT: sampling.cost.create-group (start)
         timer = AdaTimer.create();
         final long finalEachGroupSampleCardinality = Math.max(eachGroupSampleCardinality, 10);
+        // REPORT: sample.final-each.{sample.brief}
+        getContext().writeIntoReport("sample.final-each." + sample.brief(), finalEachGroupSampleCardinality);
         Dataset<Row> groupExchangeInfoDF = groupInfoDF.map((MapFunction<Row, StratifiedJoinedGroup>) row -> {
             String groupName = "null";
             groupName = row.isNullAt(row.fieldIndex("a_group_name")) ? groupName : row.getString(row.fieldIndex("a_group_name"));
@@ -248,9 +254,9 @@ public class ReservoirSampling extends SamplingStrategy {
             long bExchangeSize = Math.max(0, finalEachGroupSampleCardinality - cGroupSize);
             Set<Long> exchangeSet = Sets.newHashSet();
             long tableSize = Math.max(aGroupSize, finalEachGroupSampleCardinality);
-            for (long i = bExchangeSize; i < adaBatch.getSize(); i++) {
+            for (long i = bExchangeSize; i < bGroupSize; i++) {
                 long totalSize = tableSize + i;
-                long position = (long) Math.floor(randomGenerator.nextDouble() * totalSize);
+                long position = Math.round(randomGenerator.nextDouble() * totalSize);
                 if (position < finalEachGroupSampleCardinality) {
                     exchangeSet.add(position);
                 }
