@@ -13,7 +13,6 @@ import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.*;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.spark.sql.functions.*;
 
@@ -224,9 +223,9 @@ public class ReservoirSampling extends SamplingStrategy {
             for (Long count : groupInfoList) {
                 expectedSampleCardinality += Math.min(count, eachGroupSampleCardinality);
             }
-            if (expectedSampleCardinality < sampleCardinality * 0.98) {
+            if (expectedSampleCardinality < sampleCardinality * 0.999) {
                 eachGroupSampleCardinalityMin = eachGroupSampleCardinality + 1;
-            } else if (expectedSampleCardinality > sampleCardinality * 1.01) {
+            } else if (expectedSampleCardinality > sampleCardinality * 1.001) {
                 eachGroupSampleCardinalityMax = eachGroupSampleCardinality - 1;
             } else {
                 break;
