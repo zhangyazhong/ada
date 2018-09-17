@@ -39,6 +39,7 @@ public class AdaContext {
     private DbmsSpark2 dbmsSpark2;
     private TableMeta tableMeta;
     private SamplingController samplingController;
+    private Map<Sample, SampleStatus> sampleStatusMap;
     private int batchCount;
     private VerdictSpark2Context verdictSpark2Context;
     private List<ExecutionReport> executionReports;
@@ -162,7 +163,7 @@ public class AdaContext {
     }
 
     public Map<Sample, Sampling> sampling(AdaBatch adaBatch) {
-        Map<Sample, SampleStatus> sampleStatusMap = samplingController.verify(tableMeta.getTableMetaMap(), tableMeta.getCardinality());
+        sampleStatusMap = samplingController.verify(tableMeta.getTableMetaMap(), tableMeta.getCardinality());
         AdaLogger.info(this, sampleStatusMap.toString());
 
         Map<Sample, Sampling> strategies = Maps.newHashMap();
@@ -172,6 +173,11 @@ public class AdaContext {
             // REPORT: sampling.needed.{sample.brief}
             writeIntoReport("sample.needed." + sample.brief(), status.whetherResample() ? (long) (status.getMaxExpectedSize() * 1.1) : status.getMaxExpectedSize());
             if (status.whetherResample() || forceResample) {
+                if (!forceResample) {
+                    if (status.M() <= adaBatch.getSize()) {
+                        samplingController.adaptive(sample, adaBatch);
+                    }
+                }
                 AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be updated: %s.",
                         sample.sampleType, sample.samplingRatio,
                         StringUtils.join(status.resampleColumns().stream().map(TableColumn::toString).toArray(), ", ")));
@@ -236,6 +242,10 @@ public class AdaContext {
 
     public TableMeta getTableMeta() {
         return tableMeta;
+    }
+
+    public SampleStatus getSampleStatus(Sample sample) {
+        return sampleStatusMap.get(sample);
     }
 
     public void printBlankLine(int number) {

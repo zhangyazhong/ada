@@ -25,6 +25,7 @@ public class SamplingController {
     private AdaContext context;
     private SamplingStrategy samplingStrategy;
     private SamplingStrategy resamplingStrategy;
+    private SamplingStrategy adaptiveStrategy;
 
     public SamplingController(AdaContext context) {
         this.context = context;
@@ -35,8 +36,6 @@ public class SamplingController {
             case "incremental":
                 this.samplingStrategy = new IncrementalSampling(context);
                 break;
-            case "complementary":
-                this.samplingStrategy = new AdaptiveSampling(context);
             case "reservoir":
             default:
                 this.samplingStrategy = new ReservoirSampling(context);
@@ -46,11 +45,15 @@ public class SamplingController {
             case "incremental":
                 this.resamplingStrategy = new IncrementalSampling(context);
                 break;
-            case "complementary":
-                this.resamplingStrategy = new AdaptiveSampling(context);
             case "verdict":
             default:
                 this.resamplingStrategy = new VerdictSampling(context);
+                break;
+        }
+        switch (context.get("adaptive.strategy")) {
+            case "adaptive":
+            default:
+                this.adaptiveStrategy = new AdaptiveSampling(context);
                 break;
         }
         buildGroupSizeTable();
@@ -77,6 +80,14 @@ public class SamplingController {
         resamplingStrategy.getMetaSizes().forEach(verdictMetaSize ->
                 AdaLogger.debug(this, "Final Meta Size: " + verdictMetaSize.toString()));
         resamplingStrategy.getMetaNames().forEach(verdictMetaName ->
+                AdaLogger.debug(this, "Final Meta Name: " + verdictMetaName.toString()));
+    }
+
+    public void adaptive(Sample sample, AdaBatch adaBatch) {
+        adaptiveStrategy.update(sample, adaBatch);
+        adaptiveStrategy.getMetaSizes().forEach(verdictMetaSize ->
+                AdaLogger.debug(this, "Final Meta Size: " + verdictMetaSize.toString()));
+        adaptiveStrategy.getMetaNames().forEach(verdictMetaName ->
                 AdaLogger.debug(this, "Final Meta Name: " + verdictMetaName.toString()));
     }
 

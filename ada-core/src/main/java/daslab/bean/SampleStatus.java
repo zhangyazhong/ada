@@ -11,10 +11,12 @@ public class SampleStatus {
     private Sample sample;
     private long tableSize;
     private Map<TableColumn, Long> expectedSizes;
+    private long M;
 
-    public SampleStatus(Sample sample, long tableSize) {
+    public SampleStatus(Sample sample, long tableSize, long M) {
         this.sample = sample;
         this.tableSize = tableSize;
+        this.M = M;
         expectedSizes = Maps.newHashMap();
     }
 
@@ -55,6 +57,10 @@ public class SampleStatus {
             }
         });
         return columns;
+    }
+
+    public long M() {
+        return M;
     }
 
     @Override
