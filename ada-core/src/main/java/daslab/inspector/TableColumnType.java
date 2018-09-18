@@ -5,7 +5,7 @@ package daslab.inspector;
  * @version 2018-05-14
  */
 public enum TableColumnType {
-    INT("int"), STRING("string"), DOUBLE("double");
+    INT("int"), STRING("string"), DOUBLE("double"), DATE("date");
 
     private String tag;
 
@@ -36,6 +36,10 @@ public enum TableColumnType {
 
     public boolean isDouble() {
         return this.tag.equals(DOUBLE.getTag());
+    }
+
+    public boolean isDate() {
+        return this.tag.equals(DATE.getTag());
     }
 
     @Override

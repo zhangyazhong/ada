@@ -10,6 +10,7 @@ import daslab.exp3.*;
 import daslab.exp4.*;
 import daslab.exp5.*;
 import daslab.exp6.Exp6Variance;
+import daslab.exp7.Exp7AdaTimeCost;
 import daslab.restore.RestoreModule;
 import daslab.restore.SampleCleaner;
 import daslab.restore.SystemRestore;
@@ -133,6 +134,10 @@ public class App {
                 case "exp6_variance":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 6 for Database Variance");
                     new Exp6Variance().run();
+                    break;
+                case "exp7_ada_cost":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 7 for Ada Time Cost (TPC-H)");
+                    new Exp7AdaTimeCost().run();
                     break;
             }
         }

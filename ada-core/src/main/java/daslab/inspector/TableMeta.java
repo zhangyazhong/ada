@@ -4,7 +4,6 @@ import com.google.common.collect.Maps;
 import daslab.bean.AdaBatch;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
-import daslab.utils.AdaTimer;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.Map;
@@ -107,9 +106,11 @@ public class TableMeta {
         for (TableColumn column : tableSchema.getColumns()) {
             if (column.getColumnType().isInt() || column.getColumnType().isDouble()) {
                 double var = context.getDbmsSpark2().getResultAsDouble(0, "var_pop_" + column.getColumnName());
-                double sum = context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
+                double sum = column.getColumnType().isDouble() ?
+                        context.getDbmsSpark2().getResultAsDouble(0, "sum_" + column.getColumnName()) :
+                        context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
                 double avg = context.getDbmsSpark2().getResultAsDouble(0, "avg_" + column.getColumnName());
-                double errorBound = avg * 0.3;
+                double errorBound = avg * Double.parseDouble(context.get("query.error_bound"));
                 MetaInfo metaInfo = MetaInfo.calc(column, var, cardinality, sum, errorBound, confidence);
                 tableMetaMap.put(column, metaInfo);
                 AdaLogger.debug(this, "Initially table meta[" + column.getColumnName() + "]: " + metaInfo.toString());
@@ -131,7 +132,9 @@ public class TableMeta {
                 double oldSum = tableMetaMap.get(column).getSum();
                 double oldAvg = tableMetaMap.get(column).getAvg();
                 double newVar = context.getDbmsSpark2().getResultAsDouble(0, "var_pop_" + column.getColumnName());
-                double newSum = context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
+                double newSum = column.getColumnType().isDouble() ?
+                        context.getDbmsSpark2().getResultAsDouble(0, "sum_" + column.getColumnName()) :
+                        context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
                 double newAvg = newSum / newCount;
                 double totalSum = newSum + oldSum;
                 double totalAvg = totalSum / totalCount;

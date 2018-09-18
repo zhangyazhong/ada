@@ -21,15 +21,25 @@ public class DatabaseRestore extends ExpTemplate implements RestoreModule {
         execute(String.format("DROP DATABASE IF EXISTS %s CASCADE", get("data.table.schema")));
         execute(String.format("CREATE DATABASE %s", get("data.table.schema")));
         execute(String.format("USE %s", get("data.table.schema")));
-        execute(String.format("CREATE EXTERNAL TABLE %s(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION '%s/'", get("data.table.name"), get("data.table.hdfs.location")));
-        execute(String.format("CREATE EXTERNAL TABLE %s(date_time int, project_name string, page_name string, page_count int, page_size int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION '%s/'", get("batch.table.name"), get("batch.table.hdfs.location")));
-        for (int i = 0; i < ExpConfig.HOUR_START; i++) {
-            int day = i / 24 + 1;
-            int hour = i % 24;
-            String path = String.format(get("source.hdfs.location.pattern"), day, hour);
-            String command = "hadoop fs -cp " + path + " " + get("data.table.hdfs.location");
-            AdaLogger.debug(this, "Loading " + path + " into table");
-            AdaSystem.call(command);
+        execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", get("data.table.name"), get("data.table.structure"), get("data.table.terminated"), get("data.table.hdfs.location")));
+        execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", get("batch.table.name"), get("batch.table.structure"), get("batch.table.terminated"), get("batch.table.hdfs.location")));
+
+        if (get("profile").contains("tpch")) {
+            for (int i = Integer.parseInt(get("exp.hour.init")); i < ExpConfig.HOUR_START; i++) {
+                String path = String.format(get("source.hdfs.location.pattern"), i);
+                String command = "hadoop fs -cp " + path + " " + get("data.table.hdfs.location");
+                AdaLogger.debug(this, "Loading " + path + " into table");
+                AdaSystem.call(command);
+            }
+        } else {
+            for (int i = 0; i < ExpConfig.HOUR_START; i++) {
+                int day = i / 24 + 1;
+                int hour = i % 24;
+                String path = String.format(get("source.hdfs.location.pattern"), day, hour);
+                String command = "hadoop fs -cp " + path + " " + get("data.table.hdfs.location");
+                AdaLogger.debug(this, "Loading " + path + " into table");
+                AdaSystem.call(command);
+            }
         }
 
         AdaLogger.info(this, "Restored database to initial status.");

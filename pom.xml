@@ -50,6 +50,17 @@
                 <spark.master>ubuntu1</spark.master>
             </properties>
         </profile>
+        <profile>
+            <id>lab-tpch</id>
+            <properties>
+                <profile>lab-tpch</profile>
+                <server.env>lab-tpch</server.env>
+                <server.user>scidb</server.user>
+                <server.host>10.141.211.91</server.host>
+                <server.upload.path>/home/scidb/zyz</server.upload.path>
+                <spark.master>ubuntu1</spark.master>
+            </properties>
+        </profile>
     </profiles>
 
     <properties>
@@ -180,6 +191,7 @@
                 <excludes>
                     <exclude>dev/*</exclude>
                     <exclude>lab/*</exclude>
+                    <exclude>lab-tpch/*</exclude>
                 </excludes>
                 <filtering>true</filtering>
             </resource>

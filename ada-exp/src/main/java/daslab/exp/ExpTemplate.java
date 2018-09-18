@@ -36,7 +36,7 @@ public abstract class ExpTemplate implements ExpRunnable {
         }
         try {
             verdictSpark2Context = new VerdictSpark2Context(sparkSession.sparkContext());
-            verdictSpark2Context.sql("USE " + get("data.table.schema"));
+//            verdictSpark2Context.sql("USE " + get("data.table.schema"));
         } catch (VerdictException e) {
             e.printStackTrace();
         }
