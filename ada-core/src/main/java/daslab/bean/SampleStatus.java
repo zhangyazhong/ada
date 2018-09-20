@@ -11,12 +11,10 @@ public class SampleStatus {
     private Sample sample;
     private long tableSize;
     private Map<TableColumn, Long> expectedSizes;
-    private long M;
 
-    public SampleStatus(Sample sample, long tableSize, long M) {
+    public SampleStatus(Sample sample, long tableSize) {
         this.sample = sample;
         this.tableSize = tableSize;
-        this.M = M;
         expectedSizes = Maps.newHashMap();
     }
 
@@ -60,7 +58,7 @@ public class SampleStatus {
     }
 
     public long M() {
-        return M;
+        return 10 * Math.max(getMaxExpectedSize() - sample.sampleSize, 0);
     }
 
     @Override

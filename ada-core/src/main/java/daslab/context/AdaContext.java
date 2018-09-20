@@ -46,6 +46,7 @@ public class AdaContext {
     private Map<Sample, Sampling> strategies;
     private boolean forceResample;
     private boolean skipSampling;
+    private boolean enableAdaptive;
 
     public AdaContext() {
         configs = Maps.newHashMap();
@@ -58,6 +59,7 @@ public class AdaContext {
         batchCount = 0;
         forceResample = false;
         skipSampling = false;
+        enableAdaptive = true;
         samplingController = new SamplingController(this);
         executionReports = Lists.newLinkedList();
         strategies = Maps.newHashMap();
@@ -112,6 +114,11 @@ public class AdaContext {
 
     public AdaContext skipSampling(boolean skipSampling) {
         this.skipSampling = skipSampling;
+        return this;
+    }
+
+    public AdaContext enableAdaptive(boolean enableAdaptive) {
+        this.enableAdaptive = enableAdaptive;
         return this;
     }
 
@@ -173,20 +180,25 @@ public class AdaContext {
             // REPORT: sampling.needed.{sample.brief}
             writeIntoReport("sample.needed." + sample.brief(), status.whetherResample() ? (long) (status.getMaxExpectedSize() * 1.1) : status.getMaxExpectedSize());
             if (status.whetherResample() || forceResample) {
-                if (!forceResample) {
-                    if (status.M() <= adaBatch.getSize()) {
-                        samplingController.adaptive(sample, adaBatch);
-                    }
+                if (!forceResample && enableAdaptive && status.M() <= adaBatch.getSize()) {
+                    AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be adaptive: %s.",
+                            sample.sampleType, sample.samplingRatio,
+                            StringUtils.join(status.resampleColumns().stream().map(TableColumn::toString).toArray(), ", ")));
+                    AdaLogger.info(this, String.format("Use %s strategy to adaptive sample[%s][%.2f][%s].",
+                            getSamplingController().getAdaptiveStrategy().name(), sample.sampleType, sample.samplingRatio, sample.onColumn));
+                    getSamplingController().adaptive(sample, adaBatch);
+                    strategies.put(sample, Sampling.ADAPATIVE);
+                } else {
+                    AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be resample: %s.",
+                            sample.sampleType, sample.samplingRatio,
+                            StringUtils.join(status.resampleColumns().stream().map(TableColumn::toString).toArray(), ", ")));
+                    AdaLogger.info(this, String.format("Use %s strategy to resample sample[%s][%.2f][%s].",
+                            getSamplingController().getResamplingStrategy().name(), sample.sampleType, sample.samplingRatio, sample.onColumn));
+                    getSamplingController().resample(sample, adaBatch, status.getMaxExpectedRatio(1.1));
+                    strategies.put(sample, Sampling.RESAMPLE);
                 }
-                AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be updated: %s.",
-                        sample.sampleType, sample.samplingRatio,
-                        StringUtils.join(status.resampleColumns().stream().map(TableColumn::toString).toArray(), ", ")));
-                AdaLogger.info(this, String.format("Use %s strategy to resample sample[%s][%.2f][%s].",
-                        getSamplingController().getResamplingStrategy().name(), sample.sampleType, sample.samplingRatio, sample.onColumn));
-                getSamplingController().resample(sample, adaBatch, status.getMaxExpectedRatio(1.1));
-                strategies.put(sample, Sampling.RESAMPLE);
             } else {
-                AdaLogger.info(this, String.format("Sample's[%s][%.2f]: no column needs to be updated.",
+                AdaLogger.info(this, String.format("Sample's[%s][%.2f]: no column needs to be resample.",
                         sample.sampleType, sample.samplingRatio));
                 AdaLogger.info(this, String.format("Use %s strategy to update sample[%s][%.2f][%s].",
                         getSamplingController().getSamplingStrategy().name(), sample.sampleType, sample.samplingRatio, sample.onColumn));
@@ -194,7 +206,6 @@ public class AdaContext {
                 strategies.put(sample, Sampling.UPDATE);
             }
         });
-
         return strategies;
     }
 

@@ -5,7 +5,7 @@ package daslab.bean;
  * @version 2018-06-05
  */
 public enum Sampling {
-    RESAMPLE("resample"), UPDATE("update");
+    RESAMPLE("resample"), UPDATE("update"), ADAPATIVE("adaptive");
 
     private String strategy;
 

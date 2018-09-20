@@ -124,7 +124,7 @@ public abstract class SamplingStrategy {
         List<Sample> samples = getSamples(true);
         for (Sample sample : samples) {
             AdaLogger.info(this, String.format("Sample[%s][%.2f] size is: %d", sample.sampleType, sample.samplingRatio, sample.sampleSize));
-            SampleStatus sampleStatus = new SampleStatus(sample, tableSize, Long.MAX_VALUE);
+            SampleStatus sampleStatus = new SampleStatus(sample, tableSize);
             for (TableColumn column : metaMap.keySet()) {
                 sampleStatus.push(column, (long) metaMap.get(column).getN());
             }

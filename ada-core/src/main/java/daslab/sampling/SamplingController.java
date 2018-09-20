@@ -67,6 +67,10 @@ public class SamplingController {
         return resamplingStrategy;
     }
 
+    public SamplingStrategy getAdaptiveStrategy() {
+        return adaptiveStrategy;
+    }
+
     public void update(Sample sample, AdaBatch adaBatch) {
         samplingStrategy.update(sample, adaBatch);
         samplingStrategy.getMetaSizes().forEach(verdictMetaSize ->
@@ -111,12 +115,13 @@ public class SamplingController {
                 .execute(String.format("CREATE TABLE %s AS SELECT %s, COUNT(*) AS group_size FROM %s.%s GROUP BY %s", groupTable, onColumn, originSchema, originTable, onColumn));
     }
 
-    public void buildGroupSizeTable(String originSchema, String originTable, String groupView, String onColumn) {
+    public Dataset<Row> buildGroupSizeTable(String originSchema, String originTable, String groupView, String onColumn) {
         Dataset<Row> groupDF = context.getDbms()
                 .execute(String.format("SELECT %s, COUNT(*) AS group_size FROM %s.%s GROUP BY %s", onColumn, originSchema, originTable, onColumn))
                 .getResultSet()
                 .cache();
         groupDF.createOrReplaceTempView(groupView);
         groupDF.count();
+        return groupDF;
     }
 }
