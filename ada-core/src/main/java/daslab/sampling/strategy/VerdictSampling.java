@@ -41,7 +41,7 @@ public class VerdictSampling extends SamplingStrategy {
 
     @Override
     public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
-        ratio = Math.max(1.0 * (int) round(ratio * 100) / 100, 0.01);
+        ratio = Math.max(1.0 * (int) round(ratio * 10000) / 10000, 0.01);
         verdictSpark2Context = getContext().getVerdict();
         // REPORT: sampling.cost.delete-sample(start)
         AdaTimer timer = AdaTimer.create();
@@ -106,16 +106,16 @@ public class VerdictSampling extends SamplingStrategy {
     }
 
     private void createUniformSample(Sample sample, double ratio) {
-        AdaLogger.info(this, String.format("About to create uniform sample with sampling ratio %f of %s.%s", round(ratio * 100) / 100.0, getContext().get("dbms.default.database"), sample.originalTable));
+        AdaLogger.info(this, String.format("About to create uniform sample with sampling ratio %.2f of %s.%s", round(ratio * 10000) / 10000.0, getContext().get("dbms.default.database"), sample.originalTable));
         try {
-            verdictSpark2Context.sql("CREATE " + (int) round(ratio * 100) + "% UNIFORM SAMPLE OF " + getContext().get("dbms.default.database") + "." + sample.originalTable);
+            verdictSpark2Context.sql(String.format("CREATE %.2f%% UNIFORM SAMPLE OF %s.%s", ratio * 100, getContext().get("dbms.default.database"), sample.originalTable));
         } catch (VerdictException e) {
             e.printStackTrace();
         }
     }
 
     private void createStratifiedSample(Sample sample, double ratio) {
-        AdaLogger.info(this, String.format("About to create stratified sample with sampling ratio %f of %s.%s", round(ratio * 100) / 100.0, getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
+        AdaLogger.info(this, String.format("About to create stratified sample with sampling ratio %.2f of %s.%s", round(ratio * 10000) / 10000.0, getContext().get("dbms.default.database"), getContext().get("dbms.data.table")));
         TableEntity originTable = new TableEntity(getContext().get("dbms.default.database"), sample.originalTable);
         TableEntity groupTable = createGroupTable(originTable, sample.onColumn);
         TableEntity stratifiedSampleWithoutProb = createStratifiedSampleWithoutProb(originTable, groupTable, sample.onColumn, ratio);
@@ -197,7 +197,7 @@ public class VerdictSampling extends SamplingStrategy {
 
     private TableEntity attachProbToStratifiedSample(TableEntity originTable, TableEntity stratifiedSampleWithoutProb, String onColumn, double ratio) {
         TableEntity stratifiedSampleWithProb = new TableEntity(stratifiedSampleWithoutProb.getSchema(),
-                String.format("vs_%s_st_0_%d_%s", originTable.getTable(), ((int) Math.round(ratio * 100)) * 100, onColumn));
+                String.format("vs_%s_st_0_%d_%s", originTable.getTable(), ((int) Math.round(ratio * 10000)), onColumn));
         String sql = String.format("CREATE TABLE %s stored AS parquet AS " +
                 "SELECT s.*, (`verdict_group_size_in_sample` / `verdict_group_size`) AS `verdict_vprob`, (round((rand(unix_timestamp()) * 100)) %% 100) AS `verdict_vpart` " +
                 "FROM %s AS s " +

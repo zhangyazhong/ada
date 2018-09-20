@@ -59,7 +59,7 @@ public class AdaContext {
         batchCount = 0;
         forceResample = false;
         skipSampling = false;
-        enableAdaptive = true;
+        enableAdaptive = false;
         samplingController = new SamplingController(this);
         executionReports = Lists.newLinkedList();
         strategies = Maps.newHashMap();
@@ -178,7 +178,7 @@ public class AdaContext {
             // REPORT: sampling.origin.{sample.brief}
             writeIntoReport("sample.origin." + sample.brief(), sample.sampleSize);
             // REPORT: sampling.needed.{sample.brief}
-            writeIntoReport("sample.needed." + sample.brief(), status.whetherResample() ? (long) (status.getMaxExpectedSize() * 1.1) : status.getMaxExpectedSize());
+            writeIntoReport("sample.needed." + sample.brief(), status.whetherResample() ? (long) (status.getMaxExpectedSize() * Double.parseDouble(get("resampling.overflow"))) : status.getMaxExpectedSize());
             if (status.whetherResample() || forceResample) {
                 if (!forceResample && enableAdaptive && status.M() <= adaBatch.getSize()) {
                     AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be adaptive: %s.",
@@ -194,7 +194,7 @@ public class AdaContext {
                             StringUtils.join(status.resampleColumns().stream().map(TableColumn::toString).toArray(), ", ")));
                     AdaLogger.info(this, String.format("Use %s strategy to resample sample[%s][%.2f][%s].",
                             getSamplingController().getResamplingStrategy().name(), sample.sampleType, sample.samplingRatio, sample.onColumn));
-                    getSamplingController().resample(sample, adaBatch, status.getMaxExpectedRatio(1.1));
+                    getSamplingController().resample(sample, adaBatch, status.getMaxExpectedRatio(Double.parseDouble(get("resampling.overflow"))));
                     strategies.put(sample, Sampling.RESAMPLE);
                 }
             } else {
