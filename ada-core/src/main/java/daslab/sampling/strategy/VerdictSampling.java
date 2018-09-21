@@ -41,7 +41,7 @@ public class VerdictSampling extends SamplingStrategy {
 
     @Override
     public void resample(Sample sample, AdaBatch adaBatch, double ratio) {
-        ratio = Math.max(1.0 * (int) round(ratio * 10000) / 10000, 0.01);
+        ratio = Math.max(1.0 * (int) round(ratio * 10000) / 10000, 0.0001);
         verdictSpark2Context = getContext().getVerdict();
         // REPORT: sampling.cost.delete-sample(start)
         AdaTimer timer = AdaTimer.create();
