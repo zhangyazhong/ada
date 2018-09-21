@@ -71,3 +71,9 @@ java -jar ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp5_compare_resu
 
 # run exp6 database variance
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App --driver-memory 8g ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp6_variance
+
+
+# run exp8 big data sampling
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App --driver-memory 8g ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp8_sampling
+# run exp8 copy big data
+java -jar ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp8_copy

@@ -74,3 +74,9 @@ java -jar ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp5_compare_resu
 
 # run exp7 ada time cost (tpc-h)
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://ubuntu1:7077 --class daslab.exp.App --driver-memory 64g ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp7_ada_cost
+
+
+# run exp8 big data sampling
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://ubuntu1:7077 --class daslab.exp.App --driver-memory 64g ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp8_sampling
+# run exp8 copy big data
+java -jar ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp8_copy
