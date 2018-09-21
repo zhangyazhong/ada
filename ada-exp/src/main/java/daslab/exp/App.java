@@ -11,6 +11,8 @@ import daslab.exp4.*;
 import daslab.exp5.*;
 import daslab.exp6.Exp6Variance;
 import daslab.exp7.Exp7AdaTimeCost;
+import daslab.exp8.Exp8BigDatabase;
+import daslab.exp8.Exp8CopyData;
 import daslab.restore.RestoreModule;
 import daslab.restore.SampleCleaner;
 import daslab.restore.SystemRestore;
@@ -138,6 +140,14 @@ public class App {
                 case "exp7_ada_cost":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 7 for Ada Time Cost (TPC-H)");
                     new Exp7AdaTimeCost().run();
+                    break;
+                case "exp8_sampling":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 8 for Big Dataset Sampling");
+                    new Exp8BigDatabase().run();
+                    break;
+                case "exp8_copy":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 8 for Copying Data");
+                    new Exp8CopyData().run();
                     break;
             }
         }
