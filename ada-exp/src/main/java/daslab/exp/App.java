@@ -13,6 +13,7 @@ import daslab.exp6.Exp6Variance;
 import daslab.exp7.Exp7AdaTimeCost;
 import daslab.exp8.Exp8BigDatabase;
 import daslab.exp8.Exp8CopyData;
+import daslab.exp8.Exp8SplitTPCH;
 import daslab.restore.RestoreModule;
 import daslab.restore.SampleCleaner;
 import daslab.restore.SystemRestore;
@@ -148,6 +149,10 @@ public class App {
                 case "exp8_copy":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 8 for Copying Data");
                     new Exp8CopyData().run();
+                    break;
+                case "exp8_zip":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 8 for Zipping Data");
+                    new Exp8SplitTPCH().run();
                     break;
             }
         }
