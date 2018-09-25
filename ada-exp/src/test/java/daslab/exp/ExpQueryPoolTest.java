@@ -44,4 +44,12 @@ public class ExpQueryPoolTest {
                 ))
                 .stream().map(ExpQueryPool.QueryString::toString).forEach(System.out::println);
     }
+
+    @Test
+    public void QUERIES_ONLY() {
+        ExpQueryPool.QUERIES_ONLY(
+                new ExpQueryPool.WhereClause("page_size"),
+                new ExpQueryPool.WhereClause("page_count")
+        ).stream().map(ExpQueryPool.QueryString::toString).forEach(System.out::println);
+    }
 }

@@ -129,6 +129,15 @@ public class ExpQueryPool {
                 .collect(Collectors.toList());
     }
 
+    public static List<QueryString> QUERIES_ONLY(WhereClause... onlyWheres) {
+        List<WhereClause> _onlyWheres = Lists.newArrayList(onlyWheres);
+        return QUERIES().stream()
+                .filter(queryString -> _onlyWheres.stream().anyMatch(queryString::containsWhereColumn))
+                // TODO: put group-by filter into method arguments
+                .filter(queryString -> !queryString.containsGroupByColumn(new GroupByClause("project_name")))
+                .collect(Collectors.toList());
+    }
+
     private static List<QueryString> generateNoCase() {
         List<QueryString> QUERIES = Lists.newLinkedList();
         String QUERY_FORMAT = "SELECT %s(%s) FROM %s";

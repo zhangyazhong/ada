@@ -114,6 +114,8 @@ public class TableMeta {
                 MetaInfo metaInfo = MetaInfo.calc(column, var, cardinality, sum, errorBound, confidence);
                 tableMetaMap.put(column, metaInfo);
                 AdaLogger.debug(this, "Initially table meta[" + column.getColumnName() + "]: " + metaInfo.toString());
+                // REPORT: error-bound.{column}
+                context.writeIntoReport("error-bound." + column.getColumnName(), errorBound);
             }
         }
     }
