@@ -5,6 +5,7 @@ import daslab.bean.*;
 import daslab.context.AdaContext;
 import daslab.sampling.SamplingStrategy;
 import daslab.utils.AdaLogger;
+import daslab.utils.AdaNamespace;
 import daslab.utils.AdaTimer;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.spark.api.java.function.MapFunction;
@@ -105,7 +106,7 @@ public class AdaptiveSampling extends SamplingStrategy {
         SparkSession spark = getContext().getDbmsSpark2().getSparkSession();
         updateMetaInfo(sample,
                 spark.createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, updatedCount, sample.tableSize + (long) adaBatch.getSize())), VerdictMetaSize.class).toDF(),
-                spark.createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, Math.round(100.0 * updatedCount / (sample.tableSize + (long) adaBatch.getSize())) / 100.0, sample.onColumn)), VerdictMetaName.class).toDF());
+                spark.createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, Math.round(10000.0 * updatedCount / (sample.tableSize + (long) adaBatch.getSize())) / 10000.0, sample.onColumn)), VerdictMetaName.class).toDF());
         // REPORT: sampling.cost.update-meta (stop)
         getContext().writeIntoReport("sampling.cost.update-meta", timer.stop());
     }
@@ -148,12 +149,93 @@ public class AdaptiveSampling extends SamplingStrategy {
         // REPORT: sampling.cost.find-sample-size (stop)
         getContext().writeIntoReport("sampling.cost.find-sample-size", timer.stop());
 
-        String sqlForClean = String.format("SELECT u.*, v.group_size FROM %s AS u INNER JOIN %s AS v ON u.%s=v.%s WHERE Rand(Unix_timestamp())<%f/CAST(v.group_size AS DOUBLE)",
+        // REPORT: sampling.cost.clean (start)
+        timer = AdaTimer.create();
+        String sqlForClean = String.format("SELECT u.* FROM %s AS u INNER JOIN %s AS v ON u.%s=v.%s WHERE Rand(Unix_timestamp())<%f/CAST(v.group_size AS DOUBLE)",
                 sampleTable.toSQL(), sampleGroupTable, sample.onColumn, sample.onColumn, eachKeptInSample * 1.0);
+        Dataset<Row> cleanedSample = getContext().getDbms()
+                .execute(sqlForClean)
+                .getResultSet()
+                .drop("verdict_group_size")
+                .drop("verdict_rand")
+                .drop("verdict_vprob");
+        AdaLogger.info(this, sample.toString() + " cleaned cardinality: " + cleanedSample.count());
+        // REPORT: sampling.cost.clean (stop)
+        getContext().writeIntoReport("sampling.cost.clean", timer.stop());
 
+        // REPORT: sampling.cost.insert (start)
+        timer = AdaTimer.create();
+        String sqlForInsert = String.format("SELECT u.* FROM %s AS u INNER JOIN %s AS v ON u.%s=v.%s WHERE Rand(Unix_timestamp())<%f/CAST(v.group_size AS DOUBLE)",
+                batchTable.toSQL(), batchGroupTable, sample.onColumn, sample.onColumn, eachKeptInBatch * 1.0);
+        Dataset<Row> insertedSample = getContext().getDbms()
+                .execute(sqlForInsert)
+                .getResultSet()
+                .withColumn("verdict_vpart", lit(Math.floor(random.nextDouble() * 100)));
+        AdaLogger.info(this, sample.toString() + " inserted cardinality: " + insertedSample.count());
+        // REPORT: sampling.cost.insert (stop)
+        getContext().writeIntoReport("sampling.cost.insert", timer.stop());
 
+        // REPORT: sampling.cost.union (start)
+        timer = AdaTimer.create();
+        Dataset<Row> updatedSample = cleanedSample.union(insertedSample).cache();
+        String updatedSampleView = AdaNamespace.tempUniqueName("updated_sample");
+        updatedSample.createOrReplaceTempView(updatedSampleView);
+        long updatedCount = updatedSample.count();
+        AdaLogger.info(this, sample.toString() + " updated cardinality: " + updatedCount);
+        // REPORT: sampling.cost.union (stop)
+        getContext().writeIntoReport("sampling.cost.union", timer.stop());
 
+        // REPORT: sampling.cost.attach-prob (start)
+        timer = AdaTimer.create();
+        String sqlForGroup = String.format("SELECT (CASE WHEN (u.%s IS NULL) THEN v.%s ELSE u.%s END) AS group_name, (CASE WHEN (u.group_size IS NULL) THEN 0 ELSE u.group_size END), (CASE WHEN (v.group_size IS NULL) THEN 0 ELSE v.group_size END) AS v_group_size FROM %s AS u FULL OUTER JOIN %s AS v ON u.%s=v.%s",
+                sample.onColumn, sample.onColumn, sample.onColumn, originGroupTable.toSQL(), batchGroupTable, sample.onColumn, sample.onColumn);
+        long finalEachKeptInSample = eachKeptInSample;
+        long finalEachKeptInBatch = eachKeptInBatch;
+        Dataset<Row> updatedGroup = getContext().getDbms().execute(sqlForGroup).getResultSet()
+                .map((MapFunction<Row, StratifiedAdaptiveGroup>) row -> {
+                    String group_name = row.getString(row.fieldIndex("group_name"));
+                    long u_group_size = row.getLong(row.fieldIndex("u_group_size"));
+                    long v_group_size = row.getLong(row.fieldIndex("v_group_size"));
+                    long realKeptInSample = Math.min(u_group_size, finalEachKeptInSample);
+                    long realKeptInBatch = Math.min(v_group_size, finalEachKeptInBatch);
+                    long group_size = u_group_size + v_group_size;
+                    double verdict_vprob = 1.0 * (realKeptInSample + realKeptInBatch) / group_size;
+                    return new StratifiedAdaptiveGroup(group_name, u_group_size, v_group_size, group_size, verdict_vprob);
+                }, Encoders.bean(StratifiedAdaptiveGroup.class)).toDF().cache();
+        updatedGroup.count();
+        String updatedGroupView = AdaNamespace.tempUniqueName("updated_group");
+        updatedGroup.createOrReplaceTempView(updatedGroupView);
 
+        String sqlForProb = String.format("CREATE TABLE %s_tmp AS (SELECT u.*,v.verdict_vprob FROM %s AS u INNER JOIN %s AS v ON u.%s=v.%s)",
+                sample.tableName, updatedSampleView, updatedGroupView, sample.onColumn, "group_name");
+        getContext().getDbms()
+                .execute(String.format("USE %s", sample.schemaName))
+                .execute(sqlForProb);
+        // REPORT: sampling.cost.attach-prob (stop)
+        getContext().writeIntoReport("sampling.cost.attach-prob", timer.stop());
+
+        // update origin group table
+        String sqlForUpdateGroupTable = String.format("CREATE TABLE %s_tmp AS SELECT group_name AS %s, (u_group_size+v_group_size) AS group_size FROM %s",
+                originGroupTable.getTable(), sample.onColumn, updatedGroupView);
+        getContext().getDbmsSpark2()
+                .execute(String.format("USE %s", sample.schemaName))
+                .execute(sqlForUpdateGroupTable)
+                .execute(String.format("DROP TABLE IF EXISTS %s", originGroupTable.getTable()))
+                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", originGroupTable.getTable(), originGroupTable.getTable()));
+
+        // update origin sample table
+        getContext().getDbmsSpark2()
+                .execute(String.format("USE %s", sample.schemaName))
+                .execute(String.format("DROP TABLE IF EXISTS %s.%s", sample.schemaName, sample.tableName))
+                .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
+
+        updateMetaInfo(sample,
+                getContext().getDbms().getSparkSession()
+                .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, updatedCount, getContext().getTableMeta().getCardinality())), VerdictMetaSize.class)
+                .toDF(),
+                getContext().getDbms().getSparkSession()
+                .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, Math.round(10000.0 * updatedCount / (sample.tableSize + (long) adaBatch.getSize())) / 10000.0, sample.onColumn)), VerdictMetaName.class)
+                .toDF());
     }
 
     private long findX(Sample sample, AdaBatch adaBatch) {
