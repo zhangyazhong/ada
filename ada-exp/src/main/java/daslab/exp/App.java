@@ -114,9 +114,17 @@ public class App {
                     AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Ada Time Cost");
                     new Exp5AdaTimeCost().run();
                     break;
+                case "exp5_ada_cost_":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Ada Time Cost");
+                    new Exp5AdaTimeCost().run(args);
+                    break;
                 case "exp5_verdict_cost":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Verdict Time Cost");
                     new Exp5VerdictTimeCost().run();
+                    break;
+                case "exp5_verdict_cost_":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Verdict Time Cost");
+                    new Exp5VerdictTimeCost().run(args);
                     break;
                 case "exp5_ada_result":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Ada Result Performance");

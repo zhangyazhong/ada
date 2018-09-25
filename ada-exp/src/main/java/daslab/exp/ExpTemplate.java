@@ -72,6 +72,13 @@ public abstract class ExpTemplate implements ExpRunnable {
     @Override
     public abstract void run();
 
+    public void run(String[] args) {
+        for (int k = 2; k < args.length; k += 2) {
+            ExpConfig.set(args[k - 1], args[k]);
+        }
+        run();
+    }
+
     public void append(String schema, String table, String path) {
         String command = "hadoop fs -cp " + path + " " + get("data.table.hdfs.location");
         AdaLogger.debug(this, "Loading " + path + " into table");
