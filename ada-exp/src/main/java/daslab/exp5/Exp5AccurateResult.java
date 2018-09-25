@@ -22,7 +22,7 @@ import static daslab.exp.ExpConfig.HOUR_TOTAL;
  * @version 2018-08-31
  */
 public class Exp5AccurateResult extends ExpTemplate {
-    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp5/accurate_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
+    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp5/(new)accurate_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     public Exp5AccurateResult() {
         this("Ada Exp5 - Accuracy Result");
@@ -42,6 +42,10 @@ public class Exp5AccurateResult extends ExpTemplate {
                         new ExpQueryPool.GroupByClause("project_name")
                 ))
                 .stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
+        QUERIES = ExpQueryPool.QUERIES_ONLY(
+                new ExpQueryPool.WhereClause("page_size"),
+                new ExpQueryPool.WhereClause("page_count")
+        ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
         ExpResult expResult = new ExpResult("time");
         SystemRestore.restoreModules().forEach(RestoreModule::restore);
         AdaLogger.info(this, "Restored database.");

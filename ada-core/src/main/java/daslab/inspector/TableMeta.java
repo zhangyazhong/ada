@@ -114,8 +114,6 @@ public class TableMeta {
                 MetaInfo metaInfo = MetaInfo.calc(column, var, cardinality, sum, errorBound, confidence);
                 tableMetaMap.put(column, metaInfo);
                 AdaLogger.debug(this, "Initially table meta[" + column.getColumnName() + "]: " + metaInfo.toString());
-                // REPORT: error-bound.{column}
-                context.writeIntoReport("error-bound." + column.getColumnName(), errorBound);
             }
         }
     }
@@ -145,7 +143,10 @@ public class TableMeta {
                 double errorBound = tableMetaMap.get(column).getE();
                 batchMetaMap.put(column, MetaInfo.calc(column, totalVar, totalCount, totalSum, errorBound, confidence));
                 AdaLogger.debug(this, "Batch[" + context.getBatchCount() + "] table meta[" + column.getColumnName() + "]: " + batchMetaMap.get(column).toString());
+                // REPORT: table.variance.{column}
                 context.writeIntoReport("table.variance." + column.getColumnName(), totalVar);
+                // REPORT: error-bound.{column}
+                context.writeIntoReport("error-bound." + column.getColumnName(), errorBound);
             }
         }
         cardinality += newCount;
