@@ -4,6 +4,7 @@ import daslab.exp1.Exp1;
 import daslab.exp1.Exp1Cluster;
 import daslab.exp1.Exp1Collect;
 import daslab.exp1.Exp1Accurate;
+import daslab.exp11.Exp11AdaTimeCost;
 import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
 import daslab.exp3.*;
@@ -112,7 +113,7 @@ public class App {
                     break;
                 case "exp5_ada_cost":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Ada Time Cost");
-                    new Exp5AdaTimeCost().run();
+                    new Exp5AdaTimeCost().run(args);
                     break;
                 case "exp5_ada_cost_":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Ada Time Cost");
@@ -120,7 +121,7 @@ public class App {
                     break;
                 case "exp5_verdict_cost":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Verdict Time Cost");
-                    new Exp5VerdictTimeCost().run();
+                    new Exp5VerdictTimeCost().run(args);
                     break;
                 case "exp5_verdict_cost_":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 5 for Verdict Time Cost");
@@ -161,6 +162,10 @@ public class App {
                 case "exp8_zip":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 8 for Zipping Data");
                     new Exp8SplitTPCH().run();
+                    break;
+                case "exp11_ada_cost":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 11 for Ada with Adaptive Time cost");
+                    new Exp11AdaTimeCost().run(args);
                     break;
             }
         }

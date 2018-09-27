@@ -122,6 +122,11 @@ public class AdaContext {
         return this;
     }
 
+    public AdaContext enableForceResample(boolean forceResample) {
+        this.forceResample = forceResample;
+        return this;
+    }
+
     public void receive(File file) {
         fileReceiver.receive(file);
     }
@@ -175,12 +180,14 @@ public class AdaContext {
 
         Map<Sample, Sampling> strategies = Maps.newHashMap();
         sampleStatusMap.forEach((sample, status) -> {
+            // REPORT: sampling.needed
+            writeIntoReport("sample.needed", status.getMaxExpectedSize());
             // REPORT: sampling.origin.{sample.brief}
             writeIntoReport("sample.origin." + sample.brief(), sample.sampleSize);
-            // REPORT: sampling.needed.{sample.brief}
-            writeIntoReport("sample.needed." + sample.brief(), status.whetherResample() ? (long) (status.getMaxExpectedSize() * Double.parseDouble(get("resampling.overflow"))) : status.getMaxExpectedSize());
             if (status.whetherResample() || forceResample) {
                 if (!forceResample && enableAdaptive && status.M() <= adaBatch.getSize()) {
+                    // REPORT: sampling.aims.{sample.brief}
+                    writeIntoReport("sample.aims."  + sample.brief(), status.getMaxExpectedSize());
                     AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be adaptive: %s.",
                             sample.sampleType, sample.samplingRatio,
                             StringUtils.join(status.resampleColumns().stream().map(TableColumn::toString).toArray(), ", ")));
@@ -189,6 +196,8 @@ public class AdaContext {
                     getSamplingController().adaptive(sample, adaBatch);
                     strategies.put(sample, Sampling.ADAPATIVE);
                 } else {
+                    // REPORT: sampling.aims.{sample.brief}
+                    writeIntoReport("sample.aims."  + sample.brief(), (long) (status.getMaxExpectedSize() * Double.parseDouble(get("resampling.overflow"))));
                     AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be resample: %s.",
                             sample.sampleType, sample.samplingRatio,
                             StringUtils.join(status.resampleColumns().stream().map(TableColumn::toString).toArray(), ", ")));
@@ -198,6 +207,8 @@ public class AdaContext {
                     strategies.put(sample, Sampling.RESAMPLE);
                 }
             } else {
+                // REPORT: sampling.aims.{sample.brief}
+                writeIntoReport("sample.aims."  + sample.brief(), sample.sampleSize);
                 AdaLogger.info(this, String.format("Sample's[%s][%.2f]: no column needs to be resample.",
                         sample.sampleType, sample.samplingRatio));
                 AdaLogger.info(this, String.format("Use %s strategy to update sample[%s][%.2f][%s].",

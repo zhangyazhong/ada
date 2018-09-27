@@ -82,6 +82,8 @@ public class ReservoirSampling extends SamplingStrategy {
         AdaLogger.info(this, "Sample cleaned row count: " + cleanedCount);
         // REPORT: sampling.cost.clean (stop)
         getContext().writeIntoReport("sampling.cost.clean", timer.stop());
+        // REPORT: sampling.count.clean
+        getContext().writeIntoReport("sampling.count.clean", cleanedCount);
 
         // REPORT: sampling.cost.insert (start)
         timer = AdaTimer.create();
@@ -94,6 +96,8 @@ public class ReservoirSampling extends SamplingStrategy {
         AdaLogger.info(this, "Sample inserted row count: " + insertedCount);
         // REPORT: sampling.cost.insert (stop)
         getContext().writeIntoReport("sampling.cost.insert", timer.stop());
+        // REPORT: sampling.count.insert
+        getContext().writeIntoReport("sampling.count.insert", insertedCount);
 
         // REPORT: sampling.cost.update-sample (start)
         timer = AdaTimer.create();

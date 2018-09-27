@@ -51,6 +51,8 @@ public class AdaptiveSampling extends SamplingStrategy {
     private void updateUniform(Sample sample, AdaBatch adaBatch) {
         Random random = new Random();
         long x = findX(sample, adaBatch);
+        // REPORT: adaptive.X
+        getContext().writeIntoReport("adaptive.X", x);
         TableEntity sampleTable = new TableEntity(sample.schemaName, sample.tableName);
         TableEntity batchTable = new TableEntity(adaBatch.getDbName(), adaBatch.getTableName());
 
@@ -65,6 +67,8 @@ public class AdaptiveSampling extends SamplingStrategy {
         AdaLogger.info(this, "Sample cleaned row count: " + cleanedCount);
         // REPORT: sampling.cost.clean (stop)
         getContext().writeIntoReport("sampling.cost.clean", timer.stop());
+        // REPORT: sampling.count.clean
+        getContext().writeIntoReport("sampling.count.clean", cleanedCount);
 
         double vpart = Math.floor(random.nextDouble() * 100);
         double rand = random.nextDouble() * sample.sampleSize / sample.tableSize;
@@ -80,6 +84,8 @@ public class AdaptiveSampling extends SamplingStrategy {
         AdaLogger.info(this, "Sample inserted row count: " + insertedCount);
         // REPORT: sampling.cost.insert (stop)
         getContext().writeIntoReport("sampling.cost.insert", timer.stop());
+        // REPORT: sampling.count.insert
+        getContext().writeIntoReport("sampling.count.insert", insertedCount);
 
         // REPORT: sampling.cost.update-sample (start)
         timer = AdaTimer.create();
