@@ -197,7 +197,7 @@ public class VerdictSampling extends SamplingStrategy {
 
     private TableEntity attachProbToStratifiedSample(TableEntity originTable, TableEntity stratifiedSampleWithoutProb, String onColumn, double ratio) {
         TableEntity stratifiedSampleWithProb = new TableEntity(stratifiedSampleWithoutProb.getSchema(),
-                String.format("vs_%s_st_0_%d_%s", originTable.getTable(), ((int) Math.round(ratio * 10000)), onColumn));
+                String.format("vs_%s_st_0_%04d_%s", originTable.getTable(), ((int) Math.round(ratio * 10000)), onColumn));
         String sql = String.format("CREATE TABLE %s stored AS parquet AS " +
                 "SELECT s.*, (`verdict_group_size_in_sample` / `verdict_group_size`) AS `verdict_vprob`, (round((rand(unix_timestamp()) * 100)) %% 100) AS `verdict_vpart` " +
                 "FROM %s AS s " +
