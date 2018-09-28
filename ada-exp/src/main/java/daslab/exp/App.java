@@ -161,7 +161,7 @@ public class App {
                     break;
                 case "exp8_zip":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 8 for Zipping Data");
-                    new Exp8SplitTPCH().run();
+                    new Exp8SplitTPCH().run(args);
                     break;
                 case "exp11_ada_cost":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 11 for Ada with Adaptive Time cost");

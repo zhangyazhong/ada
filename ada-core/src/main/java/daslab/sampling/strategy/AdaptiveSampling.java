@@ -152,6 +152,8 @@ public class AdaptiveSampling extends SamplingStrategy {
         long eachKeptInBatch = findEachGroupCardinality(batchGroupInfoList, getContext().getSampleStatus(sample).getMaxExpectedSize() - x, 0, getContext().getSampleStatus(sample).getMaxExpectedSize() - x, 0.001);
         eachKeptInSample = Math.max(eachKeptInSample, 10);
         eachKeptInBatch = Math.max(eachKeptInBatch, 10);
+        AdaLogger.debug(this, sample.brief() + " kept each group: " + eachKeptInSample);
+        AdaLogger.debug(this, sample.brief() + " inserted each group: " + eachKeptInBatch);
         // REPORT: sampling.cost.find-sample-size (stop)
         getContext().writeIntoReport("sampling.cost.find-sample-size", timer.stop());
 
@@ -165,7 +167,10 @@ public class AdaptiveSampling extends SamplingStrategy {
                 .drop("verdict_group_size")
                 .drop("verdict_rand")
                 .drop("verdict_vprob");
-        AdaLogger.info(this, sample.toString() + " cleaned cardinality: " + cleanedSample.count());
+        long cleanedCount = cleanedSample.count();
+        AdaLogger.info(this, sample.toString() + " cleaned cardinality: " + cleanedCount);
+        // REPORT: sampling.count.clean
+        getContext().writeIntoReport("sampling.count.clean", cleanedCount);
         // REPORT: sampling.cost.clean (stop)
         getContext().writeIntoReport("sampling.cost.clean", timer.stop());
 
@@ -177,7 +182,10 @@ public class AdaptiveSampling extends SamplingStrategy {
                 .execute(sqlForInsert)
                 .getResultSet()
                 .withColumn("verdict_vpart", lit(Math.floor(random.nextDouble() * 100)));
-        AdaLogger.info(this, sample.toString() + " inserted cardinality: " + insertedSample.count());
+        long insertedCount = insertedSample.count();
+        AdaLogger.info(this, sample.toString() + " inserted cardinality: " + insertedCount);
+        // REPORT: sampling.count.insert
+        getContext().writeIntoReport("sampling.count.insert", insertedCount);
         // REPORT: sampling.cost.insert (stop)
         getContext().writeIntoReport("sampling.cost.insert", timer.stop());
 
@@ -193,7 +201,7 @@ public class AdaptiveSampling extends SamplingStrategy {
 
         // REPORT: sampling.cost.attach-prob (start)
         timer = AdaTimer.create();
-        String sqlForGroup = String.format("SELECT (CASE WHEN (u.%s IS NULL) THEN v.%s ELSE u.%s END) AS group_name, (CASE WHEN (u.group_size IS NULL) THEN 0 ELSE u.group_size END), (CASE WHEN (v.group_size IS NULL) THEN 0 ELSE v.group_size END) AS v_group_size FROM %s AS u FULL OUTER JOIN %s AS v ON u.%s=v.%s",
+        String sqlForGroup = String.format("SELECT (CASE WHEN (u.%s IS NULL) THEN v.%s ELSE u.%s END) AS group_name, (CASE WHEN (u.group_size IS NULL) THEN 0 ELSE u.group_size END) AS u_group_size, (CASE WHEN (v.group_size IS NULL) THEN 0 ELSE v.group_size END) AS v_group_size FROM %s AS u FULL OUTER JOIN %s AS v ON u.%s=v.%s",
                 sample.onColumn, sample.onColumn, sample.onColumn, originGroupTable.toSQL(), batchGroupTable, sample.onColumn, sample.onColumn);
         long finalEachKeptInSample = eachKeptInSample;
         long finalEachKeptInBatch = eachKeptInBatch;
@@ -235,6 +243,8 @@ public class AdaptiveSampling extends SamplingStrategy {
                 .execute(String.format("DROP TABLE IF EXISTS %s.%s", sample.schemaName, sample.tableName))
                 .execute(String.format("ALTER TABLE %s_tmp RENAME TO %s", sample.tableName, sample.tableName));
 
+        // REPORT: sampling.cost.update-meta (start)
+        timer = AdaTimer.create();
         updateMetaInfo(sample,
                 getContext().getDbms().getSparkSession()
                 .createDataFrame(ImmutableList.of(new VerdictMetaSize(sample.schemaName, sample.tableName, updatedCount, getContext().getTableMeta().getCardinality())), VerdictMetaSize.class)
@@ -242,6 +252,8 @@ public class AdaptiveSampling extends SamplingStrategy {
                 getContext().getDbms().getSparkSession()
                 .createDataFrame(ImmutableList.of(new VerdictMetaName(getContext().get("dbms.default.database"), sample.originalTable, sample.schemaName, sample.tableName, sample.sampleType, Math.round(10000.0 * updatedCount / (sample.tableSize + (long) adaBatch.getSize())) / 10000.0, sample.onColumn)), VerdictMetaName.class)
                 .toDF());
+        // REPORT: sampling.cost.update-meta (stop)
+        getContext().writeIntoReport("sampling.cost.update-meta", timer.stop());
     }
 
     private long findX(Sample sample, AdaBatch adaBatch) {
@@ -255,7 +267,7 @@ public class AdaptiveSampling extends SamplingStrategy {
         long eachGroupCardinality = 0;
         while (minCardinality <= maxCardinality) {
             long realCardinality = 0;
-            maxCardinality = (minCardinality + maxCardinality) >> 1;
+            eachGroupCardinality = (minCardinality + maxCardinality) >> 1;
             for (Long count : groupInfoList) {
                 realCardinality += Math.min(count, eachGroupCardinality);
             }

@@ -6,7 +6,10 @@ package daslab.exp;
  */
 public interface ExpRunnable {
     void run();
-    default ExpRunnable args(String[] args) {
-        return this;
+    default void run(String[] args) {
+        for (int k = 2; k < args.length; k += 2) {
+            ExpConfig.set(args[k - 1], args[k]);
+        }
+        run();
     }
 }

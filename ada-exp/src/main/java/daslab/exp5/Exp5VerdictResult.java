@@ -24,8 +24,8 @@ import static daslab.exp.ExpConfig.HOUR_TOTAL;
  * @version 2018-08-08
  */
 public class Exp5VerdictResult extends ExpTemplate {
-    private final static int REPEAT_TIME = 6;
-    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp5/(6)verdict_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
+    private final static int REPEAT_TIME = 3;
+    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp5/(3)verdict_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     private static List<String> QUERIES = ImmutableList.of(
             // huge number group
