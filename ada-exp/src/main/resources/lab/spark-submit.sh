@@ -83,3 +83,5 @@ java -jar ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp8_zip
 
 # run exp11 ada with adaptive time cost
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://ubuntu1:7077 --class daslab.exp.App --driver-memory 64g ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp11_ada_cost
+# run exp11 ada with adaptive result performance
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://ubuntu1:7077 --class daslab.exp.App --driver-memory 64g ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp11_adaptive_result
