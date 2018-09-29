@@ -15,6 +15,7 @@ import daslab.exp6.Exp6Variance;
 import daslab.exp7.Exp7AdaTimeCost;
 import daslab.exp8.Exp8BigDatabase;
 import daslab.exp8.Exp8CopyData;
+import daslab.exp8.Exp8CreateTPCH;
 import daslab.exp8.Exp8SplitTPCH;
 import daslab.restore.RestoreModule;
 import daslab.restore.SampleCleaner;
@@ -163,6 +164,10 @@ public class App {
                 case "exp8_zip":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 8 for Zipping Data");
                     new Exp8SplitTPCH().run(args);
+                    break;
+                case "exp8_create":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 8 for Creating Database for TPC-H");
+                    new Exp8CreateTPCH().run(args);
                     break;
                 case "exp11_ada_cost":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 11 for Ada with Adaptive Time cost");
