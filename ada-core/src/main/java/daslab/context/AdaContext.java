@@ -203,7 +203,7 @@ public class AdaContext {
                             StringUtils.join(status.resampleColumns().stream().map(TableColumn::toString).toArray(), ", ")));
                     AdaLogger.info(this, String.format("Use %s strategy to resample sample[%s][%.2f][%s].",
                             getSamplingController().getResamplingStrategy().name(), sample.sampleType, sample.samplingRatio, sample.onColumn));
-                    getSamplingController().resample(sample, adaBatch, status.getMaxExpectedRatio(Double.parseDouble(get("resampling.overflow"))));
+                    getSamplingController().resample(sample, adaBatch, Math.max(sample.samplingRatio, status.getMaxExpectedRatio(Double.parseDouble(get("resampling.overflow")))));
                     strategies.put(sample, Sampling.RESAMPLE);
                 }
             } else {
