@@ -25,7 +25,7 @@ import static daslab.exp.ExpConfig.HOUR_TOTAL;
  */
 public class Exp5VerdictResult extends ExpTemplate {
     private final static int REPEAT_TIME = 10;
-    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp5/(10)verdict_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
+    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp5/new2_verdict_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     private static List<String> QUERIES = ImmutableList.of(
             // huge number group
@@ -60,6 +60,24 @@ public class Exp5VerdictResult extends ExpTemplate {
                 new ExpQueryPool.WhereClause("page_size"),
                 new ExpQueryPool.WhereClause("page_count")
         ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
+        QUERIES = ImmutableList.of(
+                "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=3",
+                "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=4",
+                "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=5",
+                "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=6",
+                "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=7",
+                "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=8",
+                "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=9",
+                "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=10",
+                "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=3",
+                "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=4",
+                "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=5",
+                "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=6",
+                "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=7",
+                "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=8",
+                "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=9",
+                "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=10"
+        );
         ExpResult expResult = new ExpResult("time");
         for (int k = 0; k < REPEAT_TIME; k++) {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
