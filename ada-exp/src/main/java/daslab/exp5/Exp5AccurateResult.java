@@ -68,7 +68,7 @@ public class Exp5AccurateResult extends ExpTemplate {
         SystemRestore.restoreModules().forEach(RestoreModule::restore);
         AdaLogger.info(this, "Restored database.");
         resetVerdict();
-        AdaContext context = new AdaContext().start();
+        AdaContext context = new AdaContext().skipSampling(true).start();
         for (int i = HOUR_START; i < HOUR_TOTAL; i++) {
             int day = i / 24 + 1;
             int hour = i % 24;

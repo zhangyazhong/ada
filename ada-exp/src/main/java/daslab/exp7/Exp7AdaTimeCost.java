@@ -36,8 +36,7 @@ public class Exp7AdaTimeCost extends ExpTemplate {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
             AdaLogger.info(this, "Restored database.");
             resetVerdict();
-            AdaContext context = new AdaContext();
-            context.start();
+            AdaContext context = new AdaContext().enableAdaptive(true).start();
             for (int i = HOUR_START; i < HOUR_TOTAL; i++) {
                 String[] locations = new String[HOUR_INTERVAL];
                 String time = String.format("%02d~%02d", i, (i + HOUR_INTERVAL - 1));

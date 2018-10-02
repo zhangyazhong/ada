@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("Duplicates")
 public abstract class ExpTemplate implements ExpRunnable {
     private static SparkSession sparkSession;
     private static VerdictSpark2Context verdictSpark2Context;
@@ -80,7 +81,7 @@ public abstract class ExpTemplate implements ExpRunnable {
     }
 
     public void append(String schema, String table, String path) {
-        String command = "hadoop fs -cp " + path + " " + get("data.table.hdfs.location");
+        String command = "hadoop fs -cp -D dfs.replication=1 " + path + " " + get("data.table.hdfs.location");
         AdaLogger.debug(this, "Loading " + path + " into table");
         AdaSystem.call(command);
     }

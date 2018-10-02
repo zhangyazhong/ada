@@ -8,14 +8,19 @@ import daslab.inspector.TableColumnType;
 import daslab.utils.AdaLogger;
 import daslab.utils.AdaSystem;
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static daslab.inspector.TableColumnType.INT;
 import static daslab.inspector.TableColumnType.DATE;
 import static daslab.inspector.TableColumnType.DOUBLE;
 import static daslab.inspector.TableColumnType.STRING;
 
+@SuppressWarnings("Duplicates")
 public class Exp8CreateTPCH extends ExpTemplate {
     class TPCHTable {
         String tableName;
@@ -64,7 +69,7 @@ public class Exp8CreateTPCH extends ExpTemplate {
         execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", get("data.table.name"), get("data.table.structure"), get("data.table.terminated"), get("data.table.hdfs.location")));
         execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", get("batch.table.name"), get("batch.table.structure"), get("batch.table.terminated"), get("batch.table.hdfs.location")));
         String path = get("base.hdfs.location.pattern");
-        String command = "hadoop fs -cp " + path + " " + get("data.table.hdfs.location");
+        String command = "hadoop fs -D dfs.replication=1 -mv " + path + " " + get("data.table.hdfs.location");
         AdaSystem.call(command);
 
         TPCHTable supplier = new TPCHTable("supplier")
@@ -122,8 +127,22 @@ public class Exp8CreateTPCH extends ExpTemplate {
 
         ImmutableList.of(supplier, region, customer, part, partsupp, orders).forEach(table -> {
             execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", table.getTableName(), table.getTableStructureInSQL(), table.getTableTerminated(), "/zyz/spark/tpch_" + table.getTableName()));
-            AdaSystem.call(String.format("hadoop fs -cp %s %s", "/zyz/tpch/" + table.getTableName(), "/zyz/spark/tpch_" + table.getTableName()));
+            AdaSystem.call(String.format("hadoop fs -D dfs.replication=1 -mv %s %s", "/zyz/tpch/" + table.getTableName(), "/zyz/spark/tpch_" + table.getTableName()));
             AdaLogger.info(this, "Table " + table.getTableName() + " finished.");
+        });
+
+        ImmutableList.of(supplier, region, customer, part, partsupp, orders).forEach(table -> {
+            String sql = String.format("SELECT COUNT(*) FROM %s", table.getTableName());
+            JSONArray jsonArray = new JSONArray(getSpark().sql(sql).toJSON().collectAsList().stream().map(jsonString -> {
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject = new JSONObject(jsonString);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return jsonObject;
+            }).collect(Collectors.toList()));
+            AdaLogger.info(this, String.format("{%s}: %s", sql, jsonArray.toString()));
         });
     }
 }

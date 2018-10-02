@@ -110,7 +110,8 @@ public class TableMeta {
                         context.getDbmsSpark2().getResultAsDouble(0, "sum_" + column.getColumnName()) :
                         context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
                 double avg = context.getDbmsSpark2().getResultAsDouble(0, "avg_" + column.getColumnName());
-                double errorBound = avg * Double.parseDouble(context.get("query.error_bound"));
+                // double errorBound = avg * Double.parseDouble(context.get("query.error_bound"));
+                double errorBound = Math.min(avg * Double.parseDouble(context.get("query.error_bound")), 100000.0);
                 MetaInfo metaInfo = MetaInfo.calc(column, var, cardinality, sum, errorBound, confidence);
                 tableMetaMap.put(column, metaInfo);
                 AdaLogger.debug(this, "Initially table meta[" + column.getColumnName() + "]: " + metaInfo.toString());

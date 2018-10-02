@@ -97,7 +97,7 @@ public class DbmsSpark2 {
 
     public AdaBatch load(@NotNull String[] locations) {
         for (String location : locations) {
-            String command = "hadoop fs -cp " + location + " " + context.get("dbms.data.table.hdfs.location");
+            String command = "hadoop fs -D dfs.replication=1 -cp " + location + " " + context.get("dbms.data.table.hdfs.location");
             AdaSystem.call(command);
         }
         AdaLogger.info(this, "Loaded batch into data table");
@@ -107,7 +107,7 @@ public class DbmsSpark2 {
         execute(String.format("DROP TABLE IF EXISTS %s", context.get("dbms.batch.table")));
         execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", context.get("dbms.batch.table"), context.get("dbms.batch.table.structure"), context.get("dbms.batch.table.terminated"), context.get("dbms.batch.table.hdfs.location")));
         for (String location : locations) {
-            String command = "hadoop fs -cp " + location + " " + context.get("dbms.batch.table.hdfs.location");
+            String command = "hadoop fs -D dfs.replication=1 -cp " + location + " " + context.get("dbms.batch.table.hdfs.location");
             AdaSystem.call(command);
         }
         AdaLogger.info(this, "Loaded batch into batch table");

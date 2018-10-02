@@ -1,44 +1,35 @@
-package daslab.exp11;
+package daslab.exp7;
 
 import com.google.common.collect.ImmutableList;
 import daslab.context.AdaContext;
-import daslab.exp.ExpQueryPool;
 import daslab.exp.ExpResult;
 import daslab.exp.ExpTemplate;
 import daslab.restore.RestoreModule;
 import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
-import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.commons.lang.StringUtils;
 
+import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static daslab.exp.ExpConfig.HOUR_INTERVAL;
 import static daslab.exp.ExpConfig.HOUR_START;
 import static daslab.exp.ExpConfig.HOUR_TOTAL;
 
-@SuppressWarnings("Duplicates")
-public class Exp11AdaptiveResult extends ExpTemplate {
-    private final static int REPEAT_TIME = 9;
-    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp11/new2_adaptive_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
+public class Exp7AccurateResult extends ExpTemplate {
+    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp7/accurate_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
-    private static List<String> QUERIES;
-
-    public Exp11AdaptiveResult() {
-        this("Ada Exp11 - Adaptive Result Accuracy Test");
+    public Exp7AccurateResult() {
+        this("Ada Exp7 - Accuracy Result (TPC-H)");
     }
 
-    public Exp11AdaptiveResult(String name) {
+    public Exp7AccurateResult(String name) {
         super(name);
     }
 
     @Override
     public void run() {
-        QUERIES = ExpQueryPool.QUERIES_ONLY(
-                new ExpQueryPool.WhereClause("page_size"),
-                new ExpQueryPool.WhereClause("page_count")
-        ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
+        List<String> QUERIES;
         QUERIES = ImmutableList.of(
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=3",
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=4",
@@ -58,29 +49,23 @@ public class Exp11AdaptiveResult extends ExpTemplate {
                 "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=10"
         );
         ExpResult expResult = new ExpResult("time");
-        for (int k = 0; k < REPEAT_TIME; k++) {
-            SystemRestore.restoreModules().forEach(RestoreModule::restore);
-            AdaLogger.info(this, "Restored database.");
-            resetVerdict();
-            AdaContext context = new AdaContext().start().enableAdaptive(true);
-            for (int i = HOUR_START; i < HOUR_TOTAL; i++) {
-                int day = i / 24 + 1;
-                int hour = i % 24;
-                String time = String.format("%02d%02d", day, hour);
-                String location = String.format(get("source.hdfs.location.pattern"), day, hour);
-                AdaLogger.info(this, "Send a new batch at " + location);
-                context.receive(location);
-                try {
-                    runQueryByVerdict(expResult, QUERIES, time, k);
-                } catch (VerdictException e) {
-                    e.printStackTrace();
-                }
-                AdaLogger.info(this, String.format("Adaptive Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ExpResult.SEPARATOR)));
-                expResult.save(RESULT_SAVE_PATH);
+        SystemRestore.restoreModules().forEach(RestoreModule::restore);
+        AdaLogger.info(this, "Restored database.");
+        resetVerdict();
+        AdaContext context = new AdaContext().skipSampling(true).start();
+        for (int i = HOUR_START; i < HOUR_TOTAL; i++) {
+            String[] locations = new String[HOUR_INTERVAL];
+            String time = String.format("%02d~%02d", i, (i + HOUR_INTERVAL - 1));
+            for (int j = i; j < i + HOUR_INTERVAL; j++) {
+                locations[j - i] = String.format(get("source.hdfs.location.pattern"), j);
             }
+            i = i + HOUR_INTERVAL - 1;
+            AdaLogger.info(this, "Send a new batch at " + Arrays.toString(locations));
+            context.receive(locations);
+            runQueryBySpark(expResult, QUERIES, time);
+            AdaLogger.info(this, String.format("Accurate Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ExpResult.SEPARATOR)));
             expResult.save(RESULT_SAVE_PATH);
         }
         expResult.save(RESULT_SAVE_PATH);
     }
 }
-
