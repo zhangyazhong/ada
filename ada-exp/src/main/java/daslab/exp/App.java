@@ -6,6 +6,8 @@ import daslab.exp1.Exp1Collect;
 import daslab.exp1.Exp1Accurate;
 import daslab.exp11.Exp11AdaTimeCost;
 import daslab.exp11.Exp11AdaptiveResult;
+import daslab.exp13.Exp13BaseDataSpark;
+import daslab.exp13.Exp13BaseDataVerdict;
 import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
 import daslab.exp3.*;
@@ -186,6 +188,14 @@ public class App {
                 case "exp11_adaptive_result":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 11 for Adaptive Result Performance");
                     new Exp11AdaptiveResult().run(args);
+                    break;
+                case "exp13_base_data_spark":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 13 for Accurate Result on 24h Data");
+                    new Exp13BaseDataSpark().run(args);
+                    break;
+                case "exp13_base_data_verdict":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 13 for Verdict Result on 24h Data");
+                    new Exp13BaseDataVerdict().run(args);
                     break;
             }
         }

@@ -87,3 +87,8 @@ java -jar ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp8_zip
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App --driver-memory 8g ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp11_adaptive_result
 
 
+# run exp13 accurate result on 24h data
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App --driver-memory 8g ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp13_base_data_spark
+# run exp13 verdict result on 24h data
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App --driver-memory 8g ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp13_base_data_verdict
+
