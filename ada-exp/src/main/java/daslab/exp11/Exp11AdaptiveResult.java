@@ -20,7 +20,7 @@ import static daslab.exp.ExpConfig.HOUR_TOTAL;
 
 @SuppressWarnings("Duplicates")
 public class Exp11AdaptiveResult extends ExpTemplate {
-    private final static int REPEAT_TIME = 9;
+    private final static int REPEAT_TIME = 1;
     public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp11/new2_adaptive_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     private static List<String> QUERIES;
