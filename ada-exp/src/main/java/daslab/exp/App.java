@@ -13,6 +13,7 @@ import daslab.exp4.*;
 import daslab.exp5.*;
 import daslab.exp6.Exp6Variance;
 import daslab.exp7.Exp7AccurateResult;
+import daslab.exp7.Exp7AdaResult;
 import daslab.exp7.Exp7AdaTimeCost;
 import daslab.exp8.Exp8BigDatabase;
 import daslab.exp8.Exp8CopyData;
@@ -157,6 +158,10 @@ public class App {
                 case "exp7_accurate_result":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 7 for Accurate Result Performance (TPC-H)");
                     new Exp7AccurateResult().run(args);
+                    break;
+                case "exp7_ada_result":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 7 for Ada Result Performance (TPC-H)");
+                    new Exp7AdaResult().run(args);
                     break;
                 case "exp8_sampling":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 8 for Big Dataset Sampling");
