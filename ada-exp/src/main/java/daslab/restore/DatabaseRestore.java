@@ -50,6 +50,7 @@ public class DatabaseRestore extends ExpTemplate implements RestoreModule {
         try {
             execute(String.format("DROP DATABASE IF EXISTS %s CASCADE", get("sample.table.schema")));
             execute(String.format("CREATE DATABASE %s", get("sample.table.schema")));
+            getVerdict().sql("USE " + get("data.table.schema"));
             double sampleRatio = Double.parseDouble(get("sample.init.ratio"));
             String[] sampleTypes = get("sample.init.type").split(",");
             String[] columns = get("sample.init.stratified.column").split(",");
