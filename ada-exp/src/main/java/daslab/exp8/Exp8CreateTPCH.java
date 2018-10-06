@@ -125,6 +125,12 @@ public class Exp8CreateTPCH extends ExpTemplate {
                 .addColumn("o_shippriority", INT)
                 .addColumn("o_comment", STRING);
 
+        TPCHTable nation = new TPCHTable("nation")
+                .addColumn("n_nationkey", INT)
+                .addColumn("n_name", STRING)
+                .addColumn("n_regionkey", INT)
+                .addColumn("n_comment", STRING);
+
         ImmutableList.of(supplier, region, customer, part, partsupp, orders).forEach(table -> {
             execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", table.getTableName(), table.getTableStructureInSQL(), table.getTableTerminated(), "/zyz/spark/tpch_" + table.getTableName()));
             AdaSystem.call(String.format("hadoop fs -D dfs.replication=1 -mv %s %s", "/zyz/tpch/" + table.getTableName(), "/zyz/spark/tpch_" + table.getTableName()));
