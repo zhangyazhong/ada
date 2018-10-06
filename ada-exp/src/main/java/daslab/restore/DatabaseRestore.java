@@ -54,14 +54,19 @@ public class DatabaseRestore extends ExpTemplate implements RestoreModule {
             double sampleRatio = Double.parseDouble(get("sample.init.ratio"));
             String[] sampleTypes = get("sample.init.type").split(",");
             String[] columns = get("sample.init.stratified.column").split(",");
+            String sql;
             for (String sampleType : sampleTypes) {
                 switch (sampleType.toLowerCase().trim()) {
                     case "uniform":
-                        getVerdict().sql(String.format("CREATE %.2f%% UNIFORM SAMPLE OF %s.%s", sampleRatio, get("data.table.schema"), get("data.table.name")));
+                        sql = String.format("CREATE %.2f%% UNIFORM SAMPLE OF %s.%s", sampleRatio, get("data.table.schema"), get("data.table.name"));
+                        AdaLogger.debug(this, "Uniform sample: " + sql);
+                        getVerdict().sql(sql);
                         break;
                     case "stratified":
                         for (String column : columns) {
-                            getVerdict().sql(String.format("CREATE %.2f%% STRATIFIED SAMPLE OF %s.%s ON %s", sampleRatio, get("data.table.schema"), get("data.table.name"), column));
+                            sql = String.format("CREATE %.2f%% STRATIFIED SAMPLE OF %s.%s ON %s", sampleRatio, get("data.table.schema"), get("data.table.name"), column);
+                            AdaLogger.debug(this, "Stratified sample: " + sql);
+                            getVerdict().sql(sql);
                         }
                         break;
                 }
