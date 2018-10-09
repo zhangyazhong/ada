@@ -47,6 +47,7 @@ public class AdaContext {
     private boolean forceResample;
     private boolean skipSampling;
     private boolean enableAdaptive;
+    private boolean enableDebug;
 
     public AdaContext() {
         configs = Maps.newHashMap();
@@ -60,6 +61,7 @@ public class AdaContext {
         forceResample = false;
         skipSampling = false;
         enableAdaptive = false;
+        enableDebug = false;
         samplingController = new SamplingController(this);
         executionReports = Lists.newLinkedList();
         strategies = Maps.newHashMap();
@@ -124,6 +126,11 @@ public class AdaContext {
 
     public AdaContext enableForceResample(boolean forceResample) {
         this.forceResample = forceResample;
+        return this;
+    }
+
+    public AdaContext enableDebug(boolean enableDebug) {
+        this.enableDebug = enableDebug;
         return this;
     }
 
@@ -217,6 +224,9 @@ public class AdaContext {
                 strategies.put(sample, Sampling.UPDATE);
             }
         });
+        if (enableDebug) {
+            writeIntoReport("sample.table", getSamplingController().getSamplingStrategy().getSamples(true).get(0).tableName);
+        }
         return strategies;
     }
 

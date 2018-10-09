@@ -18,7 +18,7 @@ import static daslab.exp.ExpConfig.*;
 @SuppressWarnings("Duplicates")
 public class Exp7AdaTimeCost extends ExpTemplate {
     private final static int REPEAT_TIME = 1;
-    private final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp7/ada_cost_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
+    private final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp7/st_verdict_cost_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     public Exp7AdaTimeCost() {
         this("Ada Exp7 - Ada Time Cost (TPC-H)");
@@ -36,7 +36,7 @@ public class Exp7AdaTimeCost extends ExpTemplate {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
             AdaLogger.info(this, "Restored database.");
             resetVerdict();
-            AdaContext context = new AdaContext().enableAdaptive(true).start();
+            AdaContext context = new AdaContext().enableForceResample(true).enableAdaptive(false).start();
             for (int i = HOUR_START; i < HOUR_TOTAL; i++) {
                 String[] locations = new String[HOUR_INTERVAL];
                 String time = String.format("%02d~%02d", i, (i + HOUR_INTERVAL - 1));

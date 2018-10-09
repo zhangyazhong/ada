@@ -143,4 +143,28 @@ public abstract class ExpTemplate implements ExpRunnable {
             expResult.push(time, "q" + i, new ExpQueryPool.QueryString(query).getAggregationType() + "/" + jsonArray.toString());
         }
     }
+
+    public JSONArray runQueryByVerdict(String query) throws VerdictException {
+        return new JSONArray(getVerdict().sql(query).toJSON().collectAsList().stream().map(jsonString -> {
+            JSONObject jsonObject = new JSONObject();
+            try {
+                jsonObject = new JSONObject(jsonString);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return jsonObject;
+        }).collect(Collectors.toList()));
+    }
+
+    public JSONArray runQueryBySpark(String query) {
+        return new JSONArray(getSpark().sql(query).toJSON().collectAsList().stream().map(jsonString -> {
+            JSONObject jsonObject = new JSONObject();
+            try {
+                jsonObject = new JSONObject(jsonString);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return jsonObject;
+        }).collect(Collectors.toList()));
+    }
 }

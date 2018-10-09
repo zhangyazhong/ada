@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # run spark-shell on spark cluster
-~/spark-2.2.1-bin-hadoop2.7/bin/spark-shell --master spark://master:7077 --conf spark.sql.warehouse.dir=hdfs://master:9000/home/hadoop/spark/
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-shell --master spark://master:7077 --driver-memory 8g --executor-memory 16g --conf spark.sql.warehouse.dir=hdfs://master:9000/home/hadoop/spark/
 
 
 # run restore module on spark cluster
@@ -91,4 +91,9 @@ java -jar ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp8_zip
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App --driver-memory 8g ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp13_base_data_spark
 # run exp13 verdict result on 24h data
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App --driver-memory 8g ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp13_base_data_verdict
+
+
+# run exp15 check verdict
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://master:7077 --class daslab.exp.App --driver-memory 8g ~/ada/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp15_check_verdict
+
 
