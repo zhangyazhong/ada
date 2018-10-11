@@ -24,8 +24,8 @@ import static daslab.exp.ExpConfig.HOUR_TOTAL;
  * @version 2018-08-08
  */
 public class Exp5VerdictResult extends ExpTemplate {
-    private final static int REPEAT_TIME = 10;
-    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp15/st_verdict_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
+    private final static int REPEAT_TIME = 5;
+    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp10/un+st2_verdict_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     private static List<String> QUERIES = ImmutableList.of(
             // huge number group
@@ -56,11 +56,11 @@ public class Exp5VerdictResult extends ExpTemplate {
                         new ExpQueryPool.GroupByClause("project_name")
                 ))
                 .stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
-        /*
-        QUERIES.addAll(ExpQueryPool.QUERIES_ONLY(
+        QUERIES = ExpQueryPool.QUERIES_ONLY(
                 new ExpQueryPool.WhereClause("page_size"),
                 new ExpQueryPool.WhereClause("page_count")
-        ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList()));
+        ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
+        /*
         QUERIES.addAll(ImmutableList.of(
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=3",
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=4",

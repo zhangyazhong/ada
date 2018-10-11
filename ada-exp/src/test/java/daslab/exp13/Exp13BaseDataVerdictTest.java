@@ -1,6 +1,5 @@
 package daslab.exp13;
 
-import com.google.common.collect.ImmutableList;
 import daslab.exp.ExpQueryPool;
 import org.junit.Test;
 
@@ -16,7 +15,9 @@ public class Exp13BaseDataVerdictTest {
 
     @Test
     public void testRun() {
-        List<String> QUERIES = ExpQueryPool.QUERIES_EXCEPT(
+        List<String> QUERIES;
+        /*
+        QUERIES = ExpQueryPool.QUERIES_EXCEPT(
                 ImmutableList.of(
                         new ExpQueryPool.WhereClause("page_count"),
                         new ExpQueryPool.WhereClause("page_size")
@@ -24,10 +25,12 @@ public class Exp13BaseDataVerdictTest {
                         new ExpQueryPool.GroupByClause("project_name")
                 ))
                 .stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
-        QUERIES.addAll(ExpQueryPool.QUERIES_ONLY(
+        */
+        QUERIES = ExpQueryPool.QUERIES_ONLY(
                 new ExpQueryPool.WhereClause("page_size"),
                 new ExpQueryPool.WhereClause("page_count")
-        ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList()));
+        ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
+        /*
         QUERIES.addAll(ImmutableList.of(
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=3",
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=4",
@@ -46,6 +49,7 @@ public class Exp13BaseDataVerdictTest {
                 "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=9",
                 "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=10"
         ));
+        */
         AtomicInteger k = new AtomicInteger();
         QUERIES.forEach(query -> {
             System.out.println(k + "|" + query);
