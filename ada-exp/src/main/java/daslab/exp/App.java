@@ -8,6 +8,7 @@ import daslab.exp11.Exp11AdaTimeCost;
 import daslab.exp11.Exp11AdaptiveResult;
 import daslab.exp13.Exp13BaseDataSpark;
 import daslab.exp13.Exp13BaseDataVerdict;
+import daslab.exp15.Exp15CheckVerdict;
 import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
 import daslab.exp3.*;
@@ -196,6 +197,10 @@ public class App {
                 case "exp13_base_data_verdict":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 13 for Verdict Result on 24h Data");
                     new Exp13BaseDataVerdict().run(args);
+                    break;
+                case "exp15_check_verdict":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 15 for Checking Verdict Result");
+                    new Exp15CheckVerdict().run(args);
                     break;
             }
         }

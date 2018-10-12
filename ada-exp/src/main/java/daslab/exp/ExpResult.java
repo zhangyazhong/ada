@@ -66,7 +66,7 @@ public class ExpResult {
     public void push(String key, String result) {
         addResult(key, result);
     }
-    public void push(String key, String column, String result) {
+    public ExpResult push(String key, String column, String result) {
         if (findColumnPosition(column) < 0) {
             addHeader(column);
         }
@@ -76,6 +76,7 @@ public class ExpResult {
             this.results.get(key).add("");
         }
         results.get(key).set(position, result);
+        return this;
     }
 
     public String getCell(String time, String column) {
