@@ -79,7 +79,8 @@ public class ExpResult {
     }
 
     public String getCell(String time, String column) {
-        return findColumnPosition(column) > 0 && results.get(time) != null ? results.get(time).get(findColumnPosition(column)) : null;
+        return (findColumnPosition(column) >= 0 && results.get(time) != null && results.get(time).size() > findColumnPosition(column)) ?
+                results.get(time).get(findColumnPosition(column)) : null;
     }
 
     public List<String> getRowKeys() {
@@ -133,6 +134,7 @@ public class ExpResult {
                     expResult.push(cells[0], cells[i]);
                 }
             }
+            scanner.close();
             return expResult;
         } catch (FileNotFoundException e) {
             e.printStackTrace();
