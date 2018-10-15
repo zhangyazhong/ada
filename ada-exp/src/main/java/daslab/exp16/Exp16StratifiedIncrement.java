@@ -23,7 +23,8 @@ import java.util.Map;
 public class Exp16StratifiedIncrement extends ExpTemplate {
     private final static int REPEAT_TIME = 10;
     public final String COST_SAVE_PATH = String.format("/tmp/ada/exp/exp16/stratified_cost_%s.csv", get("exp.stratified.group"));
-    public final String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp16/stratified_result_%s.csv", get("exp.stratified.group"));
+    public final String VERDICT_RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp16/verdict_result_%s.csv", get("exp.stratified.group"));
+    public final String SPARK_RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp16/verdict_result_%s.csv", get("exp.stratified.group"));
 
     private Map<String, String> distribution = ImmutableMap.<String, String>builder()
             .put("20", "1994-01-01,1994-01-10,1995-09-01,1995-09-10")
@@ -50,12 +51,12 @@ public class Exp16StratifiedIncrement extends ExpTemplate {
     public void run() {
         List<String> QUERIES;
         QUERIES = ImmutableList.of(
-                "SELECT sum(l_extendedprice * l_discount) as revenue FROM tpch.lineitem WHERE l_shipdate >= '1994-01-01' AND l_shipdate < '1995-01-01' AND l_discount between 0.06 - 0.01 AND 0.06 + 0.01 AND l_quantity < 24",
-                "SELECT 100.00 * sum(case when p_type like 'PROMO%' then l_extendedprice * (1 - l_discount) else 0 end) / sum(l_extendedprice * (1 - l_discount)) as promo_revenue FROM tpch.lineitem, tpch.part WHERE l_partkey = p_partkey AND l_shipdate >= '1995-09-01' AND l_shipdate < '1995-10-01'"
+                "SELECT sum(l_extendedprice * l_discount) as revenue FROM tpch_stratified.lineitem_running WHERE l_shipdate >= '1994-01-01' AND l_shipdate < '1995-01-01' AND l_discount between 0.06 - 0.01 AND 0.06 + 0.01 AND l_quantity < 24",
+                "SELECT sum(case when p_type like 'PROMO%' then l_extendedprice * (1 - l_discount) else 0 end) / sum(l_extendedprice * (1 - l_discount)) * 100.0 as promo_revenue FROM tpch_stratified.lineitem_running, tpch_stratified.part WHERE l_partkey = p_partkey AND l_shipdate >= '1995-09-01' AND l_shipdate < '1995-10-01'"
         );
-
         ExpResult expCostResult = new ExpResult("time");
-        ExpResult expResult = new ExpResult("time");
+        ExpResult expVerdictResult = new ExpResult("time");
+        ExpResult expSparkResult = new ExpResult("time");
         for (int k = 0; k < REPEAT_TIME; k++) {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
             AdaLogger.info(this, "Restored database.");
@@ -66,15 +67,17 @@ public class Exp16StratifiedIncrement extends ExpTemplate {
             for (int i = 0; i < 1; i++) {
                 String time = String.format("%02d~%02d", i, i);
                 execute(String.format("DROP TABLE IF EXISTS %s.%s", get("data.table.schema"), "lineitem_batch_tmp"));
-                execute(String.format("CREATE TABLE %s.%s AS (SELECT * FROM tpch.lineitem WHERE (l_shipdate>='%s' AND l_shipdate<='%s') OR (l_shipdate>='%s' AND l_shipdate<='%s') LIMIT 800000)",
+                execute(String.format("CREATE TABLE %s.%s AS (SELECT * FROM %s.%s WHERE (l_shipdate>='%s' AND l_shipdate<='%s') OR (l_shipdate>='%s' AND l_shipdate<='%s') LIMIT 800000)",
                         get("data.table.schema"), "lineitem_batch_tmp",
+                        get("data.table.schema"), get("data.table.name"),
                         distribution.get(get("exp.stratified.group")).split(",")[0],
                         distribution.get(get("exp.stratified.group")).split(",")[1],
                         distribution.get(get("exp.stratified.group")).split(",")[2],
                         distribution.get(get("exp.stratified.group")).split(",")[3]
                 ));
-                execute(String.format("INSERT INTO %s.%s AS (SELECT * FROM tpch.lineitem WHERE (l_shipdate>='%s' AND l_shipdate<='%s') OR (l_shipdate>='%s' AND l_shipdate<'%s') LIMIT 7200000)",
+                execute(String.format("INSERT INTO %s.%s AS (SELECT * FROM %s.%s WHERE (l_shipdate>='%s' AND l_shipdate<='%s') OR (l_shipdate>='%s' AND l_shipdate<'%s') LIMIT 7200000)",
                         get("data.table.schema"), "lineitem_batch_tmp",
+                        get("data.table.schema"), get("data.table.name"),
                         "1996-01-01", "1998-12-01",
                         "1992-01-01", "1994-01-01"
                 ));
@@ -91,14 +94,19 @@ public class Exp16StratifiedIncrement extends ExpTemplate {
                         .orElse(""));
                 expCostResult.save(COST_SAVE_PATH);
                 try {
-                    runQueryByVerdict(expResult, QUERIES, time, k);
+                    runQueryByVerdict(expVerdictResult, QUERIES, time, k);
+                    if (k < 1) {
+                        runQueryBySpark(expSparkResult, QUERIES, time);
+                    }
                 } catch (VerdictException e) {
                     e.printStackTrace();
                 }
-                expResult.save(RESULT_SAVE_PATH);
+                expVerdictResult.save(VERDICT_RESULT_SAVE_PATH);
+                expSparkResult.save(SPARK_RESULT_SAVE_PATH);
             }
             expCostResult.save(COST_SAVE_PATH);
-            expResult.save(RESULT_SAVE_PATH);
+            expVerdictResult.save(VERDICT_RESULT_SAVE_PATH);
+            expSparkResult.save(SPARK_RESULT_SAVE_PATH);
         }
     }
 }

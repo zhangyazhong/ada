@@ -17,17 +17,17 @@ public class Exp5ResultRelativeError implements ExpRunnable {
         double r, e;
     }
 
-    public final static String BASE_DIR = "/Users/zyz/Documents/AQP/paper/exp/exp7-tpch/";
+    public final static String BASE_DIR = "/Users/zyz/Documents/AQP/paper/exp/exp12-new2_queries/";
 
-    public final static String ACCURATE_RESULT_PATH = BASE_DIR + "accurate_result_0_20_1.csv";
+    public final static String ACCURATE_RESULT_PATH = BASE_DIR + "accurate_result_24_48_1.csv";
 
-//    public final static String NO_RESULT_PATH = BASE_DIR + "no_verdict_result_24_48_1.csv";
-    public final static String VERDICT_RESULT_PATH = BASE_DIR + "verdict_result_0_20_1.csv";
+//    public final static String NO_RESULT_PATH = BASE_DIR + "no_result_24_48_1.csv";
+    public final static String VERDICT_RESULT_PATH = BASE_DIR + "verdict_result_24_48_1.csv";
 //    public final static String VERDICT_RESULT_PATH2 = BASE_DIR + "un+st2_verdict_result_24_48_1.csv";
-    public final static String ADA_RESULT_PATH = BASE_DIR + "ada_result_0_20_1.csv";
-//    public final static String ADAPTIVE_RESULT_PATH = BASE_DIR + "st_adaptive_result_24_48_1.csv";
+    public final static String ADA_RESULT_PATH = BASE_DIR + "ada_result_24_48_1.csv";
+    public final static String ADAPTIVE_RESULT_PATH = BASE_DIR + "adaptive_result_24_48_1.csv";
 
-    public final static String COMPARISON_PATH = BASE_DIR + "relative_error_0_20_1.csv";
+    public final static String COMPARISON_PATH = BASE_DIR + "relative_error_24_48_1.csv";
 
     private void approximateCompare() {
 //        ExpResult noResult = ExpResult.load(NO_RESULT_PATH);
@@ -35,29 +35,33 @@ public class Exp5ResultRelativeError implements ExpRunnable {
         ExpResult adaResult = ExpResult.load(ADA_RESULT_PATH);
         ExpResult verdictResult = ExpResult.load(VERDICT_RESULT_PATH);
 //        ExpResult verdictResult2 = ExpResult.load(VERDICT_RESULT_PATH2);
-//        ExpResult adaptiveResult = ExpResult.load(ADAPTIVE_RESULT_PATH);
+        ExpResult adaptiveResult = ExpResult.load(ADAPTIVE_RESULT_PATH);
         ExpResult comparisonResult = new ExpResult("time");
 //        assert noResult != null;
         assert accurateResult != null;
         assert adaResult != null;
         assert verdictResult != null;
 //        assert verdictResult2 != null;
-//        assert adaptiveResult != null;
+        assert adaptiveResult != null;
         try {
             for (String query : queries(accurateResult)) {
                 for (String datetime : datetimes(accurateResult)) {
                     String accurateCell = accurateResult.getCell(datetime, query);
                     String aggregationType = accurateCell.split("/")[0];
+                    if (aggregationType.contains("100")) {
+                        aggregationType = "AVG";
+                    }
                     JSONObject accurateJSON = new JSONObject(StringUtils.substringBetween(accurateCell.split("/")[1], "[", "]"));
                     double accurate = accurateJSON.getDouble(accurateJSON.names().getString(0));
                     double relativeError = 0;
                     int repeatTime = 0;
+
                     /*
                     for (String _query : noResult.getHeader()) {
 //                        if (_query.contains("q" + (Integer.parseInt(StringUtils.substringAfter(query, "q")) + 24) + "_")) {
                         if (_query.contains(query + "_")) {
                             repeatTime++;
-                            String noCell = noResult.getCell("0200", _query);
+                            String noCell = noResult.getCell("00~00", _query);
                             JSONObject noJSON = new JSONObject(StringUtils.substringBetween(noCell.split("/")[1], "[", "]"));
                             ResultUnit noUnit = fetch(noJSON);
                             switch (aggregationType) {
@@ -67,7 +71,8 @@ public class Exp5ResultRelativeError implements ExpRunnable {
                                 case "COUNT":
                                 case "SUM":
                                 default:
-                                    relativeError = relativeError + Math.abs(noUnit.r * (24 * (Integer.parseInt(datetime) / 100 - 1) + Integer.parseInt(datetime) % 100 + 1) / 24.0 - accurate) / accurate;
+//                                    relativeError = relativeError + Math.abs(noUnit.r * (24 * (Integer.parseInt(datetime) / 100 - 1) + Integer.parseInt(datetime) % 100 + 1) / 24.0 - accurate) / accurate;
+                                    relativeError = relativeError + Math.abs(noUnit.r * ((Integer.parseInt(datetime.split("~")[0]) + 1) * 40000000 + 3000028242.0) / 3000028242.0  - accurate) / accurate;
                                     break;
                             }
                         }
@@ -79,7 +84,8 @@ public class Exp5ResultRelativeError implements ExpRunnable {
                     relativeError = 0;
                     repeatTime = 0;
                     for (String _query : verdictResult.getHeader()) {
-                        if (_query.contains(query + "_")) {
+                        if (_query.contains("q") && ("q" + (Integer.valueOf(StringUtils.substringBetween(_query, "q", "_")) - 27) + "_").contains(query + "_")) {
+//                        if (_query.contains(query + "_")) {
                             repeatTime++;
                             String verdictCell = verdictResult.getCell(datetime, _query);
                             if (verdictCell == null) {
@@ -90,6 +96,7 @@ public class Exp5ResultRelativeError implements ExpRunnable {
                             relativeError = relativeError + Math.abs(verdictUnit.r - accurate) / accurate;
                         }
                     }
+
                     /*
                     for (String _query : verdictResult2.getHeader()) {
                         if (_query.contains(query + "_")) {
@@ -101,8 +108,10 @@ public class Exp5ResultRelativeError implements ExpRunnable {
                         }
                     }
                     */
+
                     relativeError = relativeError / repeatTime;
                     comparisonResult.push(datetime, query + "_" + "verdict", String.format("%.4f", relativeError));
+
                     relativeError = 0;
                     repeatTime = 0;
                     for (String _query : adaResult.getHeader()) {
@@ -120,7 +129,7 @@ public class Exp5ResultRelativeError implements ExpRunnable {
                     relativeError = relativeError / repeatTime;
                     comparisonResult.push(datetime, query + "_" + "RRS", String.format("%.4f", relativeError));
 
-                    /*
+
                     relativeError = 0;
                     repeatTime = 0;
                     for (String _query : adaptiveResult.getHeader()) {
@@ -134,7 +143,7 @@ public class Exp5ResultRelativeError implements ExpRunnable {
                     }
                     relativeError = relativeError / repeatTime;
                     comparisonResult.push(datetime, query + "_" + "adaptive", String.format("%.4f", relativeError));
-                    */
+
                 }
             }
         } catch (JSONException e) {

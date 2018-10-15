@@ -7,7 +7,7 @@ import daslab.utils.AdaSystem;
 import daslab.utils.AdaTimer;
 import edu.umich.verdict.exceptions.VerdictException;
 
-import static com.sun.tools.javac.util.Constants.format;
+import static daslab.utils.AdaTimer.format;
 
 public class DatabaseRestore extends ExpTemplate implements RestoreModule {
     public DatabaseRestore() {
@@ -20,13 +20,9 @@ public class DatabaseRestore extends ExpTemplate implements RestoreModule {
 
     public void restore() {
         if (get("profile").contains("stratified")) {
-            AdaSystem.call("hadoop fs -rm -r " + get("data.table.hdfs.location"));
-            AdaSystem.call("hadoop fs -rm -r " + get("batch.table.hdfs.location"));
-            execute(String.format("DROP DATABASE IF EXISTS %s CASCADE", get("data.table.schema")));
-            execute(String.format("CREATE DATABASE %s", get("data.table.schema")));
+            execute(String.format("DROP TABLE IF EXISTS %s", get("running.data.table.name")));
             execute(String.format("USE %s", get("data.table.schema")));
-            execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", get("batch.table.name"), get("batch.table.structure"), get("batch.table.terminated"), get("batch.table.hdfs.location")));
-            execute(String.format("CREATE TABLE %s.%s AS (SELECT * FROM tpch.lineitem WHERE (l_shipdate<='1998-12-01' AND l_shipdate>='1996-01-01') OR (l_shipdate<'1994-01-01' AND l_shipdate>='1992-01-01') LIMIT 80000000)", get("data.table.schema"), get("data.table.name")));
+            execute(String.format("CREATE TABLE %s.%s AS (SELECT * FROM %s.%s WHERE (l_shipdate<='1998-12-01' AND l_shipdate>='1996-01-01') OR (l_shipdate<'1994-01-01' AND l_shipdate>='1992-01-01') LIMIT 80000000)", get("data.table.schema"), get("running.data.table.name"), get("data.table.schema"), get("data.table.name")));
         }
         else if (get("profile").contains("tpch")) {
             AdaSystem.call("hadoop fs -rm -r " + get("data.table.hdfs.location") + "/lineitem_batch*");
@@ -72,7 +68,11 @@ public class DatabaseRestore extends ExpTemplate implements RestoreModule {
                 switch (sampleType.toLowerCase().trim()) {
                     case "uniform":
                         timer = AdaTimer.create();
-                        sql = String.format("CREATE %.2f%% UNIFORM SAMPLE OF %s.%s", sampleRatio, get("data.table.schema"), get("data.table.name"));
+                        if (get("profile").contains("stratified")) {
+                            sql = String.format("CREATE %.2f%% UNIFORM SAMPLE OF %s.%s", sampleRatio, get("data.table.schema"), get("running.data.table.name"));
+                        } else {
+                            sql = String.format("CREATE %.2f%% UNIFORM SAMPLE OF %s.%s", sampleRatio, get("data.table.schema"), get("data.table.name"));
+                        }
                         AdaLogger.debug(this, "Uniform sample: " + sql);
                         getVerdict().sql(sql);
                         AdaLogger.debug(this, "Uniform sample cost: " + format(timer.stop()));
@@ -80,7 +80,11 @@ public class DatabaseRestore extends ExpTemplate implements RestoreModule {
                     case "stratified":
                         timer = AdaTimer.create();
                         for (String column : columns) {
-                            sql = String.format("CREATE %.2f%% STRATIFIED SAMPLE OF %s.%s ON %s", sampleRatio, get("data.table.schema"), get("data.table.name"), column);
+                            if (get("profile").contains("stratified")) {
+                                sql = String.format("CREATE %.2f%% STRATIFIED SAMPLE OF %s.%s ON %s", sampleRatio, get("data.table.schema"), get("running.data.table.name"), column);
+                            } else {
+                                sql = String.format("CREATE %.2f%% STRATIFIED SAMPLE OF %s.%s ON %s", sampleRatio, get("data.table.schema"), get("data.table.name"), column);
+                            }
                             AdaLogger.debug(this, "Stratified sample: " + sql);
                             getVerdict().sql(sql);
                         }
@@ -89,7 +93,11 @@ public class DatabaseRestore extends ExpTemplate implements RestoreModule {
                 }
             }
             if (!get("sample.running.type").contains("uniform")) {
-                getVerdict().sql(String.format("DROP %s%% UNIFORM SAMPLES OF %s.%s", get("sample.init.ratio"), get("data.table.schema"), get("data.table.name")));
+                if (get("profile").contains("stratified")) {
+                    getVerdict().sql(String.format("DROP %s%% UNIFORM SAMPLES OF %s.%s", get("sample.init.ratio"), get("data.table.schema"), get("running.data.table.name")));
+                } else {
+                    getVerdict().sql(String.format("DROP %s%% UNIFORM SAMPLES OF %s.%s", get("sample.init.ratio"), get("data.table.schema"), get("data.table.name")));
+                }
             }
         } catch (VerdictException e) {
             e.printStackTrace();
