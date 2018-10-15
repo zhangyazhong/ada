@@ -117,6 +117,22 @@ public class DbmsSpark2 {
         return AdaBatch.build(context.get("dbms.default.database"), context.get("dbms.batch.table"), size);
     }
 
+    public AdaBatch load(TableEntity tableEntity) {
+        String schema = tableEntity.getSchema();
+        String table = tableEntity.getTable();
+        execute(String.format("USE %s", context.get("dbms.default.database")));
+        execute(String.format("INSERT INTO %s (SELECT * FROM %s.%s)", context.get("dbms.data.table"), schema, table));
+        AdaLogger.info(this, "Loaded batch (" + schema + ", " + table + ") into data table");
+
+        execute(String.format("DROP TABLE IF EXISTS %s", context.get("dbms.batch.table")));
+        execute(String.format("CREATE TABLE %s AS (SELECT * FROM %s.%s)", context.get("dbms.batch.table"), schema, table));
+        AdaLogger.info(this, "Loaded batch (" + schema + ", " + table + ") into batch table");
+
+        int size = (int) context.getDbmsSpark2().execute(String.format("SELECT count(*) AS size FROM %s", context.get("dbms.batch.table"))).getResultAsLong(0, "size");
+        AdaLogger.info(this, String.format("AdaBatch loaded into %s.%s with size %d", context.get("dbms.default.database"), context.get("dbms.batch.table"), size));
+        return AdaBatch.build(context.get("dbms.default.database"), context.get("dbms.batch.table"), size);
+    }
+
     @NotNull
     private AdaBatch load(@NotNull File file) {
         execute("USE " + context.get("dbms.default.database"));

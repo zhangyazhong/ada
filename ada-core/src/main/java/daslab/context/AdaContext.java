@@ -152,9 +152,24 @@ public class AdaContext {
         return currentReport();
     }
 
+    public ExecutionReport receive(String schema, String table) {
+        printBlankLine(5);
+        createReport();
+        hdfsReceiver.receive(schema, table);
+        return currentReport();
+    }
+
+    public void afterOneBatch(TableEntity tableEntity) {
+        AdaBatch adaBatch = getDbmsSpark2().load(tableEntity);
+        handleBatch(adaBatch);
+    }
+
     public void afterOneBatch(String... batchLocations) {
         AdaBatch adaBatch = batchLocations.length > 1 ? getDbmsSpark2().load(batchLocations) : getDbmsSpark2().load(batchLocations[0]);
+        handleBatch(adaBatch);
+    }
 
+    public void handleBatch(AdaBatch adaBatch) {
         // REPORT: sampling.cost.total (start)
         Long startTime = System.currentTimeMillis();
         // REPORT: sampling.cost.pre-process (start)
@@ -179,6 +194,7 @@ public class AdaContext {
         currentReport().put("sampling.cost.total", finishTime - startTime);
 
         AdaLogger.info(this, String.format("AdaBatch(%d) [%s] sampling time cost: %s ", adaBatch.getSize(), strategies.toString(), samplingTime));
+
     }
 
     public Map<Sample, Sampling> sampling(AdaBatch adaBatch) {

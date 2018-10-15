@@ -1,11 +1,11 @@
 package daslab.server;
 
+import daslab.bean.TableEntity;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.InputStreamReader;
 
 /**
@@ -67,6 +67,11 @@ public class HdfsBathReceiver {
         */
         context.increaseBatchCount();
         context.afterOneBatch(locations);
+    }
+
+    public void receive(String schema, String table) {
+        context.increaseBatchCount();
+        context.afterOneBatch(new TableEntity(schema, table));
     }
 
     private void call(String cmd) {

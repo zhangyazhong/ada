@@ -61,6 +61,17 @@
                 <spark.master>ubuntu1</spark.master>
             </properties>
         </profile>
+        <profile>
+            <id>lab-stratified</id>
+            <properties>
+                <profile>lab-stratified</profile>
+                <server.env>lab-stratified</server.env>
+                <server.user>scidb</server.user>
+                <server.host>10.141.211.91</server.host>
+                <server.upload.path>/home/scidb/zyz</server.upload.path>
+                <spark.master>ubuntu1</spark.master>
+            </properties>
+        </profile>
     </profiles>
 
     <properties>
