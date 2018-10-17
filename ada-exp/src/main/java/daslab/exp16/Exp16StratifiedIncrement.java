@@ -21,14 +21,15 @@ import java.util.Map;
  * @version 2018-10-15
  */
 public class Exp16StratifiedIncrement extends ExpTemplate {
-    private final static int REPEAT_TIME = 10;
-    public final String COST_SAVE_PATH = String.format("/tmp/ada/exp/exp16/stratified_cost_%s.csv", get("exp.stratified.group"));
-    public final String VERDICT_RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp16/verdict_result_%s.csv", get("exp.stratified.group"));
-    public final String SPARK_RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp16/verdict_result_%s.csv", get("exp.stratified.group"));
+    private final static int REPEAT_TIME = 1;
+    public final String COST_SAVE_PATH = String.format("/tmp/ada/exp/exp16/2verdict_cost_%s.csv", get("exp.stratified.group"));
+    public final String VERDICT_RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp16/2verdict_result_%s.csv", get("exp.stratified.group"));
+    public final String SPARK_RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp16/accurate_result_%s.csv", get("exp.stratified.group"));
 
     private Map<String, String> distribution = ImmutableMap.<String, String>builder()
             .put("20", "1994-01-01,1994-01-10,1995-09-01,1995-09-10")
             .put("40", "1994-01-01,1994-01-20,1995-09-01,1995-09-20")
+            .put("50", "1994-01-01,1994-01-25,1995-09-01,1995-09-25")
             .put("60", "1994-01-01,1994-01-30,1995-09-01,1995-09-30")
             .put("80", "1994-01-01,1994-02-20,1995-09-01,1995-09-30")
             .put("100", "1994-01-01,1994-03-10,1995-09-01,1995-09-30")
@@ -75,7 +76,7 @@ public class Exp16StratifiedIncrement extends ExpTemplate {
                         distribution.get(get("exp.stratified.group")).split(",")[2],
                         distribution.get(get("exp.stratified.group")).split(",")[3]
                 ));
-                execute(String.format("INSERT INTO %s.%s AS (SELECT * FROM %s.%s WHERE (l_shipdate>='%s' AND l_shipdate<='%s') OR (l_shipdate>='%s' AND l_shipdate<'%s') LIMIT 7200000)",
+                execute(String.format("INSERT INTO %s.%s (SELECT * FROM %s.%s WHERE (l_shipdate>='%s' AND l_shipdate<='%s') OR (l_shipdate>='%s' AND l_shipdate<'%s') LIMIT 7200000)",
                         get("data.table.schema"), "lineitem_batch_tmp",
                         get("data.table.schema"), get("data.table.name"),
                         "1996-01-01", "1998-12-01",
@@ -86,6 +87,9 @@ public class Exp16StratifiedIncrement extends ExpTemplate {
                 for (Map.Entry<String, Object> entry : executionReport.search("sampling.cost").entrySet()) {
                     expCostResult.push(time, entry.getKey(), String.valueOf(entry.getValue()));
                 }
+                for (Map.Entry<String, Object> entry : executionReport.search("sample").entrySet()) {
+                    expCostResult.push(time, entry.getKey(), String.valueOf(entry.getValue()));
+                }
                 expCostResult.push(time, "strategy", ((Map<Sample, Sampling>) executionReport.get("sampling.strategies"))
                         .entrySet()
                         .stream()
@@ -93,20 +97,21 @@ public class Exp16StratifiedIncrement extends ExpTemplate {
                         .reduce((s1, s2) -> s1 + s2)
                         .orElse(""));
                 expCostResult.save(COST_SAVE_PATH);
+
                 try {
                     runQueryByVerdict(expVerdictResult, QUERIES, time, k);
-                    if (k < 1) {
-                        runQueryBySpark(expSparkResult, QUERIES, time);
-                    }
+//                    if (k < 1) {
+//                        runQueryBySpark(expSparkResult, QUERIES, time);
+//                        expSparkResult.save(SPARK_RESULT_SAVE_PATH);
+//                    }
                 } catch (VerdictException e) {
                     e.printStackTrace();
                 }
                 expVerdictResult.save(VERDICT_RESULT_SAVE_PATH);
-                expSparkResult.save(SPARK_RESULT_SAVE_PATH);
+
             }
             expCostResult.save(COST_SAVE_PATH);
             expVerdictResult.save(VERDICT_RESULT_SAVE_PATH);
-            expSparkResult.save(SPARK_RESULT_SAVE_PATH);
         }
     }
 }

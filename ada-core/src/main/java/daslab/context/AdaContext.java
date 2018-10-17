@@ -48,6 +48,7 @@ public class AdaContext {
     private boolean skipSampling;
     private boolean enableAdaptive;
     private boolean enableDebug;
+    private boolean forceUpdate;
 
     public AdaContext() {
         configs = Maps.newHashMap();
@@ -62,6 +63,7 @@ public class AdaContext {
         skipSampling = false;
         enableAdaptive = false;
         enableDebug = false;
+        forceUpdate = false;
         samplingController = new SamplingController(this);
         executionReports = Lists.newLinkedList();
         strategies = Maps.newHashMap();
@@ -131,6 +133,11 @@ public class AdaContext {
 
     public AdaContext enableDebug(boolean enableDebug) {
         this.enableDebug = enableDebug;
+        return this;
+    }
+
+    public AdaContext enableForceUpdate(boolean forceUpdate) {
+        this.forceUpdate = forceUpdate;
         return this;
     }
 
@@ -207,7 +214,7 @@ public class AdaContext {
             writeIntoReport("sample.needed", status.getMaxExpectedSize());
             // REPORT: sampling.origin.{sample.brief}
             writeIntoReport("sample.origin." + sample.brief(), sample.sampleSize);
-            if (status.whetherResample() || forceResample) {
+            if (status.whetherResample() || forceResample && !forceUpdate) {
                 if (!forceResample && enableAdaptive && status.M() <= adaBatch.getSize()) {
                     // REPORT: sampling.aims.{sample.brief}
                     writeIntoReport("sample.aims."  + sample.brief(), status.getMaxExpectedSize());

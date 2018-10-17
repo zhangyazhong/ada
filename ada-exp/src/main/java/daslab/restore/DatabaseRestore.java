@@ -20,8 +20,8 @@ public class DatabaseRestore extends ExpTemplate implements RestoreModule {
 
     public void restore() {
         if (get("profile").contains("stratified")) {
-            execute(String.format("DROP TABLE IF EXISTS %s", get("running.data.table.name")));
             execute(String.format("USE %s", get("data.table.schema")));
+            execute(String.format("DROP TABLE IF EXISTS %s.%s", get("data.table.schema"), get("running.data.table.name")));
             execute(String.format("CREATE TABLE %s.%s AS (SELECT * FROM %s.%s WHERE (l_shipdate<='1998-12-01' AND l_shipdate>='1996-01-01') OR (l_shipdate<'1994-01-01' AND l_shipdate>='1992-01-01') LIMIT 80000000)", get("data.table.schema"), get("running.data.table.name"), get("data.table.schema"), get("data.table.name")));
         }
         else if (get("profile").contains("tpch")) {
