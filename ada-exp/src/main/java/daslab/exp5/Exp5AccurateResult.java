@@ -22,7 +22,7 @@ import static daslab.exp.ExpConfig.HOUR_TOTAL;
  * @version 2018-08-31
  */
 public class Exp5AccurateResult extends ExpTemplate {
-    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp5/new2_accurate_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
+    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp16/accurate_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     public Exp5AccurateResult() {
         this("Ada Exp5 - Accuracy Result");
@@ -42,10 +42,11 @@ public class Exp5AccurateResult extends ExpTemplate {
                         new ExpQueryPool.GroupByClause("project_name")
                 ))
                 .stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
-        QUERIES = ExpQueryPool.QUERIES_ONLY(
+        QUERIES.addAll(ExpQueryPool.QUERIES_ONLY(
                 new ExpQueryPool.WhereClause("page_size"),
                 new ExpQueryPool.WhereClause("page_count")
-        ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
+        ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList()));
+        /*
         QUERIES = ImmutableList.of(
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=3",
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=4",
@@ -64,6 +65,7 @@ public class Exp5AccurateResult extends ExpTemplate {
                 "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=9",
                 "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=10"
         );
+        */
         ExpResult expResult = new ExpResult("time");
         SystemRestore.restoreModules().forEach(RestoreModule::restore);
         AdaLogger.info(this, "Restored database.");

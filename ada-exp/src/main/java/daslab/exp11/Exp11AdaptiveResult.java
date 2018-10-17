@@ -21,7 +21,7 @@ import static daslab.exp.ExpConfig.HOUR_TOTAL;
 @SuppressWarnings("Duplicates")
 public class Exp11AdaptiveResult extends ExpTemplate {
     private final static int REPEAT_TIME = 10;
-    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp10/un+st_adaptive_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
+    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp12/adaptive_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     private static List<String> QUERIES;
 
@@ -35,7 +35,6 @@ public class Exp11AdaptiveResult extends ExpTemplate {
 
     @Override
     public void run() {
-        /*
         QUERIES = ExpQueryPool.QUERIES_EXCEPT(
                 ImmutableList.of(
                         new ExpQueryPool.WhereClause("page_count"),
@@ -44,14 +43,16 @@ public class Exp11AdaptiveResult extends ExpTemplate {
                         new ExpQueryPool.GroupByClause("project_name")
                 ))
                 .stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
-        */
 
+
+        /*
         QUERIES = ExpQueryPool.QUERIES_ONLY(
                 new ExpQueryPool.WhereClause("page_size"),
                 new ExpQueryPool.WhereClause("page_count")
         ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
+        */
 
-        /*
+
         QUERIES = ImmutableList.of(
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=3",
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=4",
@@ -70,7 +71,7 @@ public class Exp11AdaptiveResult extends ExpTemplate {
                 "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=9",
                 "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=10"
         );
-        */
+
         ExpResult expResult = new ExpResult("time");
         for (int k = 0; k < REPEAT_TIME; k++) {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);

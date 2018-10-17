@@ -21,7 +21,7 @@ import static daslab.exp.ExpConfig.*;
  */
 public class Exp7AdaResult extends ExpTemplate {
     private final static int REPEAT_TIME = 10;
-    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp7/verdict_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
+    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp7/ada_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     private static List<String> QUERIES;
 
@@ -45,7 +45,7 @@ public class Exp7AdaResult extends ExpTemplate {
             SystemRestore.restoreModules().forEach(RestoreModule::restore);
             AdaLogger.info(this, "Restored database.");
             resetVerdict();
-            AdaContext context = new AdaContext().enableForceResample(true).start();
+            AdaContext context = new AdaContext().enableForceResample(false).start();
             for (int i = HOUR_START; i < HOUR_TOTAL; i++) {
                 String[] locations = new String[HOUR_INTERVAL];
                 String time = String.format("%02d~%02d", i, (i + HOUR_INTERVAL - 1));
