@@ -25,7 +25,7 @@ import static daslab.exp.ExpConfig.HOUR_TOTAL;
  */
 public class Exp5AdaResult extends ExpTemplate {
     private final static int REPEAT_TIME = 10;
-    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp12/ada_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
+    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp18/ada_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     private static List<String> QUERIES = ImmutableList.of(
             // huge number group
@@ -48,7 +48,6 @@ public class Exp5AdaResult extends ExpTemplate {
 
     @Override
     public void run() {
-        /*
         QUERIES = ExpQueryPool.QUERIES_EXCEPT(
                 ImmutableList.of(
                         new ExpQueryPool.WhereClause("page_count"),
@@ -57,13 +56,14 @@ public class Exp5AdaResult extends ExpTemplate {
                     new ExpQueryPool.GroupByClause("project_name")
                 ))
                 .stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
-        */
-        QUERIES = ExpQueryPool.QUERIES_ONLY(
+
+        QUERIES.addAll(ExpQueryPool.QUERIES_ONLY(
                 new ExpQueryPool.WhereClause("page_size"),
                 new ExpQueryPool.WhereClause("page_count")
-        ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList());
 
-        QUERIES = ImmutableList.of(
+        ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList()));
+
+        QUERIES.addAll(ImmutableList.of(
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=3",
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=4",
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=5",
@@ -80,7 +80,7 @@ public class Exp5AdaResult extends ExpTemplate {
                 "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=8",
                 "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=9",
                 "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=10"
-        );
+        ));
 
         ExpResult expResult = new ExpResult("time");
         for (int k = 0; k < REPEAT_TIME; k++) {

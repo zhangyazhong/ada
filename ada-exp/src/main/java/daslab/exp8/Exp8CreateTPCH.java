@@ -69,7 +69,8 @@ public class Exp8CreateTPCH extends ExpTemplate {
         execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", get("data.table.name"), get("data.table.structure"), get("data.table.terminated"), get("data.table.hdfs.location")));
         execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", get("batch.table.name"), get("batch.table.structure"), get("batch.table.terminated"), get("batch.table.hdfs.location")));
         String path = get("base.hdfs.location.pattern");
-        String command = "hadoop fs -D dfs.replication=1 -mv " + path + " " + get("data.table.hdfs.location");
+//        String command = "hadoop fs -D dfs.replication=1 -mv " + path + " " + get("data.table.hdfs.location");
+        String command = "hadoop fs -mv " + path + " " + get("data.table.hdfs.location");
         AdaSystem.call(command);
 
         TPCHTable supplier = new TPCHTable("supplier")
@@ -132,8 +133,9 @@ public class Exp8CreateTPCH extends ExpTemplate {
                 .addColumn("n_comment", STRING);
 
         ImmutableList.of(supplier, region, customer, part, partsupp, orders).forEach(table -> {
-            execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", table.getTableName(), table.getTableStructureInSQL(), table.getTableTerminated(), "/zyz/spark/tpch_" + table.getTableName()));
-            AdaSystem.call(String.format("hadoop fs -D dfs.replication=1 -mv %s %s", "/zyz/tpch/" + table.getTableName(), "/zyz/spark/tpch_" + table.getTableName()));
+            execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", table.getTableName(), table.getTableStructureInSQL(), table.getTableTerminated(), "/zyz/spark/stratified_" + table.getTableName()));
+//            AdaSystem.call(String.format("hadoop fs -D dfs.replication=1 -mv %s %s", "/zyz/stratified/" + table.getTableName(), "/zyz/spark/stratified_" + table.getTableName()));
+            AdaSystem.call(String.format("hadoop fs -mv %s %s", "/zyz/stratified/" + table.getTableName(), "/zyz/spark/stratified_" + table.getTableName()));
             AdaLogger.info(this, "Table " + table.getTableName() + " finished.");
         });
 

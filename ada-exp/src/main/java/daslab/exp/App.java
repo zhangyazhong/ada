@@ -9,6 +9,7 @@ import daslab.exp11.Exp11AdaptiveResult;
 import daslab.exp13.Exp13BaseDataSpark;
 import daslab.exp13.Exp13BaseDataVerdict;
 import daslab.exp15.Exp15CheckVerdict;
+import daslab.exp16.Exp16StratifiedIncrement;
 import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
 import daslab.exp3.*;
@@ -201,6 +202,10 @@ public class App {
                 case "exp15_check_verdict":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 15 for Checking Verdict Result");
                     new Exp15CheckVerdict().run(args);
+                    break;
+                case "exp16_stratified_cost":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 16 for Stratified Increment Cost");
+                    new Exp16StratifiedIncrement().run(args);
                     break;
             }
         }

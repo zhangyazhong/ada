@@ -48,6 +48,7 @@ public class AdaContext {
     private boolean skipSampling;
     private boolean enableAdaptive;
     private boolean enableDebug;
+    private boolean forceUpdate;
 
     public AdaContext() {
         configs = Maps.newHashMap();
@@ -62,6 +63,7 @@ public class AdaContext {
         skipSampling = false;
         enableAdaptive = false;
         enableDebug = false;
+        forceUpdate = false;
         samplingController = new SamplingController(this);
         executionReports = Lists.newLinkedList();
         strategies = Maps.newHashMap();
@@ -134,6 +136,11 @@ public class AdaContext {
         return this;
     }
 
+    public AdaContext enableForceUpdate(boolean forceUpdate) {
+        this.forceUpdate = forceUpdate;
+        return this;
+    }
+
     public void receive(File file) {
         fileReceiver.receive(file);
     }
@@ -152,9 +159,24 @@ public class AdaContext {
         return currentReport();
     }
 
+    public ExecutionReport receive(String schema, String table) {
+        printBlankLine(5);
+        createReport();
+        hdfsReceiver.receive(schema, table);
+        return currentReport();
+    }
+
+    public void afterOneBatch(TableEntity tableEntity) {
+        AdaBatch adaBatch = getDbmsSpark2().load(tableEntity);
+        handleBatch(adaBatch);
+    }
+
     public void afterOneBatch(String... batchLocations) {
         AdaBatch adaBatch = batchLocations.length > 1 ? getDbmsSpark2().load(batchLocations) : getDbmsSpark2().load(batchLocations[0]);
+        handleBatch(adaBatch);
+    }
 
+    public void handleBatch(AdaBatch adaBatch) {
         // REPORT: sampling.cost.total (start)
         Long startTime = System.currentTimeMillis();
         // REPORT: sampling.cost.pre-process (start)
@@ -179,6 +201,7 @@ public class AdaContext {
         currentReport().put("sampling.cost.total", finishTime - startTime);
 
         AdaLogger.info(this, String.format("AdaBatch(%d) [%s] sampling time cost: %s ", adaBatch.getSize(), strategies.toString(), samplingTime));
+
     }
 
     public Map<Sample, Sampling> sampling(AdaBatch adaBatch) {
@@ -191,7 +214,7 @@ public class AdaContext {
             writeIntoReport("sample.needed", status.getMaxExpectedSize());
             // REPORT: sampling.origin.{sample.brief}
             writeIntoReport("sample.origin." + sample.brief(), sample.sampleSize);
-            if (status.whetherResample() || forceResample) {
+            if (status.whetherResample() || forceResample && !forceUpdate) {
                 if (!forceResample && enableAdaptive && status.M() <= adaBatch.getSize()) {
                     // REPORT: sampling.aims.{sample.brief}
                     writeIntoReport("sample.aims."  + sample.brief(), status.getMaxExpectedSize());

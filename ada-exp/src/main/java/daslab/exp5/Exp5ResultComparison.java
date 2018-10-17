@@ -17,17 +17,17 @@ public class Exp5ResultComparison implements ExpRunnable {
     public final static String VERDICT_RESULT_PATH = String.format("/tmp/ada/exp/exp5/verdict_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
     public final static String COMPARISON_SAVE_PATH = String.format("/tmp/ada/exp/exp5/comparison_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
     */
-    public final static String BASE_DIR = "/Users/zyz/Documents/AQP/paper/exp/exp15-check/";
+    public final static String BASE_DIR = "/Users/zyz/Documents/AQP/paper/exp/exp12-new2_queries/";
 
     public final static String ACCURATE_RESULT_PATH = BASE_DIR + "accurate_result_24_48_1.csv";
 
-    public final static String ADA_RESULT_PATH = BASE_DIR + "st_ada_result_24_48_1.csv";
+    public final static String ADA_RESULT_PATH = BASE_DIR + "ada_result_24_48_1.csv";
     public final static String ADA_COMPARISON_PATH = BASE_DIR + "compare_ada_24_48_1.csv";
 
-    public final static String VERDICT_RESULT_PATH = BASE_DIR + "st_verdict_result_24_48_1.csv";
+    public final static String VERDICT_RESULT_PATH = BASE_DIR + "verdict_result_24_48_1.csv";
     public final static String VERDICT_COMPARISON_PATH = BASE_DIR + "compare_verdict_24_48_1.csv";
 
-    public final static String ADAPTIVE_RESULT_PATH = BASE_DIR + "st_adaptive_result_24_48_1.csv";
+    public final static String ADAPTIVE_RESULT_PATH = BASE_DIR + "adaptive_result_24_48_1.csv";
     public final static String ADAPTIVE_COMPARISON_PATH = BASE_DIR + "compare_adaptive_24_48_1.csv";
 
     private void compareVerdict() {
@@ -58,9 +58,18 @@ public class Exp5ResultComparison implements ExpRunnable {
 //                    if (Integer.parseInt(column.substring(column.length() - 1)) > 4) {
 //                        continue;
 //                    }
+                    /*
+                    if (queryNo < 27) {
+                        continue;
+                    }
+                    */
                     String queryName = "q" + queryNo;
+//                    String queryName = "q" + (queryNo - 27);
                     String approximateCell = approximateResult.getCell(row, column);
                     String accurateCell = accurateResult.getCell(row, queryName);
+                    if (approximateCell == null) {
+                        continue;
+                    }
                     System.out.println(row + " " + queryName + " " + column + " " + approximateCell + " " + accurateCell);
                     String aggregationType = accurateCell.split("/")[0];
                     JSONObject accurateJSON = new JSONObject(StringUtils.substringBetween(accurateCell.split("/")[1],"[", "]"));
@@ -69,6 +78,7 @@ public class Exp5ResultComparison implements ExpRunnable {
                         case "AVG":
                         case "SUM":
                         case "COUNT":
+                        default:
                             double accurate = accurateJSON.getDouble(accurateJSON.names().getString(0));
                             double approximateR = 0, approximateE = 0;
                             for (int i = 0; i < approximateJSON.names().length(); i++) {
