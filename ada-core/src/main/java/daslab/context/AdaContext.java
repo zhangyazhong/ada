@@ -49,6 +49,8 @@ public class AdaContext {
     private boolean enableAdaptive;
     private boolean enableDebug;
     private boolean forceUpdate;
+    // this is used for adaptive sampling
+    private double attenuationFactor;
 
     public AdaContext() {
         configs = Maps.newHashMap();
@@ -59,6 +61,7 @@ public class AdaContext {
         dbmsSpark2 = DbmsSpark2.getInstance(this);
         tableMeta = new TableMeta(this, dbmsSpark2.desc());
         batchCount = 0;
+        attenuationFactor = 1.0;
         forceResample = false;
         skipSampling = false;
         enableAdaptive = false;
@@ -214,8 +217,9 @@ public class AdaContext {
             writeIntoReport("sample.needed", status.getMaxExpectedSize());
             // REPORT: sampling.origin.{sample.brief}
             writeIntoReport("sample.origin." + sample.brief(), sample.sampleSize);
-            if (status.whetherResample() || forceResample && !forceUpdate) {
-                if (!forceResample && enableAdaptive && status.M() <= adaBatch.getSize()) {
+            if ((status.whetherResample() || forceResample) && !forceUpdate) {
+                if (!forceResample && enableAdaptive && status.M() * attenuationFactor <= adaBatch.getSize()) {
+                    attenuationFactor = attenuationFactor + Math.log(1.0 * (tableMeta.getCardinality() - adaBatch.getSize()) / (adaBatch.getSize() - status.M())) / Math.log(status.M());
                     // REPORT: sampling.aims.{sample.brief}
                     writeIntoReport("sample.aims."  + sample.brief(), status.getMaxExpectedSize());
                     AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be adaptive: %s.",
@@ -226,6 +230,7 @@ public class AdaContext {
                     getSamplingController().adaptive(sample, adaBatch);
                     strategies.put(sample, Sampling.ADAPATIVE);
                 } else {
+                    attenuationFactor = 1.0;
                     // REPORT: sampling.aims.{sample.brief}
                     writeIntoReport("sample.aims."  + sample.brief(), (long) (status.getMaxExpectedSize() * Double.parseDouble(get("resampling.overflow"))));
                     AdaLogger.info(this, String.format("Sample's[%s][%.2f] columns need to be resample: %s.",
