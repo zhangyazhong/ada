@@ -12,6 +12,7 @@ import daslab.utils.AdaLogger;
 import edu.umich.verdict.exceptions.VerdictException;
 import org.apache.commons.lang.StringUtils;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -89,12 +90,17 @@ public class Exp5AdaResult extends ExpTemplate {
             resetVerdict();
             AdaContext context = new AdaContext().start();
             for (int i = HOUR_START; i < HOUR_TOTAL; i++) {
-                int day = i / 24 + 1;
-                int hour = i % 24;
-                String time = String.format("%02d%02d", day, hour);
-                String location = String.format(get("source.hdfs.location.pattern"), day, hour);
-                AdaLogger.info(this, "Send a new batch at " + location);
-                context.receive(location);
+                String[] locations = new String[HOUR_INTERVAL];
+                String time = String.format("%02d%02d~%02d%02d",
+                        i / 24 + 1, i % 24, (i + HOUR_INTERVAL - 1) / 24 + 1, (i + HOUR_INTERVAL - 1) % 24);
+                for (int j = 0; j < HOUR_INTERVAL; j++) {
+                    int day = (i + j) / 24 + 1;
+                    int hour = (i + j) % 24;
+                    locations[j] = String.format(get("source.hdfs.location.pattern"), day, hour);
+                }
+                i = i + HOUR_INTERVAL - 1;
+                AdaLogger.info(this, "Send a new batch at " + Arrays.toString(locations));
+                context.receive(locations);
                 try {
                     runQueryByVerdict(expResult, QUERIES, time, k);
                 } catch (VerdictException e) {

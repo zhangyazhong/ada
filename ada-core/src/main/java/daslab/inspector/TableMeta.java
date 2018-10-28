@@ -1,12 +1,14 @@
 package daslab.inspector;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import daslab.bean.AdaBatch;
 import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author zyz
@@ -89,11 +91,26 @@ public class TableMeta {
     private Map<TableColumn, MetaInfo> tableMetaMap;
     private long cardinality;
     private String metaClause;
+    private Set<TableColumn> inspectingColumns;
 
     public TableMeta(AdaContext context, TableSchema tableSchema) {
         this.context = context;
         this.tableSchema = tableSchema;
         this.tableMetaMap = Maps.newHashMap();
+        if (context.get("dbms.table.meta.columns") != null) {
+            this.inspectingColumns = Sets.newHashSet();
+            String[] inspectingColumns = context.get("dbms.table.meta.columns").split(",");
+            for (TableColumn tableColumn : tableSchema.getColumns()) {
+                for (String inspectingColumn : inspectingColumns) {
+                    if (tableColumn.getColumnName().equals(inspectingColumn.trim())) {
+                        this.inspectingColumns.add(tableColumn);
+                        break;
+                    }
+                }
+            }
+        } else {
+            this.inspectingColumns = Sets.newHashSet(tableSchema.getColumns());
+        }
     }
 
     public void init() {
@@ -104,14 +121,16 @@ public class TableMeta {
         context.getDbmsSpark2().execute(sql);
         cardinality = context.getDbmsSpark2().getResultAsLong(0, "count");
         for (TableColumn column : tableSchema.getColumns()) {
-            if (column.getColumnType().isInt() || column.getColumnType().isDouble()) {
+            if (inspectingColumns.contains(column) && (column.getColumnType().isInt() || column.getColumnType().isDouble())) {
                 double var = context.getDbmsSpark2().getResultAsDouble(0, "var_pop_" + column.getColumnName());
                 double sum = column.getColumnType().isDouble() ?
                         context.getDbmsSpark2().getResultAsDouble(0, "sum_" + column.getColumnName()) :
                         context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
                 double avg = context.getDbmsSpark2().getResultAsDouble(0, "avg_" + column.getColumnName());
                 // double errorBound = avg * Double.parseDouble(context.get("query.error_bound"));
-                double errorBound = Math.min(avg * Double.parseDouble(context.get("query.error_bound")), 100000.0);
+                double errorBound = context.get("query.error_bound_abs") != null ?
+                        Double.parseDouble(context.get("query.error_bound_abs")) :
+                        Math.min(avg * Double.parseDouble(context.get("query.error_bound")), 100000.0);
                 MetaInfo metaInfo = MetaInfo.calc(column, var, cardinality, sum, errorBound, confidence);
                 tableMetaMap.put(column, metaInfo);
                 AdaLogger.debug(this, "Initially table meta[" + column.getColumnName() + "]: " + metaInfo.toString());
@@ -128,7 +147,7 @@ public class TableMeta {
         long totalCount = newCount + cardinality;
         Map<TableColumn, MetaInfo> batchMetaMap = Maps.newHashMap();
         for (TableColumn column : tableSchema.getColumns()) {
-            if (column.getColumnType().isInt() || column.getColumnType().isDouble()) {
+            if (inspectingColumns.contains(column) && (column.getColumnType().isInt() || column.getColumnType().isDouble())) {
                 double oldVar = tableMetaMap.get(column).getS2();
                 double oldSum = tableMetaMap.get(column).getSum();
                 double oldAvg = tableMetaMap.get(column).getAvg();

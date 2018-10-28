@@ -23,8 +23,10 @@ public class DatabaseRestore extends ExpTemplate implements RestoreModule {
             execute(String.format("USE %s", get("data.table.schema")));
             execute(String.format("DROP TABLE IF EXISTS %s.%s", get("data.table.schema"), get("running.data.table.name")));
             execute(String.format("CREATE TABLE %s.%s AS (SELECT * FROM %s.%s WHERE (l_shipdate<='1998-12-01' AND l_shipdate>='1996-01-01') OR (l_shipdate<'1994-01-01' AND l_shipdate>='1992-01-01') LIMIT 80000000)", get("data.table.schema"), get("running.data.table.name"), get("data.table.schema"), get("data.table.name")));
-        }
-        else if (get("profile").contains("tpch")) {
+        } else if (get("profile").contains("variance")) {
+            AdaSystem.call("hadoop fs -rm -r " + get("data.table.hdfs.location") + "/batchdata*");
+            AdaSystem.call("hadoop fs -rm -r " + get("batch.table.hdfs.location") + "/*");
+        } else if (get("profile").contains("tpch")) {
             AdaSystem.call("hadoop fs -rm -r " + get("data.table.hdfs.location") + "/lineitem_batch*");
             AdaSystem.call("hadoop fs -rm -r " + get("batch.table.hdfs.location") + "/*");
             /*
@@ -88,7 +90,7 @@ public class DatabaseRestore extends ExpTemplate implements RestoreModule {
                             AdaLogger.debug(this, "Stratified sample: " + sql);
                             getVerdict().sql(sql);
                         }
-                        AdaLogger.debug(this, "Uniform sample cost: " + format(timer.stop()));
+                        AdaLogger.debug(this, "Stratified sample cost: " + format(timer.stop()));
                         break;
                 }
             }

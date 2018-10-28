@@ -10,6 +10,7 @@ import daslab.restore.SystemRestore;
 import daslab.utils.AdaLogger;
 import org.apache.commons.lang.StringUtils;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,7 +23,7 @@ import static daslab.exp.ExpConfig.HOUR_TOTAL;
  * @version 2018-08-31
  */
 public class Exp5AccurateResult extends ExpTemplate {
-    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp16/accurate_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
+    public final static String RESULT_SAVE_PATH = String.format("/tmp/ada/exp/exp18/accurate_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
 
     public Exp5AccurateResult() {
         this("Ada Exp5 - Accuracy Result");
@@ -46,8 +47,7 @@ public class Exp5AccurateResult extends ExpTemplate {
                 new ExpQueryPool.WhereClause("page_size"),
                 new ExpQueryPool.WhereClause("page_count")
         ).stream().map(ExpQueryPool.QueryString::toString).collect(Collectors.toList()));
-        /*
-        QUERIES = ImmutableList.of(
+        QUERIES.addAll(ImmutableList.of(
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=3",
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=4",
                 "SELECT AVG(page_size) FROM wiki_ada.pagecounts WHERE page_count=5",
@@ -64,20 +64,24 @@ public class Exp5AccurateResult extends ExpTemplate {
                 "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=8",
                 "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=9",
                 "SELECT SUM(page_size) FROM wiki_ada.pagecounts WHERE page_count=10"
-        );
-        */
+        ));
         ExpResult expResult = new ExpResult("time");
         SystemRestore.restoreModules().forEach(RestoreModule::restore);
         AdaLogger.info(this, "Restored database.");
         resetVerdict();
         AdaContext context = new AdaContext().skipSampling(true).start();
         for (int i = HOUR_START; i < HOUR_TOTAL; i++) {
-            int day = i / 24 + 1;
-            int hour = i % 24;
-            String time = String.format("%02d%02d", day, hour);
-            String location = String.format(get("source.hdfs.location.pattern"), day, hour);
-            AdaLogger.info(this, "Send a new batch at " + location);
-            context.receive(location);
+            String[] locations = new String[HOUR_INTERVAL];
+            String time = String.format("%02d%02d~%02d%02d",
+                    i / 24 + 1, i % 24, (i + HOUR_INTERVAL - 1) / 24 + 1, (i + HOUR_INTERVAL - 1) % 24);
+            for (int j = 0; j < HOUR_INTERVAL; j++) {
+                int day = (i + j) / 24 + 1;
+                int hour = (i + j) % 24;
+                locations[j] = String.format(get("source.hdfs.location.pattern"), day, hour);
+            }
+            i = i + HOUR_INTERVAL - 1;
+            AdaLogger.info(this, "Send a new batch at " + Arrays.toString(locations));
+            context.receive(locations);
             runQueryBySpark(expResult, QUERIES, time);
             AdaLogger.info(this, String.format("Accurate Result[%s]: {%s}", time, StringUtils.join(expResult.getColumns(time), ExpResult.SEPARATOR)));
             expResult.save(RESULT_SAVE_PATH);

@@ -132,14 +132,14 @@ public class Exp8CreateTPCH extends ExpTemplate {
                 .addColumn("n_regionkey", INT)
                 .addColumn("n_comment", STRING);
 
-        ImmutableList.of(supplier, region, customer, part, partsupp, orders).forEach(table -> {
-            execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", table.getTableName(), table.getTableStructureInSQL(), table.getTableTerminated(), "/zyz/spark/stratified_" + table.getTableName()));
+        ImmutableList.of(supplier, region, customer, part, partsupp, orders, nation).forEach(table -> {
+            execute(String.format("CREATE EXTERNAL TABLE %s(%s) ROW FORMAT DELIMITED FIELDS TERMINATED BY '%s' LOCATION '%s/'", table.getTableName(), table.getTableStructureInSQL(), table.getTableTerminated(), "/zyz/spark/variance_" + table.getTableName()));
 //            AdaSystem.call(String.format("hadoop fs -D dfs.replication=1 -mv %s %s", "/zyz/stratified/" + table.getTableName(), "/zyz/spark/stratified_" + table.getTableName()));
-            AdaSystem.call(String.format("hadoop fs -mv %s %s", "/zyz/stratified/" + table.getTableName(), "/zyz/spark/stratified_" + table.getTableName()));
+            AdaSystem.call(String.format("hadoop fs -mv %s %s", "/zyz/variance/" + table.getTableName(), "/zyz/spark/variance_" + table.getTableName()));
             AdaLogger.info(this, "Table " + table.getTableName() + " finished.");
         });
 
-        ImmutableList.of(supplier, region, customer, part, partsupp, orders).forEach(table -> {
+        ImmutableList.of(supplier, region, customer, part, partsupp, orders, nation).forEach(table -> {
             String sql = String.format("SELECT COUNT(*) FROM %s", table.getTableName());
             JSONArray jsonArray = new JSONArray(getSpark().sql(sql).toJSON().collectAsList().stream().map(jsonString -> {
                 JSONObject jsonObject = new JSONObject();
