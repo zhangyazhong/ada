@@ -19,7 +19,7 @@ public class Exp5ResultRelativeError implements ExpRunnable {
 
     public final static String BASE_DIR = "/Users/zyz/Documents/AQP/paper/exp/exp19/";
 
-    public final static String ACCURATE_RESULT_PATH = BASE_DIR + "accurate_result_10.csv";
+    public final static String ACCURATE_RESULT_PATH = BASE_DIR + "accurate_result_20.csv";
 
 //    public final static String NO_RESULT_PATH = BASE_DIR + "no_result_24_48_1.csv";
     public final static String VERDICT_RESULT_PATH = BASE_DIR + "un+st_resample_result_10.csv";
