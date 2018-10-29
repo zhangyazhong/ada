@@ -22,18 +22,18 @@ public class Exp5ResultRelativeError implements ExpRunnable {
     public final static String ACCURATE_RESULT_PATH = BASE_DIR + "accurate_result_20.csv";
 
 //    public final static String NO_RESULT_PATH = BASE_DIR + "no_result_24_48_1.csv";
-    public final static String VERDICT_RESULT_PATH = BASE_DIR + "un+st_resample_result_10.csv";
+    public final static String VERDICT_RESULT_PATH = BASE_DIR + "resample_result_20.csv";
 //    public final static String VERDICT_RESULT_PATH2 = BASE_DIR + "un+st2_verdict_result_24_48_1.csv";
-//    public final static String ADA_RESULT_PATH = BASE_DIR + "ada_result_50.csv";
+//    public final static String VERDICT_RESULT_PATH = BASE_DIR + "ada_result_50.csv";
 //    public final static String ADAPTIVE_RESULT_PATH = BASE_DIR + "adaptive_result_24_48_1.csv";
-    public final static String UPDATE_RESULT_PATH = BASE_DIR + "un+st_update_result_10.csv";
+    public final static String UPDATE_RESULT_PATH = BASE_DIR + "update_result_20.csv";
 
-    public final static String COMPARISON_PATH = BASE_DIR + "un+st_relative_error_10.csv";
+    public final static String COMPARISON_PATH = BASE_DIR + "relative_error_20.csv";
 
     private void approximateCompare() {
 //        ExpResult noResult = ExpResult.load(NO_RESULT_PATH);
         ExpResult accurateResult = ExpResult.load(ACCURATE_RESULT_PATH);
-//        ExpResult adaResult = ExpResult.load(ADA_RESULT_PATH);
+//        ExpResult adaResult = ExpResult.load(VERDICT_RESULT_PATH);
         ExpResult verdictResult = ExpResult.load(VERDICT_RESULT_PATH);
 //        ExpResult verdictResult2 = ExpResult.load(VERDICT_RESULT_PATH2);
 //        ExpResult adaptiveResult = ExpResult.load(ADAPTIVE_RESULT_PATH);

@@ -13,7 +13,7 @@ import org.json.JSONObject;
 public class Exp5ResultComparison implements ExpRunnable {
     /*
     public final static String ACCURATE_RESULT_PATH = String.format("/tmp/ada/exp/exp5/accurate_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
-    public final static String ADA_RESULT_PATH = String.format("/tmp/ada/exp/exp5/ada_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
+    public final static String VERDICT_RESULT_PATH = String.format("/tmp/ada/exp/exp5/ada_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
     public final static String VERDICT_RESULT_PATH = String.format("/tmp/ada/exp/exp5/verdict_result_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
     public final static String COMPARISON_SAVE_PATH = String.format("/tmp/ada/exp/exp5/comparison_%d_%d_%d.csv", HOUR_START, HOUR_TOTAL, HOUR_INTERVAL);
     */

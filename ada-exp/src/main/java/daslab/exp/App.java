@@ -13,6 +13,8 @@ import daslab.exp16.Exp16StratifiedIncrement;
 import daslab.exp19.Exp19VarianceIncrement;
 import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
+import daslab.exp20.Exp20AdaResult;
+import daslab.exp20.Exp20VerdictResult;
 import daslab.exp3.*;
 import daslab.exp4.*;
 import daslab.exp5.*;
@@ -211,6 +213,14 @@ public class App {
                 case "exp19_variance_increment":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 19 for Variance Increment Result");
                     new Exp19VarianceIncrement().run(args);
+                    break;
+                case "exp20_ada_result":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 20 for Ada Result");
+                    new Exp20AdaResult().run(args);
+                    break;
+                case "exp20_verdict_result":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 20 for Verdict Result");
+                    new Exp20VerdictResult().run(args);
                     break;
             }
         }
