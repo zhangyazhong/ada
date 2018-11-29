@@ -15,6 +15,7 @@ import daslab.exp2.Exp2Core;
 import daslab.exp2.Exp2Sender;
 import daslab.exp20.Exp20AdaResult;
 import daslab.exp20.Exp20VerdictResult;
+import daslab.exp21.Exp21TimeCost;
 import daslab.exp3.*;
 import daslab.exp4.*;
 import daslab.exp5.*;
@@ -221,6 +222,10 @@ public class App {
                 case "exp20_verdict_result":
                     AdaLogger.info(this, "Ada Exp operation: Experiment 20 for Verdict Result");
                     new Exp20VerdictResult().run(args);
+                    break;
+                case "exp21_time_cost":
+                    AdaLogger.info(this, "Ada Exp operation: Experiment 21 for Time Cost");
+                    new Exp21TimeCost().run(args);
                     break;
             }
         }

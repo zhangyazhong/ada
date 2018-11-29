@@ -97,3 +97,9 @@ java -jar ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp8_zip
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://ubuntu1:7077 --class daslab.exp.App --driver-memory 64g ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp20_ada_result
 # run exp20 verdict result on wiki data
 ~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://ubuntu1:7077 --class daslab.exp.App --driver-memory 64g ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp20_verdict_result
+
+
+# run exp21 ada time cost on wiki data
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://ubuntu1:7077 --class daslab.exp.App --driver-memory 64g ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp21_time_cost exp.strategy ada
+# run exp21 resample time cost on wiki data
+~/spark-2.2.1-bin-hadoop2.7/bin/spark-submit --master spark://ubuntu1:7077 --class daslab.exp.App --driver-memory 64g ~/zyz/ada-exp-1.0-SNAPSHOT-jar-with-dependencies.jar exp21_time_cost exp.strategy resample
