@@ -47,7 +47,8 @@ public class Exp19VarianceIncrement extends ExpTemplate {
                     .start();
             for (int i = 0; i < 1; i++) {
                 String time = String.format("%02d~%02d", i, i);
-                String location = String.format(get("source.hdfs.location.pattern"), Integer.valueOf(get("exp.variance.increment").trim()));
+//                String location = String.format(get("source.hdfs.location.pattern"), Integer.valueOf(get("exp.variance.increment").trim()));
+                String location = "/zyz/variance/batchdata";
                 context.receive(location);
                 AdaLogger.info(this, "Send a new batch at " + location);
                 try {

@@ -7,8 +7,10 @@ import daslab.context.AdaContext;
 import daslab.utils.AdaLogger;
 import org.apache.commons.lang.StringUtils;
 
-import java.util.Map;
-import java.util.Set;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * @author zyz
@@ -46,6 +48,10 @@ public class TableMeta {
             metaInfo.e = e;
             return metaInfo;
         }
+
+        public void setN(double samplesize) { this.n = samplesize; }
+
+        public void setX(int samplesize) { this.x = samplesize; }
 
         public double getN() {
             return n;
@@ -138,8 +144,14 @@ public class TableMeta {
         }
     }
 
+    /**
+     * updated by zhb
+     * 2019-05-18
+     **/
     public TableMeta refresh(AdaBatch adaBatch) {
         double confidence = Double.parseDouble(context.get("query.confidence_internal_"));
+
+        // global statistical
         String sql = String.format("SELECT %s FROM %s.%s", metaClause,
                 adaBatch.getDbName(), adaBatch.getTableName());
         context.getDbmsSpark2().execute(sql);
@@ -169,6 +181,92 @@ public class TableMeta {
                 context.writeIntoReport("error-bound." + column.getColumnName(), errorBound);
             }
         }
+
+        //group statistical
+        String sampleName = "/home/scidb/zyz/tpch/10G/uniformsampleSQL";
+        String scoreName = "/home/scidb/zyz/tpch/10G/uniformscore";
+        Map<String, Double> sqlScoreMap = sqlScore(sampleName, scoreName);
+        Iterator<String> iterator = sqlScoreMap.keySet().iterator();
+        Map<Double, Double> groupSampleSizeMap = Maps.newHashMap();
+        while (iterator.hasNext()) {
+            String groupName = iterator.next();
+            Double score = sqlScoreMap.get(groupName);
+            if(score > 0) {
+                String tableGroupSql = String.format("SELECT %s FROM %s.%s where %s", metaClause,
+                        tableSchema.getDbName(), tableSchema.getTableName(), groupName);
+                context.getDbmsSpark2().execute(tableGroupSql);
+                long oldGroupCount = context.getDbmsSpark2().getResultAsLong(0, "count");
+                double maxGroupSampleSize = 0;
+                for (TableColumn column : tableSchema.getColumns()) {
+                    if (inspectingColumns.contains(column) && (column.getColumnType().isInt() || column.getColumnType().isDouble())) {
+                        double oldGroupVar = context.getDbmsSpark2().getResultAsDouble(0, "var_pop_" + column.getColumnName());
+                        double oldGroupSum = column.getColumnType().isDouble() ?
+                                context.getDbmsSpark2().getResultAsDouble(0, "sum_" + column.getColumnName()) :
+                                context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
+                        double oldGroupAvg = oldGroupSum / oldGroupCount;
+
+                        String batchGroupSql = String.format("SELECT %s FROM %s.%s where %s", metaClause,
+                                adaBatch.getDbName(), adaBatch.getTableName(), groupName);
+                        context.getDbmsSpark2().execute(batchGroupSql);
+                        long newGroupCount = context.getDbmsSpark2().getResultAsLong(0, "count");
+                        long totalGroupCount = newGroupCount + oldGroupCount;
+
+                        double newGroupVar = context.getDbmsSpark2().getResultAsDouble(0, "var_pop_" + column.getColumnName());
+                        double newGroupSum = column.getColumnType().isDouble() ?
+                                context.getDbmsSpark2().getResultAsDouble(0, "sum_" + column.getColumnName()) :
+                                context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
+                        double newGroupAvg = newGroupSum / newGroupCount;
+
+                        double totalGroupSum = newGroupSum + oldGroupSum;
+                        double totalGroupAvg = totalGroupSum / totalGroupCount;
+                        double totalGroupVar = (cardinality * (oldGroupVar + (totalGroupAvg - oldGroupAvg) * (totalGroupAvg - oldGroupAvg))
+                                + newCount * (newGroupVar + (totalGroupAvg - newGroupAvg) * (totalGroupAvg - newGroupAvg))) / totalGroupCount;
+
+                        double errorBound = tableMetaMap.get(column).getE();
+
+                        MetaInfo tempMetaInfo = MetaInfo.calc(column, totalGroupVar, totalGroupCount, totalGroupSum, errorBound, confidence);
+                        tempMetaInfo.setN(tempMetaInfo.getN() * totalCount / totalGroupCount);
+                        if(tempMetaInfo.getN() > maxGroupSampleSize) {
+                            maxGroupSampleSize = tempMetaInfo.getN();
+                        }
+                    }
+                }
+
+                if(groupSampleSizeMap.containsKey(maxGroupSampleSize)) {
+                    groupSampleSizeMap.put(maxGroupSampleSize, groupSampleSizeMap.get(maxGroupSampleSize) + score);
+                } else {
+                    groupSampleSizeMap.put(maxGroupSampleSize, score);
+                }
+            }
+        }
+
+        ArrayList<Map.Entry<Double, Double>> templist = new ArrayList<>();
+        for(Map.Entry<Double, Double> entry : groupSampleSizeMap.entrySet()){
+            templist.add(entry);
+        }
+        templist.sort((Comparator<Map.Entry<Double, Double>>) (o1, o2) -> {
+            if(o2.getValue() > o1.getValue())
+                return 1;
+            else
+                return -1;
+        });
+        double maxSampleSize = 0;
+        for(int i = 0;i < 5;i++) {
+            if(templist.get(i).getKey() > maxSampleSize) {
+                maxSampleSize = templist.get(i).getKey();
+            }
+        }
+
+        for (TableColumn column : tableSchema.getColumns()) {
+            if (inspectingColumns.contains(column) && (column.getColumnType().isInt() || column.getColumnType().isDouble())) {
+                if (batchMetaMap.get(column).getN() < maxSampleSize) {
+                    batchMetaMap.get(column).setN(maxSampleSize);
+                    batchMetaMap.get(column).setX((int) Math.floor(maxSampleSize));
+                    break;
+                }
+            }
+        }
+
         cardinality += newCount;
         tableMetaMap = batchMetaMap;
 
@@ -177,6 +275,47 @@ public class TableMeta {
 
         return this;
     }
+
+//
+//    public TableMeta refresh(AdaBatch adaBatch) {
+//        double confidence = Double.parseDouble(context.get("query.confidence_internal_"));
+//        String sql = String.format("SELECT %s FROM %s.%s", metaClause,
+//                adaBatch.getDbName(), adaBatch.getTableName());
+//        context.getDbmsSpark2().execute(sql);
+//        int newCount = adaBatch.getSize();
+//        long totalCount = newCount + cardinality;
+//        Map<TableColumn, MetaInfo> batchMetaMap = Maps.newHashMap();
+//        for (TableColumn column : tableSchema.getColumns()) {
+//            if (inspectingColumns.contains(column) && (column.getColumnType().isInt() || column.getColumnType().isDouble())) {
+//                double oldVar = tableMetaMap.get(column).getS2();
+//                double oldSum = tableMetaMap.get(column).getSum();
+//                double oldAvg = tableMetaMap.get(column).getAvg();
+//                double newVar = context.getDbmsSpark2().getResultAsDouble(0, "var_pop_" + column.getColumnName());
+//                double newSum = column.getColumnType().isDouble() ?
+//                        context.getDbmsSpark2().getResultAsDouble(0, "sum_" + column.getColumnName()) :
+//                        context.getDbmsSpark2().getResultAsLong(0, "sum_" + column.getColumnName());
+//                double newAvg = newSum / newCount;
+//                double totalSum = newSum + oldSum;
+//                double totalAvg = totalSum / totalCount;
+//                double totalVar = (cardinality * (oldVar + (totalAvg - oldAvg) * (totalAvg - oldAvg))
+//                        + newCount * (newVar + (totalAvg - newAvg) * (totalAvg - newAvg))) / totalCount;
+//                double errorBound = tableMetaMap.get(column).getE();
+//                batchMetaMap.put(column, MetaInfo.calc(column, totalVar, totalCount, totalSum, errorBound, confidence));
+//                AdaLogger.debug(this, "Batch[" + context.getBatchCount() + "] table meta[" + column.getColumnName() + "]: " + batchMetaMap.get(column).toString());
+//                // REPORT: table.variance.{column}
+//                context.writeIntoReport("table.variance." + column.getColumnName(), totalVar);
+//                // REPORT: error-bound.{column}
+//                context.writeIntoReport("error-bound." + column.getColumnName(), errorBound);
+//            }
+//        }
+//        cardinality += newCount;
+//        tableMetaMap = batchMetaMap;
+//
+//        AdaLogger.info(this, String.format("Table[%s] cardinality: %d", tableSchema.getTableName(), cardinality));
+//        context.set(tableSchema.getTableName() + "_cardinality", String.valueOf(cardinality));
+//
+//        return this;
+//    }
 
     private String metaClause() {
         StringBuilder selectClause = new StringBuilder(countClause("count")).append(", ");
@@ -214,5 +353,35 @@ public class TableMeta {
 
     private String countClause(String alias) {
         return "count(*) as " + alias;
+    }
+
+
+    private Map<String, Double> sqlScore(String sampleName, String scoreName){
+        Map<String, Double> sqlScoreMap = Maps.newHashMap();
+        try {
+            FileReader sqlFile = new FileReader(sampleName);
+            FileReader scoreFile = new FileReader(scoreName);
+            BufferedReader sqlReader = new BufferedReader(sqlFile);
+            BufferedReader scoreReader = new BufferedReader(scoreFile);
+            String str;
+            ArrayList<String> sqlList = new ArrayList<String>();
+            while((str=sqlReader.readLine())!= null) {
+                sqlList.add(str.replace('|', ' '));
+            }
+            ArrayList<Double> scoreList = new ArrayList<Double>();
+            while((str=scoreReader.readLine())!= null) {
+                scoreList.add(Double.parseDouble(str));
+            }
+            for(int i = 0;i < sqlList.size();i++) {
+                sqlScoreMap.put(sqlList.get(i), scoreList.get(i));
+            }
+            sqlFile.close();
+            scoreFile.close();
+            sqlReader.close();
+            scoreReader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return sqlScoreMap;
     }
 }
